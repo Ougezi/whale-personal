@@ -23,6 +23,7 @@ const features = require('../infra/features');
 const { matchMaster, isVerifiedOwner } = require('../core/master');
 const links = require('../adapters/links');
 const browser = require('../adapters/browser');
+const vision = require('../adapters/vision');
 const searchService = require('../services/search');
 const { LlmError } = require('../llm/client');
 const { describeError } = require('../infra/errors');
@@ -2125,7 +2126,10 @@ class Bot {
   /** 读一个链接并记账；失败也返回一句说明，绝不把异常抛给主流程 */
   async readLink(url, key) {
     const controller = new AbortController();
-    const budget = Math.max(1, Math.min(60000, Number(this.config.links?.timeoutMs) || 6000));
+    const isVideoLink = links.kindOf(url) === 'video';
+    const budget = isVideoLink
+      ? Math.max(30000, Math.min(60000, Number(this.config.links?.timeoutMs) || 6000))
+      : Math.max(1, Math.min(60000, Number(this.config.links?.timeoutMs) || 6000));
     let timer;
     try {
       this.logger?.info(`[link] stage=start host=${urlHost(url)} budgetMs=${budget}`);
@@ -2136,7 +2140,27 @@ class Bot {
           controller.abort();
         }, budget); }),
       ]);
-      const text = links.formatForPrompt(info);
+      let text = links.formatForPrompt(info);
+      // 视频链接：页面只有标题/文案时，再试着抽几帧让视觉模型看画面（抖音等 blob/MSE 会失败，如实降级）
+      if (isVideoLink) {
+        try {
+          const video = await browser.describeVideo(url, {
+            describeImage: async (b64) => vision.describe(this.config, {
+              imageBase64: b64,
+              mime: 'image/jpeg',
+              prompt: '这是视频里的一个画面。用一句话描述画面里有什么、人在做什么；看不清就直说。',
+            }),
+          });
+          if (video && video.ok && video.desc) {
+            text += '\n\n【视频画面】' + String(video.desc).slice(0, 600);
+            this.logger && this.logger.info(`[video] ${urlHost(url)} frames=${video.frames} ok`);
+          } else {
+            this.logger && this.logger.info(`[video] ${urlHost(url)} 没有画面：${(video && video.error) || '未知'}`);
+          }
+        } catch (err) {
+          this.logger && this.logger.warn('[video] 抽帧失败：' + describeError(err));
+        }
+      }
       this.logger && this.logger.info(`读取链接：host=${urlHost(url)} → ${info && info.ok ? 'ok' : (info && info.error) || 'failed'}`);
       const title = String((info && (info.title || info.site)) || '').slice(0, 60);
       this.store.appendEvent(key, {
