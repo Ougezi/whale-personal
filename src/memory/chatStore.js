@@ -360,6 +360,23 @@ class ChatStore {
     return chat.people.get(String(uid || 'anonymous')) || null;
   }
 
+  /** 外部任务改了磁盘上的卡之后，重新读进来（否则下一次 saveCard 会覆盖外部改动） */
+  reloadPeople(chat) {
+    if (!chat || !chat.dir) return 0;
+    const peopleDir = path.join(chat.dir, 'people');
+    let files = [];
+    try { files = fs.readdirSync(peopleDir).filter((n) => /^[0-9a-f]{16}\.json$/.test(n)); } catch { return 0; }
+    chat.people = new Map();
+    for (const file of files) {
+      const raw = readJson(path.join(peopleDir, file));
+      const expectedUid = raw && raw.uid;
+      if (!raw || personHash(String(expectedUid)) !== file.replace(/\.json$/, '')) continue;
+      const card = personCard.normalizeCard(raw, { chatId: chat.chatId, uid: expectedUid });
+      if (card) chat.people.set(String(card.uid), card);
+    }
+    return chat.people.size;
+  }
+
   saveCard(chat, card) {
     if (chat.deleted) return;
     const file = path.join(chat.dir, 'people', `${personHash(card.uid)}.json`);
@@ -386,7 +403,7 @@ class ChatStore {
       text: String(message.text == null ? '' : message.text).slice(0, 4000),
       ts: at,
     };
-    for (const key of ['msgId', 'addressedToBot', 'mentionedNames', 'inferredTargetNames', 'replyToName', 'replyToUserId', 'error', 'cleanText']) {
+    for (const key of ['msgId', 'addressedToBot', 'mentionedNames', 'inferredTargetNames', 'replyToName', 'replyToUserId', 'error', 'cleanText', 'isMaster', 'isGroup']) {
       if (message[key] !== undefined) entry[key] = message[key];
     }
     entry.tokens = messageTokens(entry);

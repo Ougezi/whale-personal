@@ -163,7 +163,7 @@ function careDue(config, { lastSentTs = 0, sentToday = 0, now = Date.now(), even
   // 缺了才说；状态读不出来时不拦（fail-open），宁可多说一句也不能突然沉默。
   const desire = careDesire(config, { care });
   const needy = !desire.enabled || desire.needy;
-  if (care.followDesire && !needy) {
+  if (care.followDesire && !needy && Number(eventScore) < 3) {
     return {
       due: false,
       reason: 'not_needy',

@@ -365,6 +365,7 @@ function baseline(now = Date.now()) {
     wants: baseWants(),
     scales,
     lastSpike,
+    extreme: null,
     version: VERSION,
     updated: now,
   };
@@ -470,6 +471,7 @@ function update(state, text, now = Date.now(), rng = Math.random) {
     wants,
     scales,
     lastSpike,
+    extreme: state && state.extreme ? state.extreme : null,
     version: VERSION,
     updated: now,
   };
@@ -558,8 +560,16 @@ function expressionFor(state) {
 /** 同向极端连续时加速回落：scales 越大挂越久，这里压到 0.8 */
 function dampIfExtreme(state) {
   const top = topEmotions(state, 1)[0];
-  if (!top || top.value < 0.8) return false;
-  if (state && state.scales) state.scales[top.name] = Math.min(Number(state.scales[top.name]) || 1, 0.8);
+  if (!top || top.value < 0.8) {
+    if (state) state.extreme = null;
+    return false;
+  }
+  const prev = state && state.extreme && state.extreme.name === top.name ? Number(state.extreme.count) || 0 : 0;
+  const count = prev + 1;
+  if (state) state.extreme = { name: top.name, count };
+  if (count < 3) return false;
+  // 连续第 3 次同向极端：这条情绪挂得更短（scale 越小衰减越快）
+  if (state.scales) state.scales[top.name] = Math.min(Number(state.scales[top.name]) || 1, 0.8);
   return true;
 }
 
@@ -611,8 +621,9 @@ function save(dir, state) {
 function tick({ dir, text = '', now = Date.now(), rng = Math.random }) {
   const prev = load(dir);
   const next = update(prev, text, now, rng);
+  const damped = dampIfExtreme(next);   // 连续 3 次同向极端 → 加速回落
   save(dir, next);
-  return { state: next, line: line(next) };
+  return { state: next, line: line(next), damped };
 }
 
 /** 只读预览：算出来但不落盘（调试台预览提示词时用，不能因为看一眼就改心情） */

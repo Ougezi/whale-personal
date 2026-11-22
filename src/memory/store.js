@@ -70,12 +70,13 @@ function activePreferenceTexts(card) {
 }
 
 class Store {
-  constructor({ file, dir, limits = {}, logger = null, now = Date.now, llm = null } = {}) {
+  constructor({ file, dir, limits = {}, logger = null, now = Date.now, llm = null, config = null } = {}) {
     this.file = file || path.resolve(process.cwd(), 'data', 'store.json');
     this.memoryDir = dir || path.join(path.dirname(this.file), 'memory');
     this.logger = logger;
     this.nowFn = typeof now === 'function' ? now : () => now;
     this.llm = llm;
+    this.config = config;
     this.limits = {
       maxSessions: Number(limits.maxSessions) || 200,
       maxMessages: Number(limits.maxMessages) || LIMITS.maxMessagesPerChat,
@@ -230,6 +231,15 @@ class Store {
   }
 
   /** 审计旁路：失败不影响主流程（S3） */
+  /** 外部任务（夜间睡眠）改过卡后刷新内存缓存 */
+  refreshCards() {
+    let n = 0;
+    try {
+      for (const chat of this.chatStore.chats.values()) n += this.chatStore.reloadPeople(chat);
+    } catch { /* 刷新失败不影响聊天 */ }
+    return n;
+  }
+
   _audit(entry) {
     try {
       const dir = this.config && this.config.paths && this.config.paths.dataDir;

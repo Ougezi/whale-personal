@@ -79,6 +79,8 @@ function createRuntime({ root = path.resolve(__dirname, '..'), env = process.env
     // 关系卡份额（120 token）跟着 features.relations 走：关掉就并回 recent
     limits: { ...(config.memory || {}), relationsEnabled: features.isOn(config, 'relations') },
     logger: child('memory'),
+    // 审计/跨会话全局记忆都要读 dataDir（2026-11-23 修：以前没传，两个功能静默失效）
+    config,
   });
   // 启动时先「忘」一遍：太久没被想起、又不重要的记忆沉到归档，别一直占着检索位
   try {
@@ -128,7 +130,7 @@ function createRuntime({ root = path.resolve(__dirname, '..'), env = process.env
   // 记忆睡眠（M3）：每天 4 点后整理一次，失败不影响聊天
   try {
     runtime.scheduler.every('memory.sleep', 30 * 60 * 1000, () => {
-      const r = require('./services/memorySleep').maybeRun({ dataDir: config.paths.dataDir, logger: child('sleep') });
+      const r = require('./services/memorySleep').maybeRun({ dataDir: config.paths.dataDir, logger: child('sleep'), store });
       if (r && r.ran) logger.info('记忆睡眠：卡片 ' + r.cards + ' 矛盾 ' + r.conflicted + ' 巩固 ' + r.consolidated + ' 晋升 ' + r.promoted + ' 洞察 ' + r.insights);
     });
   } catch { /* 定时器起不来不影响主流程 */ }

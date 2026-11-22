@@ -52,21 +52,21 @@ function walkCards(dataDir) {
 }
 
 /** 30 分钟一跳；同一天只跑一次，且 4 点后才跑 */
-function maybeRun({ dataDir, now = Date.now(), logger = null } = {}) {
+function maybeRun({ dataDir, now = Date.now(), logger = null, store = null } = {}) {
   if (!dataDir) return { ran: false, reason: 'no-data' };
   const day = dayKey(now);
   const prev = readJson(reportFile(dataDir));
   if (prev && prev.day === day) return { ...prev, ran: false, reason: 'already' };
   if (new Date(now).getHours() < 4) return { ran: false, reason: 'before-4' };
   try {
-    return run({ dataDir, now, logger });
+    return run({ dataDir, now, logger, store });
   } catch (err) {
     if (logger) logger.warn('记忆睡眠失败（不影响聊天）：' + (err && err.message ? err.message : String(err)));
     return { ran: false, reason: 'error' };
   }
 }
 
-function run({ dataDir, now = Date.now(), logger = null } = {}) {
+function run({ dataDir, now = Date.now(), logger = null, store = null } = {}) {
   const report = { day: dayKey(now), at: now, ran: true, cards: 0, conflicted: 0, consolidated: 0, promoted: 0, insights: 0 };
   const archive = [];
   for (const { file, card } of walkCards(dataDir)) {
@@ -116,6 +116,10 @@ function run({ dataDir, now = Date.now(), logger = null } = {}) {
   // 4) 洞察
   report.insights = buildInsights(dataDir, now);
   writeAtomic(reportFile(dataDir), JSON.stringify(report, null, 1));
+  // 卡是直接改磁盘的：不刷新内存缓存，下一条消息 saveCard 会把睡眠结果覆盖回去
+  if (store && typeof store.refreshCards === 'function') {
+    try { report.refreshed = store.refreshCards(); } catch { report.refreshed = 0; }
+  }
   return report;
 }
 

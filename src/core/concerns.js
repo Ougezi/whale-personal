@@ -5,6 +5,7 @@ const fs = require('node:fs');
 const path = require('node:path');
 
 const MAX_ITEMS = 50;
+const DEFAULT_TTL = 7 * 86400000;   // 牵挂默认 7 天后自动关（没提就当过去了）
 
 function fileOf(dataDir) { return path.join(dataDir, 'concerns.json'); }
 function load(dataDir) {
@@ -30,7 +31,7 @@ function add(dataDir, { text, kind = 'promise', dueAt = 0, now = Date.now() } = 
   const data = load(dataDir);
   const exist = data.items.find((x) => !x.closed && x.text === body);
   if (exist) return exist;
-  const item = { id: 'c_' + now.toString(36), text: body, kind, createdAt: now, dueAt, closed: false };
+  const item = { id: 'c_' + now.toString(36), text: body, kind, createdAt: now, dueAt: Number(dueAt) || (now + DEFAULT_TTL), closed: false };
   data.items = [...data.items, item].slice(-MAX_ITEMS);
   save(dataDir, data);
   return item;

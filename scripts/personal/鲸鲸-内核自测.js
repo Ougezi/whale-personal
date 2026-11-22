@@ -808,6 +808,76 @@ try {
   check('careDecide 透传', false, String(e && e.message).slice(0, 40));
 }
 
+// Store 集成回归（复核修复，2026-11-23）
+try {
+  const fsx = require('node:fs');
+  const osx = require('node:os');
+  const { Store } = require(path.join(ROOT, 'src', 'memory', 'store.js'));
+  const sroot = fsx.mkdtempSync(path.join(osx.tmpdir(), 'store-'));
+  const dataDir = path.join(sroot, 'data');
+  const store = new Store({
+    file: path.join(dataDir, 'store.json'),
+    dir: path.join(dataDir, 'memory'),
+    config: { paths: { dataDir } },
+    logger: null,
+  });
+  const key = 'wechat:u:u1';
+  store.appendMessage(key, { role: 'user', uid: 'u1', name: 'n', text: '我住在武汉，在光谷上班', isMaster: true, isGroup: false });
+  const msgs = store.messages(key, 5);
+  check('Store 集成：消息保留 isMaster', msgs.length >= 1 && msgs[0].isMaster === true, JSON.stringify(msgs[0] && msgs[0].isMaster));
+  const auditFile = path.join(dataDir, 'memory', 'audit.jsonl');
+  const auditText = fsx.existsSync(auditFile) ? fsx.readFileSync(auditFile, 'utf8') : '';
+  check('Store 集成：审计有写入', auditText.includes('"action":"add"'), auditText.slice(0, 60));
+  const gdir = path.join(dataDir, 'memory', 'people-global');
+  const gFiles = fsx.existsSync(gdir) ? fsx.readdirSync(gdir) : [];
+  check('Store 集成：全局记忆有写入', gFiles.length >= 1, String(gFiles.length));
+  // 牵挂默认 7 天过期
+  const concerns2 = require(path.join(ROOT, 'src', 'core', 'concerns.js'));
+  const croot = fsx.mkdtempSync(path.join(osx.tmpdir(), 'concern2-'));
+  const nowC = new Date(2026, 10, 23, 10, 0).getTime();
+  concerns2.add(croot, { text: '改天再说', now: nowC });
+  check('牵挂默认 7 天过期', concerns2.list(croot, { now: nowC + 8 * 86400000 }).length === 0, '');
+  // 极端情绪连续 3 次加速回落
+  const moodX = require(path.join(ROOT, 'src', 'core', 'mood.js'));
+  const stX = moodX.baseline(0);
+  stX.emotions = { 喜: 0, 怒: 0.9, 哀: 0, 惧: 0, 爱: 0, 恶: 0, 欲: 0 };
+  stX.scales = { 怒: 1.5 };
+  moodX.dampIfExtreme(stX); moodX.dampIfExtreme(stX);
+  check('极端情绪第三次加速回落', moodX.dampIfExtreme(stX) === true && stX.scales.怒 <= 0.8, String(stX.scales.怒));
+} catch (e) {
+  check('Store 集成', false, String(e && e.message).slice(0, 60));
+}
+
+// 睡眠后刷新缓存 + 事件分越过欲望闸门（复核修复，2026-11-23）
+try {
+  const fsx = require('node:fs');
+  const osx = require('node:os');
+  const { Store } = require(path.join(ROOT, 'src', 'memory', 'store.js'));
+  const rroot = fsx.mkdtempSync(path.join(osx.tmpdir(), 'refresh-'));
+  const rdata = path.join(rroot, 'data');
+  const st2 = new Store({ file: path.join(rdata, 'store.json'), dir: path.join(rdata, 'memory'),
+    config: { paths: { dataDir: rdata } }, logger: null });
+  const key2 = 'wechat:u:u1';
+  st2.appendMessage(key2, { role: 'user', uid: 'u1', name: '小明', text: '我叫小明', isMaster: true, isGroup: false });
+  const chat2 = st2.chatStore.chats.get(key2);
+  const beforeCard = chat2.people.get('u1');
+  if (beforeCard) beforeCard.nickname = '内存脏值';
+  st2.refreshCards();
+  const afterCard = chat2.people.get('u1');
+  check('刷新卡片缓存', Boolean(afterCard) && afterCard.nickname !== '内存脏值', String(afterCard && afterCard.nickname));
+  const careD2 = require(path.join(ROOT, 'src', 'services', 'care.js'));
+  const t0 = new Date(2026, 10, 23, 11, 0).getTime();
+  const cdir2 = fsx.mkdtempSync(path.join(osx.tmpdir(), 'care2-'));
+  fsx.writeFileSync(path.join(cdir2, 'mood.json'), JSON.stringify({ wants: { 见: 100, 听: 100, 香: 100, 味: 100, 触: 100, 意: 100 } }));
+  const cfg2 = { paths: { dataDir: cdir2 }, care: { enabled: true, everyMinutes: 1, followDesire: true,
+    whitelist: ['wxid_x'], allowOthers: true, onlyMaster: false } };
+  const noBoost = careD2.careDue(cfg2, { now: t0, eventScore: 0 });
+  const boost = careD2.careDue(cfg2, { now: t0, eventScore: 3 });
+  check('事件分越过欲望闸门', noBoost.due === false && boost.due === true, (noBoost.reason || '') + '/' + (boost.reason || ''));
+} catch (e) {
+  check('刷新卡片缓存', false, String(e && e.message).slice(0, 50));
+}
+
 console.log('\n通过 ' + pass + '/' + (pass + fail));
   process.exit(fail ? 1 : 0);
 })();
