@@ -87,6 +87,9 @@ namespace WhaleLauncher
                 // 个人版：开机自启（--autostart）时不用手点「启动」
                 if (App.StartRuntimeOnLaunch && !_sup.NodeRunning && !_sup.UpdateBlocked)
                     _ = _sup.StartAllAsync();
+                // 调试/验收：--market 直接打开插件市场（也方便截图）
+                if (Environment.GetCommandLineArgs().Any(a => string.Equals(a, "--market", StringComparison.OrdinalIgnoreCase)))
+                    Dispatcher.BeginInvoke(new Action(() => OnMarket(null, null)), System.Windows.Threading.DispatcherPriority.Background);
             };
             Closing += OnClosingDuringUpdate;
             Closed += (_, __) =>
@@ -461,6 +464,18 @@ namespace WhaleLauncher
         }
 
         private void OnAppearanceChanged() => ApplyAppearance();
+
+        private void OnMarket(object sender, RoutedEventArgs e)
+        {
+            try
+            {
+                new PluginMarketWindow(this).ShowDialog();
+            }
+            catch (Exception ex)
+            {
+                AppDialog.Show(this, "插件市场打不开：" + ex.Message, "插件市场");
+            }
+        }
 
         private void OnToggleTheme(object sender, RoutedEventArgs e)
         {
