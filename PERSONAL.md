@@ -55,6 +55,33 @@ dist/           本地便携版产物（不入库）
   实测：造一张写着「鲸鲸图片识别测试 / OCR fallback works 123」的图，无 Key 和坏地址两种情况下都正确读出。
 - 依赖：系统里要有 OCR 语言包（中文系统自带）；没有时返回空，仍会把原错误抛给调用方。
 
+## 浏览器与网页抓取（4.4.0）
+
+- `src/adapters/browser.js`：先 HTTP 直连（`links.describeLink`，快），正文 <160 字或失败时
+  起 **本机 headless Chrome/Edge**，用 **CDP**（`/json/new` + WebSocket → `Runtime.evaluate('document.body.innerText')`）
+  拿渲染后的正文。浏览器进程复用，空闲不关；私网地址默认拒绝。
+- `POST /api/fetch`（需 `x-bot-token`）→ `{ok,method,title,text}`，`mode:'browser'` 可强制走浏览器。
+  `GET /api/fetch/browser` 报告本机浏览器路径。
+- 聊天里「对方发链接」的读取链也接了浏览器兜底：直连拿不到正文就渲染一次再喂给提示词。
+- 实测：
+  - `https://example.com` → method=browser，911 字，首次 2.5s（启动浏览器），复用后 0.1s
+  - `https://www.baidu.com` → method=browser，237 字，title=百度一下，你就知道
+  - 无 token 调 `/api/fetch` → 401
+  - 私聊发 example.com 链接 → 她能说出「打开就是那个示例页」
+
+> 为什么用 CDP：这台机器的 Chrome 157 / Edge 的 `--dump-dom` 各种 headless 组合都输出 0 字节，
+> 但 remote debugging 正常，所以改走 CDP（Node 24 自带 WebSocket，不需要额外依赖）。
+
+### 使用方式
+
+```powershell
+$t = (Get-Content "<便携目录>\data\config.json" -Raw | ConvertFrom-Json).gateway.wechat.inboundToken
+Invoke-RestMethod "http://127.0.0.1:8787/api/fetch?token=$t" -Method Post -ContentType 'application/json' `
+  -Body '{"url":"https://example.com"}'            # 自动：直连优先，必要时渲染
+Invoke-RestMethod "http://127.0.0.1:8787/api/fetch?token=$t" -Method Post -ContentType 'application/json' `
+  -Body '{"url":"https://example.com","mode":"browser"}'   # 强制浏览器
+```
+
 ## 4.3.0：看图接口加锁 + 联网自我认知
 
 - `/api/vision`、`/api/vision/test` 现在校验 `x-bot-token`（也接受 `?token=` 或 body.token）：

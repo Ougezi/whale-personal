@@ -22,6 +22,7 @@ const persona = require('../persona');
 const features = require('../infra/features');
 const { matchMaster, isVerifiedOwner } = require('../core/master');
 const links = require('../adapters/links');
+const browser = require('../adapters/browser');
 const searchService = require('../services/search');
 const { LlmError } = require('../llm/client');
 const { describeError } = require('../infra/errors');
@@ -125,12 +126,23 @@ class Bot {
     this.now = now;
     this.rng = rng;
     this.mockChunkDelayMs = mockChunkDelayMs;
-    this.linkReader = linkReader || ((url, { signal } = {}) => links.describeLink(url, {
-      timeoutMs: (config.links && config.links.timeoutMs) || 6000,
-      cacheMinutes: (config.links && config.links.cacheMinutes) || 60,
-      allowPrivate: Boolean(config.links && config.links.allowPrivate),
-      signal,
-    }));
+    this.linkReader = linkReader || (async (url, { signal } = {}) => {
+      const info = await links.describeLink(url, {
+        timeoutMs: (config.links && config.links.timeoutMs) || 6000,
+        cacheMinutes: (config.links && config.links.cacheMinutes) || 60,
+        allowPrivate: Boolean(config.links && config.links.allowPrivate),
+        signal,
+      });
+      if (info && info.ok) return info;
+      // 直连拿不到正文（SPA / 需要 JS / 被拦）→ 用本机浏览器渲染一次
+      try {
+        const page = await browser.openPage(url, { timeoutMs: 9000 });
+        if (page && page.ok && page.text) {
+          return { ok: true, url, title: page.title || '', text: page.text, kind: 'page', via: page.method };
+        }
+      } catch { /* 浏览器也不通就把直连的结果交回去 */ }
+      return info;
+    });
     this.calibration = calibration || null;
     // 朋友圈快照：只在主人私聊问到朋友圈时读取，不参与普通记忆。
     this.moments = moments || null;
