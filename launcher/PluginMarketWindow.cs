@@ -44,6 +44,8 @@ namespace WhaleLauncher
         private string _category = "全部";
         private JsonElement? _open;
         private string _pendingId;
+        private List<string> _order = new();
+        private List<string> _pinned = new();
 
         public PluginMarketWindow(Window owner)
         {
@@ -158,6 +160,7 @@ namespace WhaleLauncher
                     var text = await _http.GetStringAsync(KernelBase + "/api/market/plugins");
                     _catalog?.Dispose();
                     _catalog = JsonDocument.Parse(text);
+                    await LoadOrder();
                     _open = null;
                     RenderChips();
                     RenderCards();
@@ -182,6 +185,74 @@ namespace WhaleLauncher
         {
             if (_catalog == null) yield break;
             foreach (var p in _catalog.RootElement.GetProperty("plugins").EnumerateArray()) yield return p;
+        }
+
+        private async Task LoadOrder()
+        {
+            try
+            {
+                var text = await GetJson("/api/market/order");
+                using var doc = JsonDocument.Parse(text);
+                _order = doc.RootElement.TryGetProperty("order", out var o) ? o.EnumerateArray().Select(x => x.GetString() ?? "").Where(x => x.Length > 0).ToList() : new List<string>();
+                _pinned = doc.RootElement.TryGetProperty("pinned", out var pi) ? pi.EnumerateArray().Select(x => x.GetString() ?? "").Where(x => x.Length > 0).ToList() : new List<string>();
+            }
+            catch { /* 没有排序文件就按默认顺序 */ }
+        }
+
+        private int OrderIndex(string id)
+        {
+            var i = _order.IndexOf(id);
+            if (i >= 0) return i;
+            return 1000 + _order.Count;
+        }
+
+        private List<JsonElement> OrderedPlugins()
+        {
+            var list = AllPlugins().ToList();
+            list.Sort((a, b) =>
+            {
+                var ida = a.GetProperty("id").GetString() ?? "";
+                var idb = b.GetProperty("id").GetString() ?? "";
+                var pa = _pinned.IndexOf(ida);
+                var pb = _pinned.IndexOf(idb);
+                if (pa >= 0 || pb >= 0)
+                {
+                    if (pa < 0) return 1;
+                    if (pb < 0) return -1;
+                    return pa.CompareTo(pb);
+                }
+                var c = OrderIndex(ida).CompareTo(OrderIndex(idb));
+                return c != 0 ? c : string.Compare(ida, idb, StringComparison.Ordinal);
+            });
+            return list;
+        }
+
+        private async Task SaveOrder()
+        {
+            var body = new JsonObjectLite();
+            body.SetArray("order", _order);
+            body.SetArray("pinned", _pinned);
+            await PostJson("/api/market/order", body);
+        }
+
+        private async Task MovePlugin(string id, int delta)
+        {
+            var ids = OrderedPlugins().Select(p => p.GetProperty("id").GetString() ?? "").ToList();
+            var idx = ids.IndexOf(id);
+            var to = idx + delta;
+            if (idx < 0 || to < 0 || to >= ids.Count) return;
+            (ids[idx], ids[to]) = (ids[to], ids[idx]);
+            _order = ids;
+            await SaveOrder();
+            RenderCards();
+        }
+
+        private async Task TogglePin(string id)
+        {
+            if (_pinned.Contains(id)) _pinned.Remove(id);
+            else _pinned.Insert(0, id);
+            await SaveOrder();
+            RenderCards();
         }
 
         // ── 分类 chips ─────────────────────────────────────────
@@ -210,7 +281,7 @@ namespace WhaleLauncher
             _crumb.Text = "全部插件 · 点卡片看功能";
             var panel = new WrapPanel();
             var q = _search.Text.Trim();
-            foreach (var p in AllPlugins())
+            foreach (var p in OrderedPlugins())
             {
                 var name = p.GetProperty("name").GetString() ?? "";
                 var desc = p.GetProperty("desc").GetString() ?? "";
@@ -248,6 +319,7 @@ namespace WhaleLauncher
             var grid = new Grid();
             grid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(44) });
             grid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
+            grid.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
 
             var badge = new Border { Width = 36, Height = 36, CornerRadius = new CornerRadius(8), VerticalAlignment = VerticalAlignment.Top };
             badge.SetResourceReference(Border.BackgroundProperty, "Bg");
@@ -272,6 +344,23 @@ namespace WhaleLauncher
             stack.Children.Add(meta);
             Grid.SetColumn(stack, 1);
             grid.Children.Add(stack);
+
+            var tools = new StackPanel { Orientation = Orientation.Vertical, VerticalAlignment = VerticalAlignment.Top, Margin = new Thickness(4, 0, 0, 0) };
+            var pin = new Button { Content = _pinned.Contains(id) ? "★" : "☆", Width = 22, Height = 20, FontSize = 10, Padding = new Thickness(0), ToolTip = "置顶/取消置顶" };
+            pin.SetResourceReference(StyleProperty, "Ghost");
+            pin.Click += async (_, e) => { e.Handled = true; await TogglePin(id); };
+            tools.Children.Add(pin);
+            var up = new Button { Content = "↑", Width = 22, Height = 20, FontSize = 10, Padding = new Thickness(0), ToolTip = "上移" };
+            up.SetResourceReference(StyleProperty, "Ghost");
+            up.Click += async (_, e) => { e.Handled = true; await MovePlugin(id, -1); };
+            tools.Children.Add(up);
+            var down = new Button { Content = "↓", Width = 22, Height = 20, FontSize = 10, Padding = new Thickness(0), ToolTip = "下移" };
+            down.SetResourceReference(StyleProperty, "Ghost");
+            down.Click += async (_, e) => { e.Handled = true; await MovePlugin(id, 1); };
+            tools.Children.Add(down);
+            Grid.SetColumn(tools, 2);
+            grid.Children.Add(tools);
+
             card.Child = grid;
             card.MouseLeftButtonUp += (_, __) => OpenDetail(p);
             return card;
@@ -320,6 +409,30 @@ namespace WhaleLauncher
             headGrid.Children.Add(info);
             _detail.Children.Add(headGrid);
 
+            // 插件介绍
+            var intro = p.TryGetProperty("intro", out var it) ? it.GetString() : "";
+            if (!string.IsNullOrEmpty(intro))
+            {
+                _detail.Children.Add(new TextBlock { Text = "插件介绍", FontSize = 13, FontWeight = FontWeights.SemiBold, Margin = new Thickness(0, 4, 0, 6) });
+                _detail.Children.Add(new TextBlock { Text = intro, TextWrapping = TextWrapping.Wrap, Opacity = 0.78, Margin = new Thickness(0, 0, 0, 10) });
+            }
+            if (p.TryGetProperty("highlights", out var hl) && hl.ValueKind == JsonValueKind.Array)
+            {
+                _detail.Children.Add(new TextBlock { Text = "亮点", FontSize = 13, FontWeight = FontWeights.SemiBold, Margin = new Thickness(0, 0, 0, 6) });
+                foreach (var item in hl.EnumerateArray())
+                {
+                    _detail.Children.Add(new TextBlock { Text = "· " + (item.GetString() ?? ""), TextWrapping = TextWrapping.Wrap, Opacity = 0.72, Margin = new Thickness(0, 0, 0, 4) });
+                }
+                _detail.Children.Add(new TextBlock { Margin = new Thickness(0, 0, 0, 8) });
+            }
+
+            // 写操作开关：只属于「刷抖音」，放在功能列表前面，不用滚到底才看见
+            if (string.Equals(p.GetProperty("id").GetString(), "douyin-watch", StringComparison.OrdinalIgnoreCase))
+            {
+                _detail.Children.Add(BuildOpsCard());
+                _ = LoadOps();
+            }
+
             // 功能列表
             _detail.Children.Add(new TextBlock { Text = "功能", FontSize = 13, FontWeight = FontWeights.SemiBold, Margin = new Thickness(0, 4, 0, 8) });
             var features = new StackPanel();
@@ -331,13 +444,6 @@ namespace WhaleLauncher
                 }
             }
             _detail.Children.Add(features);
-
-            // 写操作开关：只属于「刷抖音」这个插件
-            if (string.Equals(p.GetProperty("id").GetString(), "douyin-watch", StringComparison.OrdinalIgnoreCase))
-            {
-                _detail.Children.Add(BuildOpsCard());
-                _ = LoadOps();
-            }
 
             _body.Content = _detail;
             _body.ScrollToTop();
@@ -563,6 +669,7 @@ namespace WhaleLauncher
             public void Set(string key, string value) => Store(key, JsonSerializer.Serialize(value));
             public void Set(string key, bool value) => Store(key, value ? "true" : "false");
             public void Set(string key, int value) => Store(key, value.ToString());
+            public void SetArray(string key, IEnumerable<string> values) => Store(key, JsonSerializer.Serialize(values.ToArray()));
             private void Store(string key, string json)
             {
                 using var doc = JsonDocument.Parse(json);
