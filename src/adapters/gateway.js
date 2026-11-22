@@ -159,7 +159,7 @@ class Gateway {
    */
   bridgeStatus() {
     const ageSec = this.bridge.lastSeen ? Math.round((Date.now() - this.bridge.lastSeen) / 1000) : null;
-    const online = ageSec !== null && ageSec <= 45;
+    const online = ageSec !== null && ageSec <= 120;
     return {
       online,
       uia: online ? this.bridge.uia : null,
@@ -347,7 +347,7 @@ class Gateway {
   status() {
     const ageSec = this.bridge.lastSeen ? Math.round((Date.now() - this.bridge.lastSeen) / 1000) : null;
     // 20 秒一次心跳，45 秒没动静就算掉线（给一点网络抖动余量）
-    const online = ageSec !== null && ageSec <= 45;
+    const online = ageSec !== null && ageSec <= 120;
     return {
       platform: this.platform,
       enabled: Boolean(this.options.enabled),
