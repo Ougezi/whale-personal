@@ -849,9 +849,10 @@ class Bot {
     // 主人分享的内容读到了 → 好奇被满足（意 +13~17，中点 15），和自主上网的 33~37 分开算
     if (linkText && isMaster) {
       try {
-        const ownerLearn = browseCore.writeBackFor('', { rng: this.rng, source: 'owner' });
         const ownerDir = this.config.paths?.dataDir || path.join(process.cwd(), 'data');
-        mood.nudge(ownerDir, { wants: ownerLearn.wants, now: nowMs, rng: this.rng });
+        const learned = mood.bumpLearn(ownerDir, 'owner', { now: nowMs, rng: this.rng });
+        this.logger && this.logger.info('[learn] owner count=' + learned.count + '/' + learned.cap
+          + (learned.capped ? '（今天到上限了）' : ' +' + learned.gain));
       } catch (err) {
         this.logger?.warn?.('主人分享：写回好奇失败（' + describeError(err) + '）');
       }

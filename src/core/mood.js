@@ -165,6 +165,15 @@ const WANT_BASE = Object.freeze({ 见: 60, 听: 60, 香: 60, 味: 60, 触: 60, �
 /** 六欲上限：250（200 太容易被刷满，尤其是意） */
 const WANT_MAX = 250;
 
+/**
+ * 学习：次数上限 + 每次增量（增量是区间，上限是「次数」不是数值）
+ *  - 自主刷抖音/上网：每天最多 200 次计学习
+ *  - 主人分享：每天最多 100 次计学习
+ * 超过次数上限不再涨「意」，但仍可继续看/分享。
+ */
+const LEARN_CAP = Object.freeze({ auto: 200, owner: 100 });
+const LEARN_GAIN = Object.freeze({ auto: [25, 50], owner: [10, 20] });
+
 /** 每小时掉多少（区间） */
 const WANT_DECAY_RANGE = Object.freeze({
   见: [3.6, 4.4],
@@ -258,6 +267,49 @@ function neediest(state, threshold = 30) {
   if (!list.length) return { needy: false, want: null, value: null, line: '' };
   const top = list[0];
   return { needy: true, want: top.name, value: top.value, line: WANT_LINES[top.name] };
+}
+
+/* ------------------------------------------------------------------ 学习 */
+
+function dayKey(now = Date.now()) {
+  const d = new Date(Number(now) || Date.now());
+  const pad = (n) => String(n).padStart(2, '0');
+  return d.getFullYear() + '-' + pad(d.getMonth() + 1) + '-' + pad(d.getDate());
+}
+
+function learnOf(state, now = Date.now()) {
+  const day = dayKey(now);
+  const src = state && typeof state === 'object' && state.learn && typeof state.learn === 'object' ? state.learn : null;
+  const same = src && src.day === day;
+  return {
+    day,
+    auto: same ? Math.max(0, Math.round(Number(src.auto) || 0)) : 0,
+    owner: same ? Math.max(0, Math.round(Number(src.owner) || 0)) : 0,
+  };
+}
+
+/**
+ * 记一次学习：先看当天次数有没有到上限，没到才按区间涨「意」。
+ * source: 'auto'（自主上网/刷抖音）| 'owner'（主人分享）
+ * 返回 { ok, source, count, cap, gain, capped, want }
+ */
+function bumpLearn(dir, source, { now = Date.now(), rng = Math.random } = {}) {
+  const key = source === 'owner' ? 'owner' : 'auto';
+  const prev = load(dir);
+  const base = decay(prev, now, rng);
+  const learn = learnOf(prev, now);
+  const cap = LEARN_CAP[key];
+  if (learn[key] >= cap) {
+    save(dir, { ...prev, ...base, learn, updated: now, version: VERSION });
+    return { ok: false, capped: true, source: key, count: learn[key], cap, gain: 0, want: base.wants['意'] || 0 };
+  }
+  learn[key] += 1;
+  const gain = Math.round(rand(rng, LEARN_GAIN[key][0], LEARN_GAIN[key][1]));
+  const wants = { ...base.wants };
+  wants['意'] = Math.round(clamp((wants['意'] || 0) + gain, 0, WANT_MAX));
+  const next = { ...prev, ...base, wants, learn, updated: now, version: VERSION };
+  save(dir, next);
+  return { ok: true, capped: false, source: key, count: learn[key], cap, gain, want: wants['意'] };
 }
 
 /* ------------------------------------------------------------ 耦合 / 反刍 */
@@ -546,6 +598,11 @@ module.exports = {
   WANTS,
   WANT_MAX,
   PRESSURE_ANGER_RANGE,
+  LEARN_CAP,
+  LEARN_GAIN,
+  learnOf,
+  bumpLearn,
+  dayKey,
   WANT_BASE,
   WANT_DECAY_RANGE,
   WANT_FEED_RANGE,
