@@ -1,0 +1,29 @@
+<UserControl x:Class="WhaleLauncher.Views.ChatPolicyWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Height="500" Foreground="{DynamicResource Text}" FontFamily="Microsoft YaHei UI, Segoe UI">
+    <DockPanel Margin="20,16">
+        <DockPanel DockPanel.Dock="Bottom" Margin="0,12,0,0">
+            <TextBlock x:Name="StatusText" Style="{StaticResource Small}" TextWrapping="Wrap"
+                       Margin="0,0,12,0" VerticalAlignment="Center" />
+        </DockPanel>
+        <ScrollViewer VerticalScrollBarVisibility="Auto">
+            <StackPanel Margin="0,0,10,0">
+                <TextBlock Text="发言范围" Style="{StaticResource H2}" />
+                <TextBlock Text="名单按微信会话生效，适用于回复、主动搭话和提醒。两份名单同时选中一个会话时，黑名单优先。"
+                           Style="{StaticResource Small}" TextWrapping="Wrap" Margin="0,6,0,4" />
+                <TextBlock Text="搜索后直接勾选，勾一下就会保存。"
+                           Style="{StaticResource Small}" TextWrapping="Wrap" Margin="0,0,0,12" />
+
+                <TextBlock Text="黑名单" Style="{StaticResource Label}" Margin="0,0,0,6" />
+                <ContentControl x:Name="MutedHost" />
+
+                <TextBlock Text="白名单" Style="{StaticResource Label}" Margin="0,18,0,6" />
+                <CheckBox x:Name="WhitelistOnly" Content="仅允许白名单会话发言" Margin="0,0,0,6" Click="OnWhitelistOnly" />
+                <TextBlock Text="打开后，空白名单会暂停所有会话的发言。关闭时，白名单仅筛选主动搭话对象。"
+                           Style="{StaticResource Small}" TextWrapping="Wrap" Margin="0,0,0,8" />
+                <ContentControl x:Name="WhitelistHost" />
+            </StackPanel>
+        </ScrollViewer>
+    </DockPanel>
+</UserControl>

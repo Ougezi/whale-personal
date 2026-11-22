@@ -1,0 +1,187 @@
+'use strict';
+
+/**
+ * 主动搭话的目标判定（白名单 + 三个开关 + 时间段 + 忙碌）。
+ * 现场问题：三个选项和时间段「改了没反应」，根因是桥接侧自己又判一遍，
+ * 而且 master.wxids 为空会把所有目标筛掉。现在判定只在服务端做一次。
+ */
+const test = require('node:test');
+const assert = require('node:assert/strict');
+const fs = require('node:fs');
+const os = require('node:os');
+const path = require('node:path');
+
+const { loadConfig } = require('../src/infra/config');
+const { ContactsCache, normalizeItem } = require('../src/services/contacts');
+const care = require('../src/services/care');
+
+// 默认夹具固定在 UTC 中午，避免实际执行时刻改变时间窗与目标断言。
+const FIXTURE_NOW = Date.UTC(2026, 0, 1, 12, 0, 0);
+
+function fixture(t, patch = {}) {
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'whale-care-'));
+  t.after(() => fs.rmSync(dir, { recursive: true, force: true, maxRetries: 6, retryDelay: 60 }));
+  fs.writeFileSync(path.join(dir, 'config.json'), JSON.stringify({ server: { port: 0, openBrowser: false } }));
+  const config = loadConfig({ root: dir, env: {} });
+  config.env = { ...config.env, timezone: 'UTC' };
+  config.persona.master = { names: ['测试主人'], wxids: ['wxid_master'] };
+  config.care = { ...config.care, enabled: true, windows: ['00:00-23:59'], everyMinutes: 1, jitterMinutes: 0, maxPerDay: 0, ...patch };
+  const contacts = new ContactsCache(config);
+  contacts.sync({
+    account: 'wxid_master',
+    items: [
+      { wxid: 'wxid_master', name: '测试主人' },
+      { wxid: 'filehelper', name: '文件传输助手' },
+      { wxid: 'wxid_other', name: '路人' },
+      { wxid: '1@chatroom', name: '深海鱼塘', isGroup: true },
+    ],
+  });
+  return { dir, config, contacts };
+}
+
+const decide = (config, contacts, opts = {}) => care.careDecide(config, {
+  contacts, lastSentTs: 0, sentToday: 0, now: FIXTURE_NOW, ...opts,
+});
+
+test('白名单默认只找主人，关掉限制才加入文件传输助手', () => {
+  const config = { persona: { master: { wxids: ['wxid_master'], names: [] } }, care: {} };
+  assert.deepEqual(care.defaultWhitelist(config), ['wxid_master']);
+  assert.deepEqual(care.careWhitelist(config), ['wxid_master']);
+  config.care.onlyMaster = false;
+  assert.deepEqual(care.careWhitelist(config), ['wxid_master', 'filehelper']);
+});
+
+test('wxids 为空时按昵称认主人，不再一个目标都发不出去', (t) => {
+  const { config, contacts } = fixture(t);
+  config.persona.master = { names: ['测试主人'], wxids: [] };
+  const out = decide(config, contacts);
+  assert.equal(out.due, true);
+  assert.equal(out.target.wxid, 'wxid_master');
+  assert.equal(out.target.kind, 'master');
+});
+
+test('默认只找主人：白名单里的非主人私聊不会成为目标', (t) => {
+  const { config, contacts } = fixture(t, { whitelist: ['wxid_other', 'filehelper'] });
+  const out = decide(config, contacts);
+  assert.equal(out.due, false);
+  assert.equal(out.reason, 'whitelist_filtered');
+});
+
+test('允许主动找别人后，白名单里的非主人私聊才可用', (t) => {
+  const { config, contacts } = fixture(t, { whitelist: ['wxid_other'], onlyMaster: false, allowOthers: true });
+  const out = decide(config, contacts);
+  assert.equal(out.target.wxid, 'wxid_other');
+  assert.equal(out.target.kind, 'other');
+});
+
+test('群默认不主动，开了「允许进群」才可用', (t) => {
+  const base = fixture(t, { whitelist: ['1@chatroom'] });
+  assert.equal(decide(base.config, base.contacts).reason, 'whitelist_filtered');
+  const withGroups = fixture(t, { whitelist: ['1@chatroom'], onlyMaster: false, allowGroups: true });
+  const out = decide(withGroups.config, withGroups.contacts);
+  assert.equal(out.target.wxid, '1@chatroom');
+  assert.equal(out.target.isGroup, true);
+});
+
+test('时间段外不发（并给出 out_of_window）', (t) => {
+  const { config, contacts } = fixture(t, { windows: ['03:00-04:00'] });
+  const out = decide(config, contacts);
+  assert.equal(out.due, false);
+  assert.equal(out.reason, 'out_of_window');
+});
+
+test('时间窗边界：窗前和窗后不发，起点到终点前可以发', (t) => {
+  const { config, contacts } = fixture(t, { windows: ['03:00-04:00'] });
+  for (const [hour, minute, due] of [[2, 59, false], [3, 0, true], [3, 30, true], [3, 59, true], [4, 0, false], [4, 1, false]]) {
+    const out = decide(config, contacts, { now: Date.UTC(2026, 0, 1, hour, minute) });
+    assert.equal(out.due, due, `${hour}:${minute} UTC`);
+    assert.equal(out.reason, due ? 'ok' : 'out_of_window');
+    assert.equal(out.target?.wxid || null, due ? 'wxid_master' : null);
+  }
+});
+
+test('显式时区：同一时刻按配置的本地时间窗判断', (t) => {
+  const { config, contacts } = fixture(t, { windows: ['03:00-04:00'] });
+  for (const [timezone, now, due] of [
+    ['UTC', Date.UTC(2026, 0, 1, 3, 30), true],
+    ['Asia/Shanghai', Date.UTC(2026, 0, 1, 3, 30), false],
+    ['Asia/Shanghai', Date.UTC(2026, 0, 1, 19, 30), true],
+    ['UTC', Date.UTC(2026, 0, 1, 19, 30), false],
+  ]) {
+    config.env.timezone = timezone;
+    const out = decide(config, contacts, { now });
+    assert.equal(out.due, due, `${timezone} at ${new Date(now).toISOString()}`);
+    assert.equal(out.reason, due ? 'ok' : 'out_of_window');
+    assert.equal(out.target?.wxid || null, due ? 'wxid_master' : null);
+  }
+});
+
+test('白名单里的人都在聊 → all_busy，不打扰', (t) => {
+  const { config, contacts } = fixture(t);
+  const out = decide(config, contacts, { activeWxids: ['wxid_master', 'filehelper'] });
+  assert.equal(out.due, false);
+  assert.equal(out.reason, 'all_busy');
+});
+
+test('被三个开关全筛掉时，reason 是 whitelist_filtered（不再静默）', (t) => {
+  const { config, contacts } = fixture(t, { whitelist: ['wxid_other', '1@chatroom'] });
+  const out = decide(config, contacts);
+  assert.equal(out.due, false);
+  assert.equal(out.reason, 'whitelist_filtered');
+});
+
+test('总开关关掉就不发', (t) => {
+  const { config, contacts } = fixture(t, { enabled: false });
+  assert.equal(decide(config, contacts).reason, 'disabled');
+});
+
+/* ---------------- 联系人缓存 ---------------- */
+
+test('联系人缓存能存能查，群按 wxid 后缀识别', (t) => {
+  const { config, contacts } = fixture(t);
+  assert.equal(contacts.get('wxid_master').name, '测试主人');
+  assert.equal(contacts.search('测试')[0].wxid, 'wxid_master');
+  assert.equal(contacts.search('', { type: 'group' }).length, 1);
+  assert.equal(contacts.search('', { type: 'user' }).length, 3);
+  assert.equal(contacts.payload({ q: '鱼塘' }).items[0].wxid, '1@chatroom');
+});
+
+test('白名单/主人填成账号目录名（多 4 位哈希）也能认出主人和昵称', (t) => {
+  // 启动器账号列表给的是 wxid_master_c248，联系人缓存里存的是 wxid_master。
+  // 以前 careTargets 拿目录名查不到名字，只能把 wxid 当会话名交给桥接，
+  // 桥接就会拿 wxid 去搜会话（2026-11-08 21:35 卡死的直接原因）。
+  const { config, contacts } = fixture(t);
+  assert.equal(contacts.get('wxid_master_c248').name, '测试主人');
+  config.persona.master = { names: [], wxids: ['wxid_master_c248'] };
+  const out = decide(config, contacts);
+  assert.equal(out.due, true);
+  assert.equal(out.target.wxid, 'wxid_master_c248');
+  assert.equal(out.target.kind, 'master');
+  assert.equal(out.target.name, '测试主人', '要能解析成昵称，不能把 wxid 当名字');
+});
+
+test('联系人缓存落盘后能重新读出来（原子写）', (t) => {
+  const { config, contacts } = fixture(t);
+  const again = new ContactsCache(config);
+  assert.equal(again.items.length, contacts.items.length);
+  assert.equal(again.account, 'wxid_master');
+});
+
+test('未同步时返回空列表而不是报错', (t) => {
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'whale-contacts-'));
+  t.after(() => fs.rmSync(dir, { recursive: true, force: true, maxRetries: 6, retryDelay: 60 }));
+  fs.writeFileSync(path.join(dir, 'config.json'), JSON.stringify({ server: { port: 0 } }));
+  const config = loadConfig({ root: dir, env: {} });
+  const cache = new ContactsCache(config);
+  const payload = cache.payload({ q: '' });
+  assert.equal(payload.ok, true);
+  assert.deepEqual(payload.items, []);
+  assert.equal(payload.updatedAt, 0);
+});
+
+test('联系人字段会做规范化，缺 wxid 的直接丢', () => {
+  assert.equal(normalizeItem({ name: '没有 id' }), null);
+  const item = normalizeItem({ username: '2@chatroom', nick_name: '群', remark: '' });
+  assert.equal(item.isGroup, true);
+  assert.equal(item.label, '群');
+});
