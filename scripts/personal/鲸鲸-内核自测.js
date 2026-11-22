@@ -397,9 +397,17 @@ try {
   // BUG 回归：写回必须跟着那句话的情绪走，不能一律加"喜"
   const neg = browse.writeBackFor('这事我真没法接受，太不尊重人了。', { rng: () => 0.5 });
   check('负面内容不涨喜', !Object.prototype.hasOwnProperty.call(neg.emotions, '喜'), JSON.stringify(neg.emotions));
-  check('自主上网好奇固定给意 35', neg.wants.意 === 35, String(neg.wants.意));
-  const ownerShare = browse.writeBackFor('', { rng: () => 0.5, source: 'owner' });
-  check('主人分享好奇固定给意 15', ownerShare.wants.意 === 15, String(ownerShare.wants.意));
+  // 35 / 15 是上限：抽样必须落在 [上限的一半, 上限] 且真的在浮动（不是固定值）
+  const autoSamples = Array.from({ length: 200 }, () => browse.writeBackFor('', { rng: Math.random, source: 'auto' }).wants.意);
+  check('自主上网好奇 ≤35 且浮动', autoSamples.every((v) => v >= 18 && v <= 35) && new Set(autoSamples).size > 3,
+    Math.min(...autoSamples) + '~' + Math.max(...autoSamples));
+  const ownerSamples = Array.from({ length: 200 }, () => browse.writeBackFor('', { rng: Math.random, source: 'owner' }).wants.意);
+  check('主人分享好奇 ≤15 且浮动', ownerSamples.every((v) => v >= 8 && v <= 15) && new Set(ownerSamples).size > 3,
+    Math.min(...ownerSamples) + '~' + Math.max(...ownerSamples));
+  // 六欲上限 250（超出要夹住）
+  const capDir = require('node:fs').mkdtempSync(require('node:path').join(require('node:os').tmpdir(), 'mood-cap-'));
+  mood5.nudge(capDir, { wants: { 意: 400 }, now: 1060000 });
+  check('六欲上限 250', mood5.load(capDir).wants.意 === 250, String(mood5.load(capDir).wants.意));
   const warm = browse.writeBackFor('好想被抱一下', { rng: () => 0.5 });
   check('亲昵的话喂到触', (warm.wants.触 || 0) > 0, JSON.stringify(warm.wants));
   // BUG 回归：关键词误报（自主上网拿这些正则读新闻标题时暴露）
