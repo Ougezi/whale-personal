@@ -1,6 +1,6 @@
 {
-    "latest":  "4.6.3",
-    "released_at":  "2026-11-22T12:36:31Z",
+    "latest":  "4.6.4",
+    "released_at":  "2026-11-22T12:48:25Z",
     "force_after_hours":  0,
     "force":  false,
     "force_from":  null,
@@ -8,13 +8,13 @@
 
                        ],
     "kill_below":  null,
-    "message":  "鲸鲸 · 个人版 4.6.3：学习增量改为上限语义（18~35 / 8~15）+ 六欲上限 250 + 清理三处歧义",
-    "manifest_version":  4,
+    "message":  "鲸鲸 · 个人版 4.6.4：学习改成次数上限（自主 200/天、主人 100/天），每次 +25~50 / +10~20",
+    "manifest_version":  5,
     "channel":  "personal",
     "update_warning":  "",
     "update_warning_version":  "",
     "epoch":  1,
-    "brand_latest":  "4.6.3",
-    "target":  "4.6.3",
+    "brand_latest":  "4.6.4",
+    "target":  "4.6.4",
     "release_notes":  "- 情绪：三轴 + 七情（各自半衰期）+ 六欲（会饿）+ 耦合与反刍，增量与衰减都是区间随机\n- 念头流：3~5 条短念头跨轮携带、3 小时淡掉；可选模型生成（默认 30 分钟一条）\n- 自主上网：每 180 分钟刷一条热榜，用自己的话说一句并写回情绪；微信私聊说「去看看」也能触发\n- 主动搭话：到点 + 真缺了才开口（care.followDesire），状态文件读不到时放行\n- 更新渠道：改为本仓库（Ougezi/whale-personal），不再跟随官方发版"
 }
