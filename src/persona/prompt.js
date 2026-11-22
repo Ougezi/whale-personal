@@ -407,7 +407,7 @@ function stickerCapability(config, msg) {
   if (msg.platform !== 'wechat' || !features.isOn(config, 'stickers')) return '';
   const usable = stickers.promptCategories(config, config.root).filter((c) => c.count > 0);
   const lines = [
-    '【表情包】当前微信通道具备真实的图片/动图附件发送能力，可由桥接发送本地表情包；不要否认这项能力。',
+    '【只用自己的表情库】发图只用你表情库里的分类（开心/傲娇/炸毛等）；不要发系统搜图下载的拼图、网图或多格表情图。主人明确说「搜一张图」时才走搜图。\n【表情包】当前微信通道具备真实的图片/动图附件发送能力，可由桥接发送本地表情包；不要否认这项能力。',
     '你聊天时爱用表情包接话：对方在笑、分享好事、夸你 → 开心；撒娇、嘴硬、逗你 → 傲娇；损你、抬杠、惹你 → 炸毛。',
     '自定义分类按名字理解，名字起得越具体越好懂；看不出用途的就别选。',
     '想发就在整段回复的最末尾单独写一个标记 [[sticker:分类名]]，程序会把标记剥掉并另发一张图；一条回复最多写一个标记。',

@@ -1,6 +1,6 @@
 {
-    "latest":  "4.6.7",
-    "released_at":  "2026-11-22T13:33:09Z",
+    "latest":  "4.6.8",
+    "released_at":  "2026-11-22T13:45:09Z",
     "force_after_hours":  0,
     "force":  false,
     "force_from":  null,
@@ -8,13 +8,13 @@
 
                        ],
     "kill_below":  null,
-    "message":  "鲸鲸 · 个人版 4.6.7：抖音图文去重+轮播读全、发送回执规则、bridgeStatus 容忍 120s",
-    "manifest_version":  8,
+    "message":  "鲸鲸 · 个人版 4.6.8：表情包只用本地库，隐藏「搜来的」网图分类",
+    "manifest_version":  9,
     "channel":  "personal",
     "update_warning":  "",
     "update_warning_version":  "",
     "epoch":  1,
-    "brand_latest":  "4.6.7",
-    "target":  "4.6.7",
+    "brand_latest":  "4.6.8",
+    "target":  "4.6.8",
     "release_notes":  "- 情绪：三轴 + 七情（各自半衰期）+ 六欲（会饿）+ 耦合与反刍，增量与衰减都是区间随机\n- 念头流：3~5 条短念头跨轮携带、3 小时淡掉；可选模型生成（默认 30 分钟一条）\n- 自主上网：每 180 分钟刷一条热榜，用自己的话说一句并写回情绪；微信私聊说「去看看」也能触发\n- 主动搭话：到点 + 真缺了才开口（care.followDesire），状态文件读不到时放行\n- 更新渠道：改为本仓库（Ougezi/whale-personal），不再跟随官方发版"
 }
