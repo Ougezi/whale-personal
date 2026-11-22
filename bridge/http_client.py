@@ -18,6 +18,8 @@ class ThreadLocalHTTP:
 
     def __init__(self):
         self._local = threading.local()
+        # 本机内核的 /api/vision 现在也校验 token；统一给每个 Session 带上
+        self.default_headers = {}
         self._all = []
         self._guard = threading.Lock()
 
@@ -26,6 +28,8 @@ class ThreadLocalHTTP:
         if s is None:
             s = requests.Session()
             s.trust_env = False          # 本机请求不读系统代理
+            if self.default_headers:
+                s.headers.update(self.default_headers)
             self._local.session = s
             with self._guard:
                 self._all.append(s)

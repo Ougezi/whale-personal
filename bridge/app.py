@@ -154,6 +154,11 @@ class BridgeRuntime(AccountMixin, WindowMixin, SenderMixin, StickerMixin, VoiceM
             return 1
         self.cfg = G.CURRENT_CONFIG
         self.token = G.bridge_config.wechat_token(self.cfg)
+        # /api/vision 也校验 token：本机请求统一带头，否则图片会被 401
+        try:
+            G.LOCAL_HTTP.default_headers.update({'x-bot-token': self.token or '', 'x-whale-bridge': '1'})
+        except Exception:
+            pass
         self.bot_url = G.build_bot_url(self.cfg)
         self.aliases = ((self.cfg.get('persona') or {}).get('aliases') or []) + [(self.cfg.get('persona') or {}).get('name') or '鲸鲸']
         G.log('引用回复：%s（关掉更快，需要时在 config.json 把 wechat.quoteReply 设 true）' % ('开' if G.QUOTE_REPLY else '关'))
