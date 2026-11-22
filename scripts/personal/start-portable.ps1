@@ -7,6 +7,13 @@ if (-not (Test-Path $exe)) { throw "找不到 $exe" }
 Write-Host "== 启动鲸鲸 · 个人版 ==" -ForegroundColor Cyan
 Write-Host "  目录: $Target"
 
+# 本目录的启动器可能还开着但内核已经死了（点过停止 / 内核退出）——先收掉再重起，避免单实例锁把新窗口顶掉
+$stale = Get-CimInstance Win32_Process | Where-Object { $_.ExecutablePath -and $_.ExecutablePath.Equals($exe, "OrdinalIgnoreCase") }
+if ($stale) {
+    foreach ($p in $stale) { Write-Host "  收掉旧的启动器 pid=$($p.ProcessId)"; Stop-Process -Id $p.ProcessId -Force -ErrorAction SilentlyContinue }
+    Start-Sleep -Seconds 3
+}
+
 function Get-PortOwner {
     $conn = Get-NetTCPConnection -LocalPort 8787 -State Listen -ErrorAction SilentlyContinue | Select-Object -First 1
     if (-not $conn) { return $null }
