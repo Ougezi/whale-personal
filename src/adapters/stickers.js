@@ -759,10 +759,12 @@ function isLivelyText(value) {
 function categoryFromName(config, value) {
   const raw = String(value == null ? '' : value).trim();
   if (!raw) return '';
+  if (HIDDEN_CATEGORY_LABELS.has(raw)) return '';
   const direct = normalizeEmotion(raw);
   if (direct) return hasCategory(config, direct) ? direct : '';
   const byLabel = LABEL_TO_KEY[raw];
   if (byLabel) return byLabel;
+  if (isHiddenCategory(raw)) return '';
   const key = extraKey(raw);
   return key && hasCategory(config, key) ? key : '';
 }
@@ -815,6 +817,13 @@ function resolveCategory(config, value) {
 }
 
 /** 给提示词用：可用分类 + 各自张数（内置三类在前，自定义分类在后） */
+const HIDDEN_CATEGORY_LABELS = new Set(['搜来的']);
+
+function isHiddenCategory(label) {
+  const name = String(label == null ? '' : label).trim();
+  return HIDDEN_CATEGORY_LABELS.has(name);
+}
+
 function promptCategories(config, root) {
   const dir = stickerDir(config, root);
   const out = Object.keys(EMOTIONS).map((key) => ({
@@ -822,8 +831,10 @@ function promptCategories(config, root) {
   }));
   for (const cat of readExtraCategories(config, root)) {
     const label = cleanCategoryLabel(cat && cat.label);
+    if (HIDDEN_CATEGORY_LABELS.has(label)) continue;
     const key = extraKey(label);
     if (!key) continue;
+    if (isHiddenCategory(label)) continue;
     // 这里**不过滤**空分类：页签、resolveCategory 都要能看见用户刚建的文件夹。
     // 真正给模型看的清单在 src/persona/index.js 里，那边已经 .filter(c => c.count > 0)。
     out.push({ key, label, count: categoryImages(dir, key).length });
