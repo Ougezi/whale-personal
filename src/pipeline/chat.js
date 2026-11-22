@@ -18,6 +18,8 @@
  * }
  */
 const path = require('node:path');
+const innerNotes = require('../core/innerNotes');
+const session = require('./session');
 const persona = require('../persona');
 const features = require('../infra/features');
 const { matchMaster, isVerifiedOwner } = require('../core/master');
@@ -191,8 +193,7 @@ class Bot {
   }
 
   sessionKey(msg) {
-    const type = msg.chatType === 'group' ? 'g' : 'u';
-    return `${msg.platform}:${type}:${msg.chatId}`;
+    return session.sessionKey(msg);
   }
 
   /**
@@ -288,67 +289,20 @@ class Bot {
 
   /** 最近别人说过的原话（含当前这条），用来判断她是不是在复读 */
   recentHeard(decision, limit = 6) {
-    const msg = (decision && decision.msg) || {};
-    const list = [];
-    const current = String(msg.cleanText || msg.text || '').trim();
-    if (current) list.push(current);
-    try {
-      const key = decision && decision.key;
-      if (key) {
-        const recent = this.store.messages(key, 20)
-          .filter((m) => m.role === 'user' && m.text)
-          .map((m) => String(m.text).trim())
-          .filter((t) => t && t !== current);
-        list.push(...recent.slice(-limit));
-      }
-    } catch { /* ignore */ }
-    return list;
+    return session.recentHeard(this, decision, limit);
   }
 
   /** 她最近说过的几句，用来避免自己复读自己 */
   recentOwn(decision, limit = 4) {
-    try {
-      const key = decision && decision.key;
-      if (!key) return [];
-      return this.store.messages(key, 20)
-        .filter((m) => m.role === 'assistant' && m.text && !m.error)
-        .map((m) => String(m.text).trim())
-        .slice(-limit);
-    } catch {
-      return [];
-    }
+    return session.recentOwn(this, decision, limit);
   }
 
   normalize(msg) {
-    const at = msg.atMe === true || msg.atMe === 1 || msg.atMe === '1' || msg.atMe === 'true';
-    return {
-      platform: String(msg.platform || 'web').slice(0, 20),
-      chatId: String(msg.chatId ?? 'default').slice(0, 120),
-      chatType: msg.chatType === 'group' ? 'group' : 'private',
-      senderId: String(msg.senderId ?? 'anonymous').slice(0, 100),
-      senderName: String(msg.senderName ?? '群友').slice(0, 60),
-      text: String(msg.text ?? '').slice(0, 2000),
-      atMe: at,
-      msgId: msg.msgId ? String(msg.msgId).slice(0, 120) : '',
-      chatTitle: msg.chatTitle ? String(msg.chatTitle).slice(0, 60) : '',
-      replyToBot: msg.replyToBot === true,
-      replyToName: String(msg.replyToName || msg.reply_to_name || '').slice(0, 60),
-      replyToUserId: String(msg.replyToUserId || msg.reply_to_user_id || '').slice(0, 100),
-      mentionedNames: (Array.isArray(msg.mentionedNames) ? msg.mentionedNames : Array.isArray(msg.mention_names) ? msg.mention_names : [])
-        .map((x) => String(x && typeof x === 'object' ? (x.name || x.nickname || '') : x).trim()).filter(Boolean).slice(0, 4),
-      selfNames: (Array.isArray(msg.selfNames) ? msg.selfNames : Array.isArray(msg.self_names) ? msg.self_names : [])
-        .map((x) => String(x || '').trim()).filter(Boolean).slice(0, 20),
-    };
+    return session.normalize(msg);
   }
 
   buildTurns(msg, history, memoryBlock, tailBlock) {
-    return context.buildTurns(
-      { ...msg, botName: this.config.persona.name, newPersonaBehavior: msg.newPersonaBehavior ?? usesNewPersona(this.config) },
-      history,
-      memoryBlock,
-      tailBlock,
-      time.resolveTimeZone(this.config)
-    );
+    return session.buildTurns(this, msg, history, memoryBlock, tailBlock);
   }
 
   /**
@@ -359,39 +313,7 @@ class Bot {
    * 也不能让整条消息静默丢掉。原文也读不出来时返回空 recent，至少还能回当前这条。
    */
   recentOnlyContext(key, { isGroup = false } = {}) {
-    const chat = (this.config && this.config.chat) || {};
-    const configured = Number(isGroup ? chat.groupHistoryTurns : chat.historyTurns) || 20;
-    const cap = Math.max(4, Math.min(800, configured));
-    let recent = [];
-    try {
-      recent = (this.store.messages(key, cap) || []).filter((m) => m && m.text && !m.error);
-    } catch { /* 连原文都读不出来就只回当前这条 */ }
-    // 记忆块没了，历史再灌满也没意义，还容易把单轮预算顶爆：只留最近 6,000 字
-    const kept = [];
-    let chars = 0;
-    for (let i = recent.length - 1; i >= 0; i -= 1) {
-      const len = String(recent[i].text || '').length;
-      if (kept.length && chars + len > 6000) break;
-      kept.unshift(recent[i]);
-      chars += len;
-    }
-    return {
-      chatId: key,
-      card: null,
-      events: [],
-      block: '',
-      relationsBlock: '',
-      relations: [],
-      mentions: [],
-      summary: '',
-      recent: kept,
-      recentTokens: 0,
-      summaryTokens: 0,
-      memoryTokens: 0,
-      relationsTokens: 0,
-      notes: [],
-      memoryFailed: true,
-    };
+    return session.recentOnlyContext(this, key, { isGroup });
   }
 
   /**
@@ -1059,7 +981,14 @@ class Bot {
         // 生成念头是锦上添花，失败不许影响回复
       }
     }
-    const innerLine = [moodLine, thoughtLine].filter(Boolean).join('\n');
+    // 她自己写下的感受/教训：只带最近两条，避免每轮都复述
+    let notesLine = '';
+    try {
+      const dataDir = (this.config && this.config.paths && this.config.paths.dataDir)
+        || path.join(process.cwd(), 'data');
+      notesLine = innerNotes.block({ dir: dataDir, limit: 2 });
+    } catch (err) { notesLine = ''; }
+    const innerLine = [moodLine, thoughtLine, notesLine].filter(Boolean).join('\n');
 
     const promptParts = persona.buildPromptParts({
       config: this.config,
@@ -1903,11 +1832,28 @@ class Bot {
     return true;
   }
 
+  /** 收走 [[feel:…]] / [[lesson:…]] 并写进 data/inner/；失败不影响回复 */
+  consumeInnerMarks(decision, text) {
+    try {
+      const dataDir = (this.config && this.config.paths && this.config.paths.dataDir)
+        || path.join(process.cwd(), 'data');
+      const parsed = innerNotes.consume(text, { dir: dataDir });
+      if (parsed.writes.length && this.logger) {
+        this.logger.info('内心记录：' + parsed.writes.map((w) => w.kind).join('、'));
+      }
+      return parsed.text;
+    } catch (err) {
+      return text;
+    }
+  }
+
   _finalizeOnce(decision, text, { error = false } = {}) {
     decision.finalText = '';
     if (error) decision.error = true;
     const modernPersona = decision?.msg?.newPersonaBehavior ?? usesNewPersona(this.config);
     text = stripInternalTimestamps(text);
+    // 内心记录标记 [[feel:…]] / [[lesson:…]]：写盘并从正文收走（2026-11-22）
+    text = this.consumeInnerMarks(decision, text);
     // 模型主动退场标记 [[silence:分钟]]：先解析并从正文剥掉，再走后面的格式清理。
     const silenceMark = stripSilenceMark(text);
     text = silenceMark.text;
