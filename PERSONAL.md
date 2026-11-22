@@ -156,7 +156,7 @@ vision 接口实测 `usage`。
 | 项 | 之前 | 现在 |
 |---|---|---|
 | 自主上网单次 token | 104 prompt + 116 completion = **220** | 111 + 12 = **123**（prompt 里加「只回一句，别解释」，`maxTokens: 120`） |
-| 六欲上限 | 100 | **200**（学习增量 35/15 不再立刻顶格） |
+| 六欲上限 | 100 | **200**（学习 35/15 不再立刻顶格） |
 | 链接读取超时 | 6s | **12s**（慢站更容易读到正文） |
 | 图片没 Key | 直接报错"看不到图" | **本机 OCR 兜底**，仍能读图上的字 |
 
@@ -166,8 +166,8 @@ vision 接口实测 `usage`。
 
 | 来源 | 增量 | 说明 |
 |---|---|---|
-| 自主上网（自己刷热榜） | **+33~37（中点 35）** | `writeBackFor(..., { source: 'auto' })` |
-| 主人分享（你发链接，她读到了） | **+13~17（中点 15）** | `writeBackFor(..., { source: 'owner' })`，读不到链接就不加 |
+| 自主上网（自己刷热榜） | **+35（固定）** | `writeBackFor(..., { source: 'auto' })` |
+| 主人分享（你发链接，她读到了） | **+15（固定）** | `writeBackFor(..., { source: 'owner' })`，读不到链接就不加 |
 
 ### 真实 token 成本（2026-11-22 实测，deepseek-flash）
 
@@ -340,6 +340,10 @@ powershell -ExecutionPolicy Bypass -File scripts\personal\apply-update-zip.ps1 `
 发布时把 `whale-personal-update-<版本>.zip` 和 `release-manifest.json` 一起挂到 Release 资产即可。
 
 ## 自检脚本怎么用
+
+> 一条命令：`npm run check-personal`；完整流程（内核 117 / 桥接 100 / 整轮 selfcheck）见技能 `whale-personal-check`。
+> 自检用的四个脚本已放进 `scripts/personal/`（内核自测 / 自测 / 冲突审查 / 文档同步），便携版自带，
+> 不再依赖 `D:\dsh\profiles\desktop`。
 
 | 命令 | 查什么 |
 |---|---|
