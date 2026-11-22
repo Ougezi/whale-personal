@@ -412,10 +412,26 @@ namespace WhaleLauncher
             await _configurationWrites.WaitAsync();
             try
             {
-                if (!NodeRunning && await ReadHealthyNodePidAsync(Port) > 0)
+                if (!NodeRunning)
                 {
-                    Say("内核已在后台运行，请用原来的方式管理它");
-                    return;
+                    var foreignPid = await ReadHealthyNodePidAsync(Port);
+                    if (foreignPid > 0)
+                    {
+                        var owner = "";
+                        try
+                        {
+                            using var p = Process.GetProcessById(foreignPid);
+                            owner = p.MainModule?.FileName ?? "";
+                        }
+                        catch { }
+                        if (!string.IsNullOrEmpty(owner) && owner.StartsWith(BaseDir, StringComparison.OrdinalIgnoreCase))
+                        {
+                            Say("内核已在后台运行，请用原来的方式管理它");
+                            return;
+                        }
+                        SayError($"端口 {Port} 被另一份鲸鲸占用：{owner}。请先关掉那个实例，再点「启动」。");
+                        return;
+                    }
                 }
                 StartNode();
                 if (await WaitForNodeAsync()) StartBridge();

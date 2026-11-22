@@ -30,6 +30,26 @@ installer/      Inno Setup 打包（自带编译器）
 dist/           本地便携版产物（不入库）
 ```
 
+## 启动失败怎么排查（4.2.6 起有明确提示）
+
+**最常见原因：8787 端口被另一份鲸鲸占用**（官方版和个人版共用同一个端口，只能活一份）。
+4.2.5 及以前的启动器遇到这种情况只写一句「内核已在后台运行」就跳过，看起来就像"点了没反应"。
+
+4.2.6 起：
+
+- 启动器会检查占用 8787 的进程**是不是自己这份**；不是就报
+  `端口 8787 被另一份鲸鲸占用：<路径>。请先关掉那个实例，再点「启动」。`
+- 桌面快捷方式改成 `start-portable.cmd` → `scripts/personal/start-portable.ps1`：
+  发现端口被别的鲸鲸占用时会**问你要不要关掉**（`-ForceClose` 不问直接关），关完再启动、并等内核就绪。
+
+手动排查三步：
+
+```powershell
+Get-NetTCPConnection -LocalPort 8787 -State Listen | Select OwningProcess   # 谁占着
+(Get-Process -Id <pid>).Path                                                # 是哪一份
+Get-Content "<便携目录>\data\launcher.log" -Tail 20                          # 启动器自己怎么说
+```
+
 ## 开机自启（个人版加的）
 
 启动器原本打开后不会自动拉起内核（要手点「启动」）。个人版加了 `--autostart`：
