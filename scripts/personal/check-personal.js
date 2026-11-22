@@ -20,22 +20,25 @@ const check = (name, fn) => {
 const must = (cond, msg) => { if (!cond) throw new Error(msg); };
 
 // ── 情绪 / 学习增量 ─────────────────────────────────────────────
-check('六欲上限 = 200（四处 clamp）', () => {
+check('六欲上限 = 250（WANT_MAX 四处 clamp）', () => {
   const s = read('src/core/mood.js');
-  const hits = (s.match(/, 0, 200\)/g) || []).length;
-  must(hits >= 4, 'mood.js 里 0,200 的 clamp 只有 ' + hits + ' 处（应为 4）');
-  must(!/, 0, 100\)/.test(s), 'mood.js 里还有 0,100 的 clamp');
+  must(/const WANT_MAX = 250;/.test(s), 'mood.js 没有 WANT_MAX = 250');
+  const hits = (s.match(/, 0, WANT_MAX\)/g) || []).length;
+  must(hits >= 4, 'mood.js 里 0,WANT_MAX 的 clamp 只有 ' + hits + ' 处（应为 4）');
+  must(!/, 0, (100|200)\)/.test(s), 'mood.js 里还有写死的 clamp 上限');
   return hits + ' 处';
 });
 
-check('学习增量：自主 35 / 主人 15（固定）', () => {
+check('学习增量：自主 ≤35 / 主人 ≤15（浮动）', () => {
   const b = read('src/services/browse.js');
-  must(b.includes("source === 'owner' ? 15 : 35"), 'browse.js 的 writeBackFor 不是固定 35/15');
+  must(b.includes('learnCap'), 'browse.js 没有学习上限逻辑');
   const mod = require(path.join(ROOT, 'src', 'services', 'browse.js'));
-  const auto = mod.writeBackFor('', { rng: () => 0.5, source: 'auto' }).wants['意'];
-  const owner = mod.writeBackFor('', { rng: () => 0.5, source: 'owner' }).wants['意'];
-  must(auto === 35 && owner === 15, '中点应 35/15，实际 ' + auto + '/' + owner);
-  return auto + '/' + owner;
+  const auto = Array.from({ length: 50 }, () => mod.writeBackFor('', { rng: Math.random, source: 'auto' }).wants['意']);
+  const owner = Array.from({ length: 50 }, () => mod.writeBackFor('', { rng: Math.random, source: 'owner' }).wants['意']);
+  must(auto.every((v) => v >= 18 && v <= 35), '自主上网应在 18~35，实际 ' + Math.min(...auto) + '~' + Math.max(...auto));
+  must(owner.every((v) => v >= 8 && v <= 15), '主人分享应在 8~15，实际 ' + Math.min(...owner) + '~' + Math.max(...owner));
+  must(new Set(auto).size > 1 && new Set(owner).size > 1, '增量没有浮动（还是固定值）');
+  return Math.min(...auto) + '~' + Math.max(...auto) + ' / ' + Math.min(...owner) + '~' + Math.max(...owner);
 });
 
 check('自主上网反应只要一句（提示词与 maxTokens）', () => {
