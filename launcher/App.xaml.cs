@@ -48,7 +48,7 @@ namespace WhaleLauncher
                 ShutdownMode = ShutdownMode.OnExplicitShutdown;
                 try
                 {
-                    var chk = await UpdateManifestService.FetchAsync(AppContext.BaseDirectory);
+                    var chk = await UpdateManifestService.FetchAsync(AppContext.BaseDirectory, 15000);
                     var payload = new
                     {
                         ok = chk.Manifest != null,

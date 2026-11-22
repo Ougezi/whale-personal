@@ -30,6 +30,22 @@ installer/      Inno Setup 打包（自带编译器）
 dist/           本地便携版产物（不入库）
 ```
 
+- **`api.github.com` 是这台机器上唯一稳定可达的 GitHub 域名**（实测 300–700ms），所以 4.2.7 起
+  默认源第一项改用 **Contents API**：`/repos/<repo>/contents/release-manifest.json?ref=main`
+  （`Accept: application/vnd.github.raw` 直接返回文件；必须带 `User-Agent`，否则 403）。
+- jsDelivr 三个边缘域名保留作兜底，但它们在这台机器上时通时不通（刚才连续 12s 超时）。
+
+### 数据迁移记录（2026-11-22）
+
+| 项 | 结果 |
+|---|---|
+| 聊天 | 9 个会话全部对齐（portable ≥ official）；master 会话补了官方 14:22–14:33 的 16 条（seq 474–489） |
+| checkpoints | 官方多出的 40 个按序号补齐，portable 现在 119 ≥ 官方 105 |
+| config.json | 合并官方较新版本，**保留便携版自己的 32 位 token**；其余键与官方逐段一致 |
+| persona.json | 采用官方 14:06 改过的版本（customPrompt 2539 字、quirks/taboos 齐全） |
+| stickers / vector / media-cache / personas / diary / self / docs | 逐文件一致（63 图 / 1711 向量文件 / 28 缓存 / 2 人格） |
+| 有意不迁 | 官方日志、官方 `backups/`（13 MB 历史快照）、`*.bak-*` 编辑备份 |
+
 ## 和官方版共存（本机已处理）
 
 两个安装共用 **8787** 端口，只能活一个。本机已经把官方版「停下来」：

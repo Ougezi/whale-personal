@@ -5,6 +5,7 @@ using System.IO;
 using System.Linq;
 using System.Net.Http;
 using System.Text.Json;
+using System.Threading;
 using System.Text.Json.Serialization;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
@@ -108,6 +109,8 @@ namespace WhaleLauncher
         // 顺序不重要（并行拉），但源要覆盖三种网络：GitHub 直连 / 墙内镜像 / CDN 兜底。
         private static readonly string[] DefaultSources =
         {
+            // api.github.com/contents 在本机实测 300ms 可达（raw/releases 域名会超时），放最前面。
+            "https://api.github.com/repos/" + Repo + "/contents/release-manifest.json?ref=main",
             "https://github.com/" + Repo + "/releases/latest/download/release-manifest.json",
             "https://raw.githubusercontent.com/" + Repo + "/main/release-manifest.json",
             "https://gh-proxy.com/https://raw.githubusercontent.com/" + Repo + "/main/release-manifest.json",
@@ -143,8 +146,8 @@ namespace WhaleLauncher
         }
         private static readonly HttpClient Http = new HttpClient(new HttpClientHandler { UseProxy = false })
         {
-            // 启动时不该被网络拖住：拿不到就按缓存 / 放行。
-            Timeout = TimeSpan.FromSeconds(4)
+            // 启动时不该被网络拖住：超时由每次请求自己控制（CLI 自查给更长时间）。
+            Timeout = System.Threading.Timeout.InfiniteTimeSpan
         };
 
         public static string CachePath => Path.Combine(
@@ -228,7 +231,7 @@ namespace WhaleLauncher
         }
 
         /// <summary>拉清单并判定。永不抛：任何异常都变成「拿不到 + 放行」。</summary>
-        public static async Task<ManifestCheck> FetchAsync(string baseDir)
+        public static async Task<ManifestCheck> FetchAsync(string baseDir, int timeoutMs = 4000)
         {
             var result = new ManifestCheck();
             result.Current = LocalVersion(baseDir);
@@ -237,7 +240,7 @@ namespace WhaleLauncher
             UpdateManifest best = cached;
             try
             {
-                var all = await Task.WhenAll(SourcesFor(baseDir).Select(DownloadAsync));
+                var all = await Task.WhenAll(SourcesFor(baseDir).Select(u => DownloadAsync(u, timeoutMs)));
                 best = SelectNewest(all, cached);
             }
             catch { }
@@ -363,19 +366,41 @@ namespace WhaleLauncher
             return best;
         }
 
-        private static async Task<UpdateManifest> DownloadAsync(string url)
+        private static async Task<UpdateManifest> DownloadAsync(string url, int timeoutMs = 4000)
         {
             try
             {
-                using var res = await Http.GetAsync(url);
+                using var cts = new CancellationTokenSource(Math.Max(500, timeoutMs));
+                using var req = new HttpRequestMessage(HttpMethod.Get, url);
+                // GitHub API 要求带 User-Agent（缺了会 403 "Request forbidden by administrative rules"）。
+                req.Headers.TryAddWithoutValidation("User-Agent", "WhaleLauncher/4.2");
+                // api.github.com 在本机是唯一稳定可达的 GitHub 域名；Contents API 加 Accept: raw
+                // 才会直接返回文件内容（否则是 base64 信封）。
+                if (url.StartsWith("https://api.github.com/", StringComparison.OrdinalIgnoreCase))
+                    req.Headers.TryAddWithoutValidation("Accept", "application/vnd.github.raw");
+                using var res = await Http.SendAsync(req, cts.Token);
                 if (!res.IsSuccessStatusCode) return null;
                 var text = await res.Content.ReadAsStringAsync();
-                return Parse(text);
+                var m = Parse(text);
+                DebugTrace(url + " -> " + (int)res.StatusCode + " " + text.Length + "B latest=" + (m == null ? "<parse-null>" : m.Latest));
+                return m;
             }
-            catch
+            catch (Exception ex)
             {
+                DebugTrace(url + " EX " + ex.GetType().Name + ": " + ex.Message);
                 return null;
             }
+        }
+
+        // 只在设置 WHALE_UPDATE_DEBUG=1 时写调试日志（排查更新渠道用）
+        private static void DebugTrace(string line)
+        {
+            try
+            {
+                if (Environment.GetEnvironmentVariable("WHALE_UPDATE_DEBUG") != "1") return;
+                File.AppendAllText(Path.Combine(Path.GetTempPath(), "whale-update-debug.txt"), DateTime.Now.ToString("HH:mm:ss") + " " + line + Environment.NewLine);
+            }
+            catch { }
         }
 
         private static UpdateManifest Parse(string text)
