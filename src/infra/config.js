@@ -313,12 +313,12 @@ const DEFAULT_CONFIG = {
     muteDefaultMinutes: 30,
   },
   // 记忆参数以 src/memory/constants.js 为准（写死的那些不改）；
-  // 唯一可调的是「对话预算」：config.json 的 memory.dialogueBudget，默认 5,500。
+  // 唯一可调的是「对话预算」：config.json 的 memory.dialogueBudget，个人版默认 8,000。
   // 启动器「高级模式 → 高级」里能改；memory.maxMessages 会作为原文保留条数上限，
   // memory.maxSessions 等旧字段仍然被忽略。
   memory: {
     // 对话预算（不含 system prompt）= memory 900 + summary 900 + recent 3,200 + reserve 500
-    dialogueBudget: 5500,
+    dialogueBudget: 8000,
   },
   // 微信桥接：account = 固定用哪个微信号（微信双开时必填）。启动器「微信桥接」页点账号卡会直接写这里，
   // 一般不用手改；留空 = 按「最近活跃」自动选（双开时可能选到大号）。
