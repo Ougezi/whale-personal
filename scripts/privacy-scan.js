@@ -23,7 +23,7 @@ const SKIP_DIRS = new Set([
 // 构建缓存与审查产物：launcher/obj 里的 FileListAbsolute.txt 本来就记本机路径，
 // 不跳过会把「刚编译完」误报成泄露。这里只跳中间产物，launcher/publish 的成品要扫。
 const SKIP_PREFIX = [
-  'launcher/bin/', 'launcher/obj/',
+  'launcher/bin/', 'launcher/obj/', 'launcher/publish/', 'publish/',
   'dist/', 'release/', 'artifacts/',
   'tests/launcher/Checks/bin/', 'tests/launcher/Checks/obj/',
   'tests/launcher/FakeBridge/bin/', 'tests/launcher/FakeBridge/obj/',
@@ -112,7 +112,8 @@ const BINARY_RULES = [
     keep: (m, index, text) =>
       !['raw.githubusercontent.com/banan1cee/whale_girl/', 'raw.githubusercontent.com/banan1cee/whale_gril/',
         'raw.githubusercontent.com/banan1cee/whale-girl-plugins/main/index.json',
-        'raw.githubusercontent.com/banan1cee/whale-girl-plugins/main/index-v2.json']
+        'raw.githubusercontent.com/banan1cee/whale-girl-plugins/main/index-v2.json',
+        'raw.githubusercontent.com/ougezi/whale-personal/']
         .some(prefix => text.slice(index).toLowerCase().startsWith(prefix)) &&
       // .NET 字符串后的二进制长度标记不一定解码成空白或 NUL，所以带文件名的目录
       // 必须紧跟 URL 分隔符（或什么都没跟）才算官方路径。

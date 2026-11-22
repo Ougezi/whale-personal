@@ -11,7 +11,7 @@ const LIMITS = Object.freeze({
   // 真正生效的值由 src/memory/budgetPlan.js 按 config.memory.dialogueBudget 换算：
   //   recent ≈58% + memory 16.36% + summary 16.36% + reserve 9.09% + relations 2.18%
   // 改预算只需要改 dialogueBudget（启动器滑块），不要再直接改下面的分片值。
-  dialogueBudget: 8000,
+  dialogueBudget: 5500,
   // 只有真实输入估算（system + 实际 turns）超过这个数才拒绝（不再有 7,500 总预算 / 2,000 system 上限）
   // dialogueBudget 只是裁剪窗口的预算，不再拿来冒充 prompt_tokens
   // 2026-11 从 32,000 提到 64,000：32k 下 comfort 人设（1,800）没问题，但想写几万字设定的

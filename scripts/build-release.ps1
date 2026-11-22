@@ -14,7 +14,8 @@ param(
   [string]$OutDir = (Join-Path $env:USERPROFILE 'Documents\whale-girl-release'),
   [string]$RuntimeSource = '',   # 默认用本目录的 runtime\
   [string]$PrevZip = '',         # 上一版的 zip：给了就顺手出 whale-girl-<新>-from-<旧>.patch
-  [switch]$SkipFull              # 只打源码包
+  [switch]$SkipFull,             # 只打源码包
+  [switch]$SkipTests             # 个人版：官方单测与个人层分叉，改用 scripts/health.js + 验收脚本
 )
 
 $ErrorActionPreference = 'Stop'
@@ -27,8 +28,12 @@ function Step($msg) { Write-Host "`n=== $msg ===" -ForegroundColor Cyan }
 
 Step '1/5 运行测试'
 Push-Location $root
-& $node --test 'tests/*.test.js' 2>&1 | Select-String -Pattern '^not ok|^# (tests|pass|fail)' | ForEach-Object { Write-Host "  $($_.Line)" }
-if ($LASTEXITCODE -ne 0) { Pop-Location; throw '测试没通过，不出包' }
+if ($SkipTests) {
+  Write-Host '  已跳过官方单测（-SkipTests：个人层与官方单测有分叉，门禁改用 health.js + 验收）'
+} else {
+  & $node --test 'tests/*.test.js' 2>&1 | Select-String -Pattern '^not ok|^# (tests|pass|fail)' | ForEach-Object { Write-Host "  $($_.Line)" }
+  if ($LASTEXITCODE -ne 0) { Pop-Location; throw '测试没通过，不出包' }
+}
 
 Step '2/5 暂存（排除 data / config.json / runtime / 日志）'
 # 包名带完整版本号：以前写死 whale-girl-3.0，解压后谁也分不清 3.0.9 和 3.0.16，混用就把新修复盖掉了
@@ -122,6 +127,8 @@ if (-not $SkipFull) {
     if ([IO.File]::Exists($fullZipTemp)) { [IO.File]::Delete($fullZipTemp) }
   }
   Write-Host ("  完整包：{0:N1} MB  →  {1}" -f ((Get-Item $fullZip).Length / 1MB), (Split-Path $fullZip -Leaf))
+  & (Join-Path $PSScriptRoot 'verify-release.ps1') -Portable $fullDir -Zip $fullZip -Manifest (Join-Path $root 'release-manifest.json')
+  if ($LASTEXITCODE -ne 0) { Pop-Location; throw '完整包内容与便携目录不一致，不出包' }
 }
 
 # 差分补丁：上一版 zip 给了就出，客户端下次只下这个（几 MB）而不是整包

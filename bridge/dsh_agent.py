@@ -18,10 +18,12 @@ import time
 import uuid
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-EXE = r"C:\Users\28030\AppData\Local\Programs\DeepSeek Harness\DeepSeek Harness.exe"
-BIN = (r"C:\Users\28030\AppData\Local\Programs\DeepSeek Harness\resources\app.asar"
-       r"\dsh\node_modules\@deepseek-ai\dsh\lib\bin.js")
-DEFAULT_CWD = r"D:\dsh\profiles\desktop"
+_APPDATA = os.environ.get("LOCALAPPDATA") or os.path.join(os.environ.get("USERPROFILE", ""), "AppData", "Local")
+EXE = os.environ.get("DSH_EXE") or os.path.join(_APPDATA, "Programs", "DeepSeek Harness", "DeepSeek Harness.exe")
+BIN = os.environ.get("DSH_BIN") or os.path.join(
+    _APPDATA, "Programs", "DeepSeek Harness", "resources", "app.asar",
+    "dsh", "node_modules", "@deepseek-ai", "dsh", "lib", "bin.js")
+DEFAULT_CWD = os.environ.get("DSH_CWD") or r"D:\dsh\profiles\desktop"
 DEFAULT_TIMEOUT = 150
 MAX_CHARS = 4000
 

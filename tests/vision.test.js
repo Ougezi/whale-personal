@@ -41,10 +41,13 @@ test('桥接用 BOM 安全的方式读配置（否则 token 读不到，她就�
   assert.match(bridgeSrc, /webhook token/, '启动时要打印 token 状态');
 });
 
-test('图片描述长度有上限，不会把上下文塞爆（长截图分段后放宽到 1200）', () => {
-  const m = bridgeSrc.match(/if len\(text\) > (\d+):/);
-  assert.ok(m, '桥接里没找到长度截断');
-  assert.ok(Number(m[1]) >= 600 && Number(m[1]) <= 2000, '截断长度不合理：' + m[1]);
+test('图片描述长度有上限，不会把上下文塞爆（长截图分段后动态放宽）', () => {
+  // 个人版：长截图按段数放宽到 1200 / 1700 / 2200… 最高 3600；不再写死一个数。
+  const fixed = bridgeSrc.match(/if len\(text\) > (\d+):/);
+  const dynamic = bridgeSrc.match(/limit = (\d+) if len\(parts\) <= 2 else min\((\d+),/);
+  assert.ok(fixed || dynamic, '桥接里没找到长度截断');
+  const cap = fixed ? Number(fixed[1]) : Number(dynamic[2]);
+  assert.ok(cap >= 600 && cap <= 4000, '截断长度不合理：' + cap);
 });
 
 /* ---------------- Key 的查找顺序（以前只认 config.vision.apiKey） ---------------- */
