@@ -105,6 +105,23 @@ check('插件市场面板（/api/market + 启动器窗口）', () => {
   return 'ok';
 });
 
+check('写操作开关：主人一句话 / 标记 / 落盘', () => {
+  const g = read('src/services/opsGate.js');
+  must(g.includes('function parse'), 'opsGate 缺 parse');
+  must(g.includes('function apply'), 'opsGate 缺 apply');
+  must(g.includes('stripMarkers'), 'opsGate 缺 stripMarkers');
+  const chat = read('src/pipeline/chat.js');
+  must(chat.includes('handleOpsSwitch'), 'chat 没有 handleOpsSwitch');
+  must(chat.includes('opsGate.stripMarkers'), 'chat 没处理 [[ops:...]] 标记');
+  const prompt = read('src/persona/prompt.js');
+  must(prompt.includes('【写操作开关】'), '提示词没有写操作开关说明');
+  const gate = require(path.join(ROOT, 'src', 'services', 'opsGate.js'));
+  const one = gate.parse('允许收藏，每天最多 3 次');
+  must(one && one.intents.length >= 2, '一句多事没解析出来');
+  must(gate.parse('今天天气不错') === null, '普通聊天被误判成开关');
+  return 'ok';
+});
+
 check('自主上网反应只要一句（提示词与 maxTokens）', () => {
   const b = read('src/services/browse.js');
   must(/只(输出|回)[^。\n]{0,4}一句/.test(b), 'browse.js SYSTEM 里没有「只输出这一句」');
