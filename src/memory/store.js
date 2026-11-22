@@ -12,6 +12,7 @@ const path = require('node:path');
 const { ChatStore } = require('./chatStore');
 const personCard = require('./personCard');
 const audit = require('./audit');
+const personGlobal = require('../core/personGlobal');
 const filter = require('./filter');
 const episode = require('./episode');
 const compression = require('./compression');
@@ -249,6 +250,13 @@ class Store {
         for (const w of writtenPrefs || []) {
           this._audit({ kind: 'preference', id: w.id, action: 'add', text: w.text,
             confidence: w.confidence, source: w.source && (w.source.messageId || w.source) });
+          // I2：非群聊的个人事实同步到跨会话全局记忆
+          if (!String(chat.chatId || '').endsWith('@chatroom')) {
+            try {
+              const _dir = this.config && this.config.paths && this.config.paths.dataDir;
+              if (_dir) personGlobal.addFact(_dir, entry.uid, w.text, { at: entry.ts });
+            } catch { /* 全局记忆失败不影响本会话 */ }
+          }
         }
         // 人生事件：即时补一条事件卡
         for (const fact of facts) {
@@ -487,7 +495,13 @@ class Store {
     if (isGroup && chat.meta && chat.meta.episode && chat.meta.episode.activeTopic) {
       _extra.push(`【群里刚才在聊】${String(chat.meta.episode.activeTopic).slice(0, 60)}——接着聊，别重复问。`);
     }
-    const blockRaw = _extra.length ? `${block}\n${_extra.join('\n')}` : block;
+    let _globalLine = '';
+    try {
+      const _dir = this.config && this.config.paths && this.config.paths.dataDir;
+      if (_dir) _globalLine = personGlobal.block({ dataDir: _dir, uid, limit: 5 });
+    } catch { /* 全局记忆读不到就不带 */ }
+    const _blockWithGlobal = _globalLine ? `${block}\n${_globalLine}` : block;
+    const blockRaw = _extra.length ? `${_blockWithGlobal}\n${_extra.join('\n')}` : _blockWithGlobal;
     // S4：记忆块字符硬上限 = 记忆预算 token 数 ×2，超了截断（摘要/卡都在这个块里）
     const _capChars = Math.max(400, (Number(plan.memory) || LIMITS.memoryTokens) * 2);
     const blockFinal = format.capBlockText(blockRaw, _capChars);

@@ -21,6 +21,7 @@ const path = require('node:path');
 const innerNotes = require('../core/innerNotes');
 const concerns = require('../core/concerns');
 const empathy = require('../core/empathy');
+const antiRepeat = require('../core/antiRepeat');
 const sessionMod = require('./session');
 const marks = require('./marks');
 const persona = require('../persona');

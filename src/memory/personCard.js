@@ -142,6 +142,11 @@ function normalizeTrait(raw, now) {
     text: body,
     confidence: clampNum(raw.confidence, 0, 1, 0.65),
     evidence,
+    confirmedBy: (Array.isArray(raw.confirmedBy) ? raw.confirmedBy : []).map((x) => text(x, 120)).filter(Boolean).slice(0, 20),
+    refutedBy: (Array.isArray(raw.refutedBy) ? raw.refutedBy : []).map((x) => text(x, 120)).filter(Boolean).slice(0, 20),
+    since: Number(raw.since) || Number(raw.createdAt) || now,
+    // 证据 ≥3 才算确认（I1）
+    confirmed: raw.confirmed === true || evidence.length >= 3,
     createdAt: Number(raw.createdAt) || now,
     updatedAt: Number(raw.updatedAt) || Number(raw.createdAt) || now,
     deleted: Boolean(raw.deleted),
@@ -375,6 +380,8 @@ function addTrait(card, entry, { chatId, now = Date.now() } = {}) {
     for (const e of evidence) if (!existing.evidence.includes(e)) existing.evidence.push(e);
     existing.evidence = existing.evidence.slice(-20);
     existing.updatedAt = at;
+    if (existing.evidence.length >= 3) existing.confirmed = true;
+    if ((existing.refutedBy || []).length >= 2) { existing.confirmed = false; existing.confidence = Math.min(existing.confidence, 0.3); }
     card.updatedAt = at;
     return existing;
   }
@@ -383,6 +390,7 @@ function addTrait(card, entry, { chatId, now = Date.now() } = {}) {
     text: body, confidence, evidence, createdAt: at, updatedAt: at,
   }, at);
   if (!trait) return null;
+  if ((trait.evidence || []).length >= 3) trait.confirmed = true;
   card.traits.push(trait);
   // 只按置信度淘汰，不淘汰证据多的
   evictOverflow(card.traits, LIMITS.maxTraitsPerPerson, at, (t) => (t.confidence || 0) + Math.min(0.2, (t.evidence || []).length * 0.02));
@@ -521,7 +529,8 @@ function forget(card, needle, now = Date.now()) {
 }
 
 module.exports = {
-  normalizeEvent,   // 自测要验证「情景结局」等字段是否被保留
+  normalizeEvent,
+  normalizeTrait,   // 自测要验证「情景结局」等字段是否被保留
   MemoryIsolationError,
   assertChat,
   newCard,

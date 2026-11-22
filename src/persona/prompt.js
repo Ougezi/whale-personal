@@ -643,6 +643,17 @@ function maxCharsFor(config, msg = {}) {
  * 结构化人设补充：自称 / 小设定 / 雷点 / 关系（2026-11 加，P1）
  * 以前只注入年龄职业外貌性格背景，性格再好也只是一行。
  */
+/** 世界书（I3）：按关键词命中才注入，最多 3 条 */
+function worldBlock(P, text) {
+  const list = Array.isArray(P && P.world) ? P.world : [];
+  if (!list.length) return '';
+  const t = String(text || '').toLowerCase();
+  const hits = list.filter((w) => w && Array.isArray(w.keywords)
+    && w.keywords.some((k) => t.includes(String(k || '').toLowerCase()))).slice(0, 3);
+  if (!hits.length) return '';
+  return '【世界书】' + hits.map((w) => `${String(w.key || '').slice(0, 20)}：${String(w.text || '').slice(0, 80)}`).join('；');
+}
+
 function personaExtras(P, isGroup) {
   const lines = [];
   const refs = P && P.selfRefs && typeof P.selfRefs === 'object' ? P.selfRefs : null;
@@ -813,6 +824,8 @@ function buildBlocks({ config, msg = {}, profile, notes = [], noteReminders = []
     ? '【说话分寸】群里保持自然、不腻，别撒娇过头。'
     : (isMaster ? '【说话分寸】私聊可以更黏一点：先应一声再说事，会吃醋、会讨关注，但别每句都腻。'
       : '【说话分寸】这是私聊但不是主人，保持正常社交距离。'));
+  const _world = worldBlock(P, msg.cleanText || msg.text || '');
+  if (_world) dynamic.push(_world);
   if (moodLine) dynamic.push(moodLine);
   if (selfRules) dynamic.push(selfRules);
   if (discussing) dynamic.push(P.opinions === false
@@ -917,6 +930,7 @@ function slangTerms(config) {
 }
 
 module.exports = {
+  worldBlock,
   fightModeOn,
   abbrevReply,
   clapbackPick,

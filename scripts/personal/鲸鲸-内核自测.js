@@ -751,6 +751,49 @@ try {
   check('牵挂账本', false, String(e && e.message).slice(0, 50));
 }
 
+// 画像 / 全局记忆 / 世界书 / 技能 / 反重复（I1–I5，2026-11-23）
+try {
+  const fsx = require('node:fs');
+  const osx = require('node:os');
+  const fmt3 = require(path.join(ROOT, 'src', 'memory', 'format.js'));
+  const prompt3 = require(path.join(ROOT, 'src', 'persona', 'prompt.js'));
+  const pg = require(path.join(ROOT, 'src', 'core', 'personGlobal.js'));
+  const skills = require(path.join(ROOT, 'src', 'core', 'skills.js'));
+  const anti = require(path.join(ROOT, 'src', 'core', 'antiRepeat.js'));
+  const tr3 = pc.normalizeTrait({ text: '慢热', evidence: ['a', 'b', 'c'] }, 1);
+  const tr1 = pc.normalizeTrait({ text: '爱猫', evidence: ['a'] }, 1);
+  check('画像证据晋级', tr3.confirmed === true && tr1.confirmed === false, String(tr3.confirmed) + '/' + String(tr1.confirmed));
+  const c3 = pc.normalizeCard({ version: 2, chatId: 'c', uid: 'u', traits: [
+    { text: '未确认', confidence: 0.9, evidence: ['a'] },
+    { text: '已确认', confidence: 0.6, evidence: ['a', 'b', 'c'] },
+  ] }, { chatId: 'c' });
+  const blk3 = fmt3.buildMemoryBlock({ card: c3, events: [], summary: '' });
+  check('画像优先级排序', blk3.indexOf('已确认') < blk3.indexOf('未确认'), '');
+  const gdir = fsx.mkdtempSync(path.join(osx.tmpdir(), 'global-'));
+  pg.addFact(gdir, 'u1', '在武汉上班', { at: 1 });
+  pg.addFact(gdir, 'u1', '在武汉上班', { at: 2 });
+  check('全局记忆去重', pg.list(gdir, 'u1').length === 1, '');
+  check('全局记忆隔离', pg.list(gdir, 'u2').length === 0 && pg.block({ dataDir: gdir, uid: 'u1' }).includes('跨会话印象'), '');
+  const P3 = { world: [
+    { key: '公司', text: '在光谷', keywords: ['上班', '公司'] },
+    { key: '猫', text: '养了只橘猫', keywords: ['猫'] },
+    { key: '房', text: '在租房', keywords: ['租'] },
+    { key: '车', text: '没有车', keywords: ['车'] },
+  ] };
+  check('世界书命中', prompt3.worldBlock(P3, '今天上班好累').includes('光谷'), '');
+  check('世界书不命中', prompt3.worldBlock(P3, '你好').length === 0, '');
+  check('世界书最多三条', (prompt3.worldBlock(P3, '上班 猫 租 车').match(/：/g) || []).length === 3, '');
+  skills.add(gdir, '改配置前先备份');
+  skills.add(gdir, '改配置前先备份');
+  check('技能结晶去重', skills.list(gdir).length === 1, '');
+  check('技能匹配', skills.match(gdir, '帮我改配置').length === 1, '');
+  check('反重复：用过换说法', anti.pick('好的', ['好的'], () => 0) === '好', '');
+  check('反重复：没用过不动', anti.pick('好的', ['行'], () => 0) === '好的', '');
+  check('反重复：长句不动', anti.pick('今天天气不错', ['今天天气不错'], () => 0) === '今天天气不错', '');
+} catch (e) {
+  check('画像证据晋级', false, String(e && e.message).slice(0, 50));
+}
+
 console.log('\n通过 ' + pass + '/' + (pass + fail));
   process.exit(fail ? 1 : 0);
 })();

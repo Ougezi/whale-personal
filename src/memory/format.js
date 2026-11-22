@@ -221,7 +221,10 @@ function buildMemoryBlock({
   };
   if (!card) return '';
   const traits = personCard.activeTraits(card)
-    .sort((a, b) => (b.confidence || 0) - (a.confidence || 0))
+    .sort((a, b) => ((b.confirmed ? 1 : 0) - (a.confirmed ? 1 : 0))
+      || ((b.evidence || []).length - (a.evidence || []).length)
+      || ((b.confidence || 0) - (a.confidence || 0)))
+    .slice(0, 3)
     .map((t) => clip(t.text, 40));
   const prefs = personCard.activePreferences(card)
     .sort((a, b) => (b.confidence || 0) - (a.confidence || 0))
