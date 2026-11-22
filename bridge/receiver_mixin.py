@@ -1726,9 +1726,23 @@ class ReceiverMixin:
                                 _doc_name, desc + (('\n' + _doc_note) if _doc_note else ''), _doc_tail)
                     else:
                         media_failed('文件')
-                        content = ('（对方发了一份文档「%s」，但这边没取到、也没读出来。'
-                                   '不要编造文档内容；可以自然地回一句，比如让对方把文字直接贴出来，'
-                                   '或说明一下文档是什么格式）' % _doc_name)
+                        # 带上真实原因：以前只说「没取到」，对方会以为是她偷懒（2026-11-22）
+                        _why = ''
+                        try:
+                            _why = str((msg.get('_media_fail') if isinstance(msg, dict) else '') or '').strip()
+                        except Exception:
+                            _why = ''
+                        if ('没缓存' in _why) or ('找不到' in _why):
+                            _advice = ('这个文件在微信里还没下载到本地。请对方在聊天里点一下这个文件、'
+                                       '等它下载完再看；不要编造内容。')
+                        elif '解析' in _why:
+                            _advice = ('文件拿到了但解析失败（%s）。如实说明，并请对方换成 docx / PDF '
+                                       '或把文字贴出来。' % (_why[:40] or '原因未知'))
+                        else:
+                            _advice = ('没读到内容（%s）。如实说明，不要编造；可以让对方把文字贴出来。'
+                                       % (_why[:40] or '原因未知'))
+                        content = ('（对方发了一份文档「%s」，但这边没取到、也没读出来。%s）'
+                                   % (_doc_name, _advice))
                         media_placeholder = True
                     _doc_parsed = True
                 if not _doc_parsed:
