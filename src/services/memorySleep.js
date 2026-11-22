@@ -7,6 +7,7 @@ const fs = require('node:fs');
 const path = require('node:path');
 const personCard = require('../memory/personCard');
 const innerNotes = require('../core/innerNotes');
+const audit = require('../memory/audit');
 
 const ARCHIVE_DAYS = 30;
 const CONFLICT_SIM = 0.85;
@@ -87,6 +88,7 @@ function run({ dataDir, now = Date.now(), logger = null, store = null } = {}) {
         older.supersededBy = newer.id || null;
         report.conflicted += 1;
         changed = true;
+        try { audit.append(dataDir, { kind: 'event', id: older.id, action: 'supersede', by: newer.id, reason: 'sleep' }); } catch { /* sleep-audit */ }
       }
     }
     // 2) 巩固：30 天以上、没被用过、不重要的 L1 事件归档（失效 + 留档）
@@ -100,6 +102,7 @@ function run({ dataDir, now = Date.now(), logger = null, store = null } = {}) {
       e.consolidated = true;
       report.consolidated += 1;
       changed = true;
+      try { audit.append(dataDir, { kind: 'event', id: e.id, action: 'consolidate', reason: 'old-unused' }); } catch { /* sleep-audit */ }
       archive.push(`- [${String(e.date || '').slice(0, 10)}] ${String(e.title || '').slice(0, 20)}：${String(e.summary || '').slice(0, 100)}`);
     }
     if (changed) writeAtomic(file, JSON.stringify(card));

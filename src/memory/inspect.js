@@ -46,10 +46,18 @@ function scan({ dataDir, dupSim = 0.9 } = {}) {
         else report.legacyNoSource += 1;
       }
     }
-    for (let i = 0; i < events.length; i += 1) {
-      for (let j = i + 1; j < events.length; j += 1) {
-        if (personCard.normalizeText(events[i].title) !== personCard.normalizeText(events[j].title)) continue;
-        if (personCard.similarity(events[i].summary || '', events[j].summary || '') >= dupSim) report.dups += 1;
+    // 先按标题分桶，再桶内两两比：400 条事件也不会 8 万次比较
+    const buckets = new Map();
+    for (const e of events) {
+      const t = personCard.normalizeText(e.title);
+      if (!buckets.has(t)) buckets.set(t, []);
+      buckets.get(t).push(e);
+    }
+    for (const list of buckets.values()) {
+      for (let i = 0; i < list.length; i += 1) {
+        for (let j = i + 1; j < list.length; j += 1) {
+          if (personCard.similarity(list[i].summary || '', list[j].summary || '') >= dupSim) report.dups += 1;
+        }
       }
     }
     if ((Array.isArray(card.preferences) ? card.preferences.length : 0) > 48

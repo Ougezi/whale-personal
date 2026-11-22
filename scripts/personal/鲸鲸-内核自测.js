@@ -878,6 +878,48 @@ try {
   check('刷新卡片缓存', false, String(e && e.message).slice(0, 50));
 }
 
+// 复核完善回归（2026-11-23 02:10）
+try {
+  const fsx = require('node:fs');
+  const osx = require('node:os');
+  // 睡眠任务写审计
+  const sroot = fsx.mkdtempSync(path.join(osx.tmpdir(), 'sleepaudit-'));
+  const sp = path.join(sroot, 'memory', 'chats', 'h1', 'people');
+  fsx.mkdirSync(sp, { recursive: true });
+  const nowS = new Date(2026, 10, 23, 10, 0).getTime();
+  fsx.writeFileSync(path.join(sp, 'p1.json'), JSON.stringify({ version: 2, chatId: 'c1', uid: 'u1', events: [
+    { id: 'x1', title: '工作', summary: '他在找工作', createdAt: nowS - 2 * 86400000, importance: 0.5, layer: 'L1' },
+    { id: 'x2', title: '工作', summary: '他在找工作', createdAt: nowS - 86400000, importance: 0.5, layer: 'L1' },
+  ] }));
+  const sleep2 = require(path.join(ROOT, 'src', 'services', 'memorySleep.js'));
+  sleep2.run({ dataDir: sroot, now: nowS });
+  const auditText = fsx.readFileSync(path.join(sroot, 'memory', 'audit.jsonl'), 'utf8');
+  check('睡眠审计留痕', auditText.includes('"reason":"sleep"'), auditText.slice(0, 50));
+  // 全局记忆过滤：taboo 不进全局，fact 进
+  const { Store } = require(path.join(ROOT, 'src', 'memory', 'store.js'));
+  const groot = fsx.mkdtempSync(path.join(osx.tmpdir(), 'globalf-'));
+  const gdata = path.join(groot, 'data');
+  const st3 = new Store({ file: path.join(gdata, 'store.json'), dir: path.join(gdata, 'memory'),
+    config: { paths: { dataDir: gdata } }, logger: null });
+  const gkey = 'wechat:u:u2';
+  st3.appendMessage(gkey, { role: 'user', uid: 'u2', name: 'n', text: '我不吃香菜', isMaster: true, isGroup: false });
+  st3.appendMessage(gkey, { role: 'user', uid: 'u2', name: 'n', text: '我住在武汉', isMaster: true, isGroup: false });
+  const pg2 = require(path.join(ROOT, 'src', 'core', 'personGlobal.js'));
+  const allFacts = pg2.list(gdata, 'u2', 20).map((f) => f.text).join('|');
+  check('全局记忆过滤 taboo', !allFacts.includes('香菜'), allFacts);
+  check('全局记忆保留事实', allFacts.includes('武汉'), allFacts);
+  // 技能提示
+  const sk2 = require(path.join(ROOT, 'src', 'core', 'skills.js'));
+  const kdir = fsx.mkdtempSync(path.join(osx.tmpdir(), 'skillb-'));
+  sk2.add(kdir, '改配置前先备份');
+  check('技能提示块', sk2.block({ dataDir: kdir, text: '帮我改配置' }).includes('以前做过'), '');
+  // 反重复新表
+  const anti2 = require(path.join(ROOT, 'src', 'core', 'antiRepeat.js'));
+  check('反重复新短句', anti2.pick('知道了', ['知道了'], () => 0) === '嗯嗯', '');
+} catch (e) {
+  check('复核完善回归', false, String(e && e.message).slice(0, 60));
+}
+
 console.log('\n通过 ' + pass + '/' + (pass + fail));
   process.exit(fail ? 1 : 0);
 })();

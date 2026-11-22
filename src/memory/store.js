@@ -261,7 +261,9 @@ class Store {
           this._audit({ kind: 'preference', id: w.id, action: 'add', text: w.text,
             confidence: w.confidence, source: w.source && (w.source.messageId || w.source) });
           // I2：非群聊的个人事实同步到跨会话全局记忆
-          if (!String(chat.chatId || '').endsWith('@chatroom')) {
+          // 只把「事实/偏好」带到全局；taboo、承诺这类留在原会话
+          if (!String(chat.chatId || '').endsWith('@chatroom')
+            && ['fact', 'preference'].includes(String(w.kind || ''))) {
             try {
               const _dir = this.config && this.config.paths && this.config.paths.dataDir;
               if (_dir) personGlobal.addFact(_dir, entry.uid, w.text, { at: entry.ts });
@@ -282,8 +284,16 @@ class Store {
             confidence: 0.8,
             source: { chatId: chat.chatId, kind: entry.isMaster ? 'owner' : 'group', messageIds: [entry.id] },
           }, { chatId: chat.chatId, now: entry.ts });
-          if (_ev) this._audit({ kind: 'event', id: _ev.id, action: 'add',
-            confidence: _ev.confidence, sourceKind: _ev.source && _ev.source.kind });
+          if (_ev) {
+            this._audit({ kind: 'event', id: _ev.id, action: 'add',
+              confidence: _ev.confidence, sourceKind: _ev.source && _ev.source.kind });
+            // 双时态自动失效也要留痕
+            for (const old of card.events || []) {
+              if (old && old.validTo && old.supersededBy === _ev.id) {
+                this._audit({ kind: 'event', id: old.id, action: 'supersede', by: _ev.id, reason: 'auto' });
+              }
+            }
+          }
         }
         this.chatStore.saveCard(chat, card);
       }

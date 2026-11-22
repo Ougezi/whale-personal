@@ -24,7 +24,9 @@ module.exports = function register(router) {
       .split(/[\n,;，；\s]+/)
       .map((x) => x.trim())
       .filter(Boolean);
-    const ownerActiveAt = Number(q.searchParams.get('ownerActiveAt') || 0) || 0;
+    // 单位约定：毫秒；兼容桥接传秒（<1e12 视为秒）
+    const rawActive = Number(q.searchParams.get('ownerActiveAt') || 0) || 0;
+    const ownerActiveAt = rawActive > 0 && rawActive < 1e12 ? rawActive * 1000 : rawActive;
     const unanswered = Number(q.searchParams.get('unanswered') || 0) || 0;
     const eventScore = Number(q.searchParams.get('eventScore') || 0) || 0;
     const out = care.careDecide(runtime.config, {

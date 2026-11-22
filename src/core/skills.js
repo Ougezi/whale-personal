@@ -45,4 +45,12 @@ function match(dataDir, text, limit = 3) {
     .map((x) => x.line);
 }
 
-module.exports = { add, list, match };
+/** 给提示词的一段：派活/做事前提示以前怎么做（没有匹配就空串） */
+function block({ dataDir = null, text = '', limit = 3 } = {}) {
+  if (!dataDir) return '';
+  const hits = match(dataDir, text, limit);
+  if (!hits.length) return '';
+  return '【以前做过】' + hits.map((h) => String(h).replace(/^- \[[^\]]*\] /, '')).join('；');
+}
+
+module.exports = { add, list, match, block };

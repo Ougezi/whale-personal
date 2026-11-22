@@ -22,6 +22,7 @@ const innerNotes = require('../core/innerNotes');
 const concerns = require('../core/concerns');
 const empathy = require('../core/empathy');
 const antiRepeat = require('../core/antiRepeat');
+const skills = require('../core/skills');
 const sessionMod = require('./session');
 const marks = require('./marks');
 const persona = require('../persona');
@@ -1013,7 +1014,12 @@ class Bot {
     } catch { /* 不强求 */ }
     // R4：把情绪挂到 decision 上，发不发图由 mood.expressionFor 决定
     try { if (decision && moodState) decision.moodState = moodState; } catch { /* 不影响回复 */ }
-    const innerLine = [moodLine, thoughtLine, notesLine, empathyLine, concernLine].filter(Boolean).join('\n');
+    let skillLine = '';
+    try {
+      const _sdir = (this.config && this.config.paths && this.config.paths.dataDir) || path.join(process.cwd(), 'data');
+      if (isMaster) skillLine = skills.block({ dataDir: _sdir, text: String(clean && clean.text || '') });
+    } catch { /* 技能提示失败不影响回复 */ }
+    const innerLine = [moodLine, thoughtLine, notesLine, empathyLine, concernLine, skillLine].filter(Boolean).join('\n');
 
     const promptParts = persona.buildPromptParts({
       config: this.config,
