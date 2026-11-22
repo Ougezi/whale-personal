@@ -276,7 +276,7 @@ function sniffMime(imageBase64) {
   return '';
 }
 
-async function describe(config, { imageBase64, mime = 'image/jpeg', prompt = '' } = {}) {
+async function describeRemote(config, { imageBase64, mime = 'image/jpeg', prompt = '' } = {}) {
   const v = resolveVisionConfig(config);
   const baseUrl = String(v.baseUrl || 'https://open.bigmodel.cn/api/paas/v4').replace(/\/+$/, '');
   const apiKey = resolveKey(config);
@@ -339,6 +339,24 @@ async function describe(config, { imageBase64, mime = 'image/jpeg', prompt = '' 
     resp.json.choices[0].message &&
     resp.json.choices[0].message.content;
   return String(text || '').trim();
+}
+
+
+/** 先走配置好的视觉模型；没 Key / 调用失败时退回本机 Windows OCR（只读文字，不需要 Key） */
+async function describe(config, opts = {}) {
+  try {
+    return await describeRemote(config, opts);
+  } catch (err) {
+    const ocr = require('./localOcr');
+    if (ocr.available() && opts && opts.imageBase64) {
+      try {
+        const text = await ocr.ocrBase64(opts.imageBase64, opts.mime || 'image/jpeg');
+        const clean = String(text || '').trim();
+        if (clean) return '（本机 OCR，没配看图 Key）' + clean.slice(0, 1500);
+      } catch { /* OCR 也失败就把原来的错抛出去 */ }
+    }
+    throw err;
+  }
 }
 
 module.exports = { describe, resolveKey, status, TEST_IMAGE, maskKey, sniffMime, requestHeaders };

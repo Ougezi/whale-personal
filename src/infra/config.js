@@ -218,7 +218,7 @@ const DEFAULT_CONFIG = {
     publishAccount: '', publishWithImage: false,
   },
   // 别人发链接时，读一下标题/摘要/文章正文（视频只读得到文案）
-  links: { enabled: true, timeoutMs: 6000, cacheMinutes: 60, allowPrivate: false },
+  links: { enabled: true, timeoutMs: 12000, cacheMinutes: 60, allowPrivate: false },
   // 魔咒：主人在微信私聊输入口令后，临时解锁当前会话的管理命令。
   admin: { spell: '', minutes: 30 },
   // 表情包（实验性）：总闸在 features.stickers，这里只管「怎么挑、发多勤」。

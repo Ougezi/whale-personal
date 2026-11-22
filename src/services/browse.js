@@ -213,7 +213,8 @@ class BrowseService {
       try {
         const raw = await this.runtime.llm.complete({
           system: SYSTEM,
-          turns: [{ role: 'user', content: `这条：${String(pick.title).slice(0, 80)}（来源：${source}）` }],
+          turns: [{ role: 'user', content: `这条：${String(pick.title).slice(0, 80)}（来源：${source}）。只回一句，别解释。` }],
+          maxTokens: 120,
         });
         reaction = cleanReaction(raw);
       } catch (err) {
