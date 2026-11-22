@@ -833,6 +833,15 @@ class Bot {
       } catch (err) { this.logger?.warn('[search] stage=record_failed ' + describeError(err)); }
     }
     const linkText = await linkTask;
+    // 主人分享的内容读到了 → 好奇被满足（意 +13~17，中点 15），和自主上网的 33~37 分开算
+    if (linkText && isMaster) {
+      try {
+        const ownerLearn = browseCore.writeBackFor('', { rng: this.rng, source: 'owner' });
+        mood.nudge(innerDir, { wants: ownerLearn.wants, now: nowMs, rng: this.rng });
+      } catch (err) {
+        this.logger?.warn?.('主人分享：写回好奇失败（' + describeError(err) + '）');
+      }
+    }
     msg.linkText = linkText;
     msg.webText = searchResult.text;
     msg.searchResult = searchResult;
