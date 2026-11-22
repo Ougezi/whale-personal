@@ -29,7 +29,9 @@ if (-not $SkipLauncher) {
     Copy-Item (Join-Path $repo "publish\WhaleLauncher.exe") (Join-Path $outDir "WhaleLauncher.exe") -Force
 } else {
     Write-Host "  [1/4] 跳过启动器发布（-SkipLauncher）" -ForegroundColor Yellow
-    Copy-Item (Join-Path $repo "WhaleLauncher.exe") (Join-Path $outDir "WhaleLauncher.exe") -Force
+    $pub = Join-Path $repo "launcher\publish"
+    if (-not (Test-Path (Join-Path $pub "WhaleLauncher.exe"))) { throw "缺少 launcher\publish，无法跳过发布" }
+    Copy-Item (Join-Path $pub "*") $outDir -Force
 }
 
 Write-Host "  [2/4] 拷内核与桥接" -ForegroundColor Yellow

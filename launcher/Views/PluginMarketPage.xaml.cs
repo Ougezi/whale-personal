@@ -281,9 +281,7 @@ namespace WhaleLauncher.Views
 
         private static Task<string> OpenFeedback(int issue)
         {
-            var url = $"https://github.com/Banan1cee/whale-girl-plugins/issues/{issue}#new_comment_field";
-            using var browser = Process.Start(new ProcessStartInfo(url) { UseShellExecute = true });
-            return Task.FromResult("在 GitHub 登录后可以评论。");
+            return Task.FromResult("反馈入口已关闭（插件市场已隔离）。");
         }
 
         private async Task ShowPersonaSettings(PluginInfo info)

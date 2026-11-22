@@ -1,6 +1,6 @@
 # Api 3 消息流程插件
 
-4.1.0 支持 Wasm 消息插件，市场通过 index-v3.json 分发并进行 Api 3 校验。网络、检索、定时和完整系统权限能力见最低 4.1.2 的「插件JavaScriptApi4.md」。市场投稿目标仍为 Banan1cee/whale-girl-plugins 的 main。
+- 个人版不提供公开投稿/上架入口；要分享插件，直接打包 ZIP 交给作者本人。
 
 ## 安装和授权
 

@@ -29,7 +29,6 @@ namespace WhaleLauncher
     public partial class MainWindow : Window
     {
         private readonly RuntimeSupervisor _sup;
-        private readonly PluginMarket _pluginMarket;
         private readonly DispatcherTimer _timer;
         private readonly Dictionary<string, UserControl> _pages = new Dictionary<string, UserControl>();
         private bool _busy;
@@ -37,8 +36,6 @@ namespace WhaleLauncher
         private bool _memoryNoticeChecked;
 
         // 官网和赞助入口固定在侧栏底部；链接写死，不依赖内核或网络配置，断网时浏览器自行提示。
-        private const string OfficialSite = "https://bot.zyyc.cc/";
-        private const string SponsorPage = "https://afdian.com/a/Banan1ce";
 
         private static readonly NavEntry[] NavKeys =
         {
@@ -49,7 +46,6 @@ namespace WhaleLauncher
             new NavEntry { Key = "主动与提醒", Label = "主动与提醒", Icon = Geometry.Parse("M18 8a6 6 0 0 0-12 0c0 7-3 8-3 8h18s-3-1-3-8 M10.5 20a2 2 0 0 0 3 0") },
             new NavEntry { Key = "微信桥接", Label = "微信桥接", Icon = Geometry.Parse("M21 11.5a8.4 8.4 0 0 1-9 8.4 9.9 9.9 0 0 1-4-.9L3 21l1.9-3.5a8.4 8.4 0 1 1 16.1-6Z M8 10h8 M8 13h5") },
             new NavEntry { Key = "诊断", Label = "诊断", Icon = Geometry.Parse("M3 12h4l2-5 4 10 2-5h6") },
-            new NavEntry { Key = "插件市场", Label = "插件市场", Icon = Geometry.Parse("M4 9h16v11H4z M3 5h18v4H3z M10 13h4") },
             new NavEntry { Key = "设置", Label = "设置", Icon = Geometry.Parse("M19.4 15a1.7 1.7 0 0 0 .34 1.88l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06A1.7 1.7 0 0 0 15 19.4a1.7 1.7 0 0 0-1 1.56V21a2 2 0 1 1-4 0v-.09a1.7 1.7 0 0 0-1.1-1.56 1.7 1.7 0 0 0-1.88.34l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06A1.7 1.7 0 0 0 4.6 15a1.7 1.7 0 0 0-1.56-1H3a2 2 0 1 1 0-4h.09A1.7 1.7 0 0 0 4.6 8.9a1.7 1.7 0 0 0-.34-1.88l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06A1.7 1.7 0 0 0 9 4.6a1.7 1.7 0 0 0 1-1.56V3a2 2 0 1 1 4 0v.09a1.7 1.7 0 0 0 1 1.56 1.7 1.7 0 0 0 1.88-.34l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06A1.7 1.7 0 0 0 19.4 9c.12.4.5.86 1.56 1H21a2 2 0 1 1 0 4h-.09a1.7 1.7 0 0 0-1.51 1Z") },
         };
 
@@ -60,7 +56,6 @@ namespace WhaleLauncher
             var dir = AppContext.BaseDirectory.TrimEnd(Path.DirectorySeparatorChar);
             _sup = new RuntimeSupervisor(dir);
             _sup.UpdateBlocked = true;
-            _pluginMarket = new PluginMarket(dir);
 
             // 正式版不该显示成 v4.0-alpha：那会让用户以为自己装的是测试版，
             // 而且强制更新拿这个版本号做比较，后缀只会添乱。
@@ -549,7 +544,6 @@ namespace WhaleLauncher
                 case "主动与提醒": return new ReminderPage(_sup);
                 case "微信桥接": return new BridgePage(_sup);
                 case "诊断": return new DiagPage(_sup);
-                case "插件市场": return new PluginMarketPage(_pluginMarket, UpdateManifestService.LocalVersion(_sup.BaseDir), _sup);
                 case "设置": return new SettingsPage(_sup);
                 default:
                     return new PlaceholderPage(key, "这一页还没做。");
@@ -566,9 +560,7 @@ namespace WhaleLauncher
 
         private void OnSettings(object sender, RoutedEventArgs e) => GoTo("设置");
 
-        private void OnOpenWebsite(object sender, RoutedEventArgs e) => OpenExternal(OfficialSite, "打开官网失败");
 
-        private void OnOpenSponsor(object sender, RoutedEventArgs e) => OpenExternal(SponsorPage, "打开赞助页面失败");
 
         private void OpenExternal(string url, string failureTitle)
         {

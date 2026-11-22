@@ -55,9 +55,10 @@ if (-not (Test-Path -LiteralPath (Join-Path $presetSource 'manifest.json'))) { P
 # 下方restore-source按声明逐项复制，避免通配符把用户放入该目录的图片一起带出。
 
 # 使用已发布的启动器，避免根目录正在运行的旧 exe 被打入新包。
-$publishedLauncher = Join-Path $root 'launcher\publish\WhaleLauncher.exe'
-if (Test-Path $publishedLauncher) {
-  Copy-Item -LiteralPath $publishedLauncher -Destination (Join-Path $stage 'WhaleLauncher.exe') -Force
+$publishedLauncher = Join-Path $root 'launcher\publish'
+if (Test-Path (Join-Path $publishedLauncher 'WhaleLauncher.exe')) {
+  # 文件夹发布：apphost + 依赖 DLL 必须一起进包
+  Copy-Item -Path (Join-Path $publishedLauncher '*') -Destination $stage -Force
 }
 
 # 本地活动用的东西不进包：吵架大赛预设（避免别人一下载就拿去开骂）

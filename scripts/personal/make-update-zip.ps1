@@ -17,7 +17,12 @@ foreach ($d in @("src", "bridge")) {
     robocopy (Join-Path $repo $d) (Join-Path $staging $d) /E /NFL /NDL /NJH /NJS /NP | Out-Null
 }
 robocopy (Join-Path $repo "scripts\personal") (Join-Path $staging "scripts\personal") /E /NFL /NDL /NJH /NJS /NP | Out-Null
-foreach ($f in @("WhaleLauncher.exe", "server.js", "package.json", "release-manifest.json", "LICENSE", "PERSONAL.md")) {
+# 启动器是文件夹发布：可执行文件 + 依赖 DLL 一起带上
+$pub = Join-Path $repo "launcher\publish"
+if (Test-Path (Join-Path $pub "WhaleLauncher.exe")) {
+    Copy-Item (Join-Path $pub "*") $staging -Force
+}
+foreach ($f in @("server.js", "package.json", "release-manifest.json", "LICENSE", "PERSONAL.md")) {
     $src = Join-Path $repo $f
     if (Test-Path $src) { Copy-Item $src (Join-Path $staging $f) -Force }
 }
