@@ -1,0 +1,40 @@
+name: health
+
+# 仓库级自查：内核语法、桥接编译、个人文档参数同步、提示词与启动器隔离。
+# 不联网、不读密钥、不碰微信；跑 `node scripts/health.js`。
+on:
+  push:
+    branches: [main, release]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: health-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  PYTHONUTF8: '1'
+  PYTHONIOENCODING: utf-8
+  PYTHONDONTWRITEBYTECODE: '1'
+
+jobs:
+  health:
+    name: 静态自查与文档同步
+    runs-on: windows-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: 运行自查
+        run: node scripts/health.js

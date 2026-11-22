@@ -8,8 +8,10 @@ name: tests
 # job 顺序跑（约 4 分钟），换取「能真正排上队」。gate 仍只做汇总，名字还是
 # 「测试 / 分层 / 编译」，main 的必需检查引用的是它。
 on:
+  # 个人版 main 由 health.yml 把关（静态自查 + 文档同步 + 隔离检查）。
+  # 官方单测与个人层已分叉（记忆分片、插件市场、官网入口等），只在 feature4 / PR 跑。
   push:
-    branches: [main, feature4]
+    branches: [feature4]
   pull_request:
   workflow_dispatch:
 
