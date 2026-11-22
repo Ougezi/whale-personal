@@ -71,6 +71,17 @@ check('抖音图文：图片去重/轮播 + 只收竖版原图', () => {
   return 'ok';
 });
 
+check('表情包只用本地库（隐藏 搜来的）', () => {
+  const st = read('src/adapters/stickers.js');
+  must(st.includes("HIDDEN_CATEGORY_LABELS"), 'stickers.js 没有隐藏分类');
+  const mod = require(path.join(ROOT, 'src', 'adapters', 'stickers.js'));
+  const cfg = { root: ROOT };
+  must(mod.isUsableCategory(cfg, '搜来的') === false, '搜来的 仍然可发');
+  const prompt = read('src/persona/prompt.js');
+  must(prompt.includes('只用自己的表情库'), 'prompt 没有「只用自己的表情库」规则');
+  return 'ok';
+});
+
 check('自主上网反应只要一句（提示词与 maxTokens）', () => {
   const b = read('src/services/browse.js');
   must(/只(输出|回)[^。\n]{0,4}一句/.test(b), 'browse.js SYSTEM 里没有「只输出这一句」');
