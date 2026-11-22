@@ -22,12 +22,12 @@ function available() {
   return fs.existsSync(ENTRY) && fs.existsSync(NODE);
 }
 
-/** 交给 sidecar：打开链接，返回 {"ok":true,"title":...,"frameFile":...} */
-function readLink(url, { timeoutMs = 180000, seekTo = 2 } = {}) {
+/** 通用：执行 sidecar 的任意 op（watch/hot/download/user/comments/...） */
+function run(op, args = {}, { timeoutMs = 240000 } = {}) {
   if (!available()) return Promise.reject(new Error('抖音 sidecar 不可用（缺 service.mjs / runtime）'));
-  const env = { ...process.env, DSH_HOME: path.join(DIR, 'state') };
+  const env = { ...process.env, DSH_HOME: process.env.WHALE_DOUYIN_HOME || path.join(DIR, 'state') };
   return new Promise((resolve, reject) => {
-    execFile(NODE, [ENTRY, '--once', 'link', JSON.stringify({ url, seekTo })], {
+    execFile(NODE, [ENTRY, '--once', String(op || 'status'), JSON.stringify(args || {})], {
       cwd: DIR,
       env,
       timeout: timeoutMs,
@@ -42,4 +42,9 @@ function readLink(url, { timeoutMs = 180000, seekTo = 2 } = {}) {
   });
 }
 
-module.exports = { available, readLink, DIR, ENTRY };
+/** 打开一条链接（readLink 的旧签名，保留） */
+function readLink(url, { timeoutMs = 180000, seekTo = 2 } = {}) {
+  return run('link', { url, seekTo }, { timeoutMs });
+}
+
+module.exports = { available, run, readLink, DIR, ENTRY };
