@@ -269,13 +269,14 @@ try {
   const os3 = require('node:os');
   const fs3 = require('node:fs');
   const dir4 = fs3.mkdtempSync(path.join(os3.tmpdir(), 'care-'));
-  const atNoon = new Date();
+  // 固定「上午」：care 窗口 09:00-12:00 不含 12:00 整，卡在边界会让用例假挂
+  const atNoon = new Date(2026, 10, 22, 11, 0, 0);
   const cfgCare = { paths: { dataDir: dir4 }, care: { enabled: true, everyMinutes: 1 } };
   check('没有状态文件时不拦', care.careDue(cfgCare, { lastSentTs: 0, sentToday: 0, now: atNoon.getTime() }).due === true, '');
-  fs3.writeFileSync(path.join(dir4, 'mood.json'), JSON.stringify({ ...baseW, updated: atNoon.getTime() }));
+  fs3.writeFileSync(path.join(dir4, 'mood.json'), JSON.stringify({ ...baseW, updated: Date.now() }));
   const fullCare = care.careDue(cfgCare, { lastSentTs: 0, sentToday: 0, now: atNoon.getTime() });
   check('六欲都饱时不搭话', fullCare.due === false && fullCare.reason === 'not_needy', fullCare.reason);
-  fs3.writeFileSync(path.join(dir4, 'mood.json'), JSON.stringify({ ...baseW, wants: { ...baseW.wants, 味: 10 }, updated: atNoon.getTime() }));
+  fs3.writeFileSync(path.join(dir4, 'mood.json'), JSON.stringify({ ...baseW, wants: { ...baseW.wants, 味: 10 }, updated: Date.now() }));
   const hungryCare = care.careDue(cfgCare, { lastSentTs: 0, sentToday: 0, now: atNoon.getTime() });
   check('缺了才开口', hungryCare.due === true && hungryCare.desire.want === '味', JSON.stringify(hungryCare.desire));
   check('搭话词带缺口', /想吃点东西/.test(care.buildCarePrompt({ recent: [], hour: 12, wantLine: '想吃点东西' }).system), '');
