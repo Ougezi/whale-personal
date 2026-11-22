@@ -882,7 +882,7 @@ class Bot {
     // _handleOnce，最后变成「这条不回话」。失败本身仍然要报 error。
     let mem;
     try {
-      mem = this.store.buildContext({
+      const recalled = await require('./recall').recallMemory(this.store, {
         key,
         uid: msg.senderId,
         name: displayName,
@@ -895,6 +895,8 @@ class Bot {
         historyTurns: this.config.chat.historyTurns,
         groupHistoryTurns: this.config.chat.groupHistoryTurns,
       });
+      if (!recalled.ok) throw recalled.error;
+      mem = recalled.mem;
       this._memoryErrorLogged = false;
     } catch (err) {
       if (this.logger) {
