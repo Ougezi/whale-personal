@@ -24,6 +24,7 @@ const { matchMaster, isVerifiedOwner } = require('../core/master');
 const links = require('../adapters/links');
 const browser = require('../adapters/browser');
 const vision = require('../adapters/vision');
+const douyinSidecar = require('../adapters/douyinSidecar');
 const searchService = require('../services/search');
 const { LlmError } = require('../llm/client');
 const { describeError } = require('../infra/errors');
@@ -2129,10 +2130,44 @@ class Bot {
     }
   }
 
-  /** 抖音分享页：页面是 JS 壳，直连只能拿到落地页 → 渲染 + 抓图文原图 + 识图转写 */
+  /** 抖音分享页：页面是 JS 壳，直连只能拿到落地页 → sidecar 打开详情 + 渲染 + 抓图文原图 + 识图转写 */
   async readDouyinNote(url) {
     const parts = [];
     let images = 0;
+    // 先看短链最终落在 图文(note) 还是 视频(video)：图文用浏览器抓原图更快，视频才需要 sidecar
+    let isNote = false;
+    try {
+      const head = await fetch(url, { method: 'GET', redirect: 'follow', signal: AbortSignal.timeout(8000), headers: { 'User-Agent': 'Mozilla/5.0' } });
+      isNote = /\/share\/note\/|\/note\//.test(String(head.url || ''));
+    } catch { /* 解析不出来就按视频走 */ }
+    // 1) 视频交给 sidecar（有登录态、能打开视频详情、能抓帧）
+    try {
+      if (isNote) throw Object.assign(new Error('图文走浏览器原图'), { skipSidecar: true });
+      const side = await douyinSidecar.readLink(url, { timeoutMs: 180000 });
+      if (side && side.ok) {
+        const head = '抖音' + (side.kind === 'video' ? '视频' : '作品') + '：' + (side.title || '（无标题）')
+          + '｜作者 ' + (side.author || '未知') + '｜' + (side.likes || 0) + ' 赞';
+        parts.push(head);
+        if (side.desc) parts.push('文案：' + String(side.desc).slice(0, 500));
+        if (Array.isArray(side.tags) && side.tags.length) parts.push('话题：' + side.tags.join('、'));
+        if (side.frameFile && require('node:fs').existsSync(side.frameFile)) {
+          try {
+            const buf = require('node:fs').readFileSync(side.frameFile);
+            const pic = await vision.describe(this.config, {
+              imageBase64: buf.toString('base64'),
+              mime: 'image/png',
+              prompt: '这是抖音作品的一帧截图。逐字转写画面里的文字（聊天记录保留谁说了什么），再一句话描述画面。',
+            });
+            if (pic && String(pic).trim()) { images += 1; parts.push('画面：' + String(pic).slice(0, 800)); }
+          } catch (err) { this.logger && this.logger.warn('[douyin] 帧识别失败：' + describeError(err)); }
+        }
+      } else if (side) {
+        this.logger && this.logger.info('[douyin] sidecar 没读到：' + (side.code || side.text || ''));
+      }
+    } catch (err) {
+      if (!err || !err.skipSidecar) this.logger && this.logger.warn('[douyin] sidecar 失败：' + describeError(err));
+    }
+    // 2) 再补图文原图（sidecar 只给一帧，图文作品可能多页）
     try {
       const page = await browser.openPage(url, { prefer: 'browser', timeoutMs: 25000 });
       const body = String((page && page.text) || '').trim();
@@ -2183,7 +2218,7 @@ class Bot {
     const isDouyinLink = /douyin|iesdouyin/i.test(String(url));
     const isVideoLink = links.kindOf(url) === 'video';
     const budget = isDouyinLink
-      ? 60000
+      ? 180000
       : isVideoLink
       ? Math.max(30000, Math.min(60000, Number(this.config.links?.timeoutMs) || 6000))
       : Math.max(1, Math.min(60000, Number(this.config.links?.timeoutMs) || 6000));
