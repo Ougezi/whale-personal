@@ -363,8 +363,8 @@ function careTargets(config, options = {}) {
  *   - activeWxids 最近正在聊的会话（quietAfterMinutes 内），跳过
  *   - now
  */
-function careDecide(config, { contacts = null, lastSentTs = 0, sentToday = 0, activeWxids = [], now = Date.now() } = {}) {
-  const base = careDue(config, { lastSentTs, sentToday, now });
+function careDecide(config, { contacts = null, lastSentTs = 0, sentToday = 0, activeWxids = [], now = Date.now(), ownerActiveAt = 0, unanswered = 0, eventScore = 0 } = {}) {
+  const base = careDue(config, { lastSentTs, sentToday, now, ownerActiveAt, unanswered, eventScore });
   if (!base.due) return { ...base, due: false, target: null };
   const targets = careTargets(config, { contacts });
   if (!targets.length) {

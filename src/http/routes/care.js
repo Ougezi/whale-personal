@@ -24,11 +24,17 @@ module.exports = function register(router) {
       .split(/[\n,;，；\s]+/)
       .map((x) => x.trim())
       .filter(Boolean);
+    const ownerActiveAt = Number(q.searchParams.get('ownerActiveAt') || 0) || 0;
+    const unanswered = Number(q.searchParams.get('unanswered') || 0) || 0;
+    const eventScore = Number(q.searchParams.get('eventScore') || 0) || 0;
     const out = care.careDecide(runtime.config, {
       contacts: runtime.contacts || null,
       lastSentTs: Number.isFinite(last) && last > 0 ? last : 0,
       sentToday: Number.isFinite(sentToday) ? sentToday : 0,
       activeWxids: active,
+      ownerActiveAt,
+      unanswered,
+      eventScore,
     });
     runtime.logger?.debug?.(`[care] due=${Boolean(out.due)} reason=${out.reason || '-'} ` +
       `target=${out.target ? (out.target.kind || 'unknown') : 'none'} windows=${(out.windows || []).length} ` +

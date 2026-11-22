@@ -794,6 +794,20 @@ try {
   check('画像证据晋级', false, String(e && e.message).slice(0, 50));
 }
 
+// careDecide 透传（R5 调用方，2026-11-23）
+try {
+  const careD = require(path.join(ROOT, 'src', 'services', 'care.js'));
+  const nowD = new Date(2026, 10, 23, 11, 0).getTime();
+  const cfgD = { paths: { dataDir: 'x' }, care: { enabled: true, everyMinutes: 1, followDesire: false,
+    whitelist: ['wxid_x'], allowOthers: true, onlyMaster: false } };
+  const blocked = careD.careDecide(cfgD, { now: nowD, ownerActiveAt: nowD - 1000 });
+  check('careDecide 透传：主人在聊', blocked.due === false && blocked.reason === 'owner_active', blocked.reason);
+  const boostedD = careD.careDecide(cfgD, { now: nowD, eventScore: 3 });
+  check('careDecide 透传：事件分', boostedD.due === true && boostedD.target && boostedD.target.wxid === 'wxid_x', JSON.stringify(boostedD.target || null));
+} catch (e) {
+  check('careDecide 透传', false, String(e && e.message).slice(0, 40));
+}
+
 console.log('\n通过 ' + pass + '/' + (pass + fail));
   process.exit(fail ? 1 : 0);
 })();
