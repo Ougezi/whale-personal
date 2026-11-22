@@ -30,6 +30,19 @@ installer/      Inno Setup 打包（自带编译器）
 dist/           本地便携版产物（不入库）
 ```
 
+## 开机自启（个人版加的）
+
+启动器原本打开后不会自动拉起内核（要手点「启动」）。个人版加了 `--autostart`：
+
+```powershell
+# 开机自启（写进当前用户 Run 键；不需要管理员）
+New-ItemProperty -Path 'HKCU:\Software\Microsoft\Windows\CurrentVersion\Run' -Name 'WhalePersonal' `
+  -Value '"D:\dsh\whale-personal\src\dist\whale-personal\WhaleLauncher.exe" --autostart' -PropertyType String -Force
+```
+
+带 `--autostart` 时，窗口加载完、更新检查结束后会自动 `StartAllAsync()`（内核 + 桥接），
+实测 6 秒内 8787 起来。取消自启删掉这个 Run 键即可。
+
 ## 本机怎么构建 / 打便携版
 
 需要 .NET 10 SDK（没有就用 `dotnet-install.ps1 -Channel 10.0`）；运行环境（Node + Python）由

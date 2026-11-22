@@ -16,7 +16,7 @@ Write-Host "== 打包便携版 $Version ==" -ForegroundColor Cyan
 Write-Host "  仓库: $repo"
 Write-Host "  产物: $outDir"
 
-if (Test-Path $outDir) { Remove-Item $outDir -Recurse -Force }
+# 保留已有的 data\（用户迁移过来的聊天记录/记忆都在里面，重打包不能抹掉）`r`n$dataBackup = $null`r`nif (Test-Path (Join-Path $outDir "data")) {`r`n    $dataBackup = Join-Path $env:TEMP ("whale-portable-data-" + (Get-Date -Format yyyyMMdd-HHmmss))`r`n    Write-Host "  [保留] 先把 data\\ 挪到 $dataBackup" -ForegroundColor Yellow`r`n    Move-Item (Join-Path $outDir "data") $dataBackup -Force`r`n}`r`nif (Test-Path $outDir) { Remove-Item $outDir -Recurse -Force }
 New-Item -ItemType Directory -Force -Path $outDir | Out-Null
 
 if (-not $SkipLauncher) {
@@ -40,7 +40,7 @@ foreach ($d in @("src", "bridge", "assets", "config", "docs", "examples")) {
 foreach ($f in @("server.js", "package.json", "LICENSE", "release-manifest.json")) {
     Copy-Item (Join-Path $repo $f) (Join-Path $outDir $f) -Force
 }
-New-Item -ItemType Directory -Force -Path (Join-Path $outDir "data") | Out-Null
+if ($dataBackup -and (Test-Path $dataBackup)) {`r`n    Move-Item $dataBackup (Join-Path $outDir "data") -Force`r`n    Write-Host "  [恢复] data\\ 已放回" -ForegroundColor Green`r`n} else {`r`n    New-Item -ItemType Directory -Force -Path (Join-Path $outDir "data") | Out-Null`r`n}
 
 Write-Host "  [3/4] 拷运行时（Node + Python，约 450 MB）" -ForegroundColor Yellow
 if (-not (Test-Path (Join-Path $RuntimeFrom "runtime\node.exe"))) { throw "找不到运行时：$RuntimeFrom\runtime\node.exe" }

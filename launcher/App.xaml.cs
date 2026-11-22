@@ -15,6 +15,9 @@ namespace WhaleLauncher
         private Mutex _instance;
         private bool _ownsInstance;
 
+        /// <summary>个人版：带 --autostart 启动时（开机自启），窗口出来就把内核拉起来。</summary>
+        public static bool StartRuntimeOnLaunch;
+
         protected override async void OnStartup(StartupEventArgs e)
         {
             if (e.Args.Length == 2 && e.Args[0] == "--voice-reply-job")
@@ -37,6 +40,7 @@ namespace WhaleLauncher
                 _ = PreviewRenderer.RunAsync(e.Args[1], scale, nav);
                 return;
             }
+            StartRuntimeOnLaunch = Array.Exists(e.Args, a => string.Equals(a, "--autostart", StringComparison.OrdinalIgnoreCase));
             // 自更新后重启会带 --replace <pid>：等旧实例真的退出，再去抢单实例锁
             WaitForReplacedInstance();
             CleanupOldExes();

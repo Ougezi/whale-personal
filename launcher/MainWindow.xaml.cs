@@ -89,6 +89,9 @@ namespace WhaleLauncher
                 Nav.SelectedIndex = 0;
                 await SilentUpdateCheckAsync(allowBlocking: true);
                 await RefreshAsync();
+                // 个人版：开机自启（--autostart）时不用手点「启动」
+                if (App.StartRuntimeOnLaunch && !_sup.NodeRunning && !_sup.UpdateBlocked)
+                    _ = _sup.StartAllAsync();
             };
             Closing += OnClosingDuringUpdate;
             Closed += (_, __) =>
