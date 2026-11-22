@@ -17,7 +17,9 @@ import threading
 import time
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-SCRIPTS = r"D:\dsh\profiles\desktop"
+SCRIPTS = os.path.join(ROOT, "scripts", "personal")
+if not os.path.isfile(os.path.join(SCRIPTS, "鲸鲸-内核自测.js")):
+    SCRIPTS = r"D:\dsh\profiles\desktop"
 PY = os.path.join(ROOT, "runtime", "python", "python.exe")
 NODE = os.path.join(ROOT, "runtime", "node.exe")
 

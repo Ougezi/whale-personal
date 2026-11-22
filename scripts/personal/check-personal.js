@@ -28,9 +28,9 @@ check('六欲上限 = 200（四处 clamp）', () => {
   return hits + ' 处';
 });
 
-check('学习增量：自主 33~37 / 主人 13~17', () => {
+check('学习增量：自主 35 / 主人 15（固定）', () => {
   const b = read('src/services/browse.js');
-  must(b.includes("source === 'owner' ? randInt(rng, 13, 17) : randInt(rng, 33, 37)"), 'browse.js 的 writeBackFor 增量不是 35/15 的中点');
+  must(b.includes("source === 'owner' ? 15 : 35"), 'browse.js 的 writeBackFor 不是固定 35/15');
   const mod = require(path.join(ROOT, 'src', 'services', 'browse.js'));
   const auto = mod.writeBackFor('', { rng: () => 0.5, source: 'auto' }).wants['意'];
   const owner = mod.writeBackFor('', { rng: () => 0.5, source: 'owner' }).wants['意'];
