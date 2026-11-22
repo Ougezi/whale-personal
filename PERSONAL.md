@@ -103,21 +103,37 @@ Get-Content "$env:TEMP\whale-check-update.json" -Raw
 实测：指到本地 http 服务、清单里 `latest=9.9.9` → `--check-update` 返回
 `{"latest":"9.9.9","hasUpdate":true,"policy":"Warn"}`；不写这一行则回退到默认源 + 上次缓存。
 
-### 默认源里已经加了能通的镜像（4.2.4）
+### 默认源里已经加了能通的镜像（4.2.4 起）
 
 这台机器上 `github.com/.../releases/download`、`raw.githubusercontent.com`、`gh-proxy`、`cdn.jsdelivr.net`
 全都超时/重置，但 **jsDelivr 的边缘域名能通**：`gcore.jsdelivr.net`、`fastly.jsdelivr.net`、
-`testingcf.jsdelivr.net`（它们回源到同一个公开仓库，不需要额外账号/存储）。所以默认源顺序是：
+`testingcf.jsdelivr.net`（它们回源到同一个公开仓库，不需要额外账号/存储）。默认源顺序：
 
 ```
-gcore → fastly → testingcf → cdn.jsdelivr.net → GitHub Release → raw → gh-proxy
+gcore@latest → fastly@latest → testingcf@latest → cdn@latest → GitHub Release → raw → gh-proxy
 ```
 
-插件市场的下载候选也加了同样的三个边缘域名（`launcher/PluginMarket.cs` 的 `DownloadCandidates` +
-host 白名单），实测 `gcore.jsdelivr.net/gh/Ougezi/whale-girl-plugins@main/index.json` 返回 200。
+插件市场下载候选取加同样三个边缘域名（`launcher/PluginMarket.cs`），
+实测 `gcore.jsdelivr.net/gh/Ougezi/whale-girl-plugins@main/index.json` 返回 200。
 
-> 这就是本机「自己想办法存储」的落点：**不额外租存储**，用 jsDelivr 对公开仓库的多域名回源；
-> 真要完全自持，再把它换成一个自己的静态地址（写进 `update-source.txt` 即可，不用改代码）。
+> 本机「自己想办法存储」的落点就是：**不租存储**，用 jsDelivr 对公开仓库的多域名回源。
+> 要完全自持，把清单放到自己的静态地址，写进 `data\update-source.txt` 即可（不用改代码）。
+
+### 两个必须知道的缓存坑（实测）
+
+1. **`@main` 有约 12 小时缓存**：4.2.4 发完，`@main` 还返回 4.2.3。所以 4.2.5 起改用 `@latest`。
+2. **`@latest` 是「最新 tag」的别名，切换也有延迟**：v4.2.5 打好后 45 秒内仍解析到 4.2.4；
+   `purge.jsdelivr.net` 对别名不生效（对具体文件路径生效）。
+   - 权威源永远是 **GitHub Release 资产**（发版即新）；
+   - 这台机器到不了 GitHub，所以版本号可能滞后十几分钟到几小时；
+   - 想立刻生效：`--check-update` 前删 `%LOCALAPPDATA%\WhaleGirl\update-state.json`，
+     或把最新清单放到自己地址并写进 `update-source.txt`。
+
+### 发版建议（清单版本号要递增）
+
+`release-manifest.json` 的 `manifest_version` 是「谁更新」的判据（取所有源里最大的）。
+每次发版把它加一（例如按日期 `2026112201`），这样即使某个 CDN 还在返旧缓存，只要有一个源
+拿到新清单就会赢；不发版时改这一行也能立刻刹车/公告。
 
 ## 增量更新包（4.2.4 起）
 
