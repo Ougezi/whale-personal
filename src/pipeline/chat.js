@@ -20,6 +20,7 @@
 const path = require('node:path');
 const innerNotes = require('../core/innerNotes');
 const sessionMod = require('./session');
+const marks = require('./marks');
 const persona = require('../persona');
 const features = require('../infra/features');
 const { matchMaster, isVerifiedOwner } = require('../core/master');
@@ -1800,16 +1801,7 @@ class Bot {
    * 只有主人私聊允许读取；其他会话只把标记删掉，避免把日记泄露到群里。
    */
   expandDiaryMark(decision, text) {
-    const msg = (decision && decision.msg) || {};
-    const allowed = Boolean(this.diary && msg.isMaster && msg.chatType === 'private');
-    return String(text == null ? '' : text).replace(/\[\[diary:([^\]]{1,32})\]\]/gi, (all, token) => {
-      if (!allowed) return '';
-      try {
-        return this.diary.readForChat(String(token || '').trim()) || '（没找到那天的日记）';
-      } catch {
-        return '（没找到那天的日记）';
-      }
-    }).trim();
+    return marks.expandDiary(this, decision, text);
   }
 
   /**
@@ -1832,19 +1824,14 @@ class Bot {
     return true;
   }
 
-  /** 收走 [[feel:…]] / [[lesson:…]] 并写进 data/inner/；失败不影响回复 */
+  /** 收走 [[feel:…]] / [[lesson:…]]（实现在 pipeline/marks.js） */
   consumeInnerMarks(decision, text) {
-    try {
-      const dataDir = (this.config && this.config.paths && this.config.paths.dataDir)
-        || path.join(process.cwd(), 'data');
-      const parsed = innerNotes.consume(text, { dir: dataDir });
-      if (parsed.writes.length && this.logger) {
-        this.logger.info('内心记录：' + parsed.writes.map((w) => w.kind).join('、'));
-      }
-      return parsed.text;
-    } catch (err) {
-      return text;
-    }
+    return marks.consumeInner(this, decision, text);
+  }
+
+  /** 读回 [[feel:read]] / [[lesson:read]]（实现在 pipeline/marks.js） */
+  expandInnerRead(decision, text) {
+    return marks.expandInnerRead(this, decision, text);
   }
 
   _finalizeOnce(decision, text, { error = false } = {}) {
@@ -1852,7 +1839,8 @@ class Bot {
     if (error) decision.error = true;
     const modernPersona = decision?.msg?.newPersonaBehavior ?? usesNewPersona(this.config);
     text = stripInternalTimestamps(text);
-    // 内心记录标记 [[feel:…]] / [[lesson:…]]：写盘并从正文收走（2026-11-22）
+    // 内心记录：先处理「读回」[[feel:read]]，再收走「写」标记 [[feel:…]]（2026-11-22）
+    text = this.expandInnerRead(decision, text);
     text = this.consumeInnerMarks(decision, text);
     // 模型主动退场标记 [[silence:分钟]]：先解析并从正文剥掉，再走后面的格式清理。
     const silenceMark = stripSilenceMark(text);

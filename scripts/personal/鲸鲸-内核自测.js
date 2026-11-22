@@ -520,6 +520,15 @@ try {
   fsb.writeFileSync(path.join(root2, 'data', 'inner', 'feelings.md'), '- [11-22 23:00] 测试\n');
   const bk = require(path.join(ROOT, 'src', 'memory', 'backup.js')).collect(root2);
   check('备份含感受记录', Object.keys(bk.files.inner || {}).includes('feelings.md'), JSON.stringify(Object.keys(bk.files)));
+  const sum = require(path.join(ROOT, 'src', 'memory', 'backup.js')).summarize(bk);
+  check('备份摘要含感受条数', sum.feelings >= 1 && typeof sum.diaryDays === 'number', JSON.stringify(sum));
+  // 读回标记（marks.expandInnerRead）
+  const marks = require(path.join(ROOT, 'src', 'pipeline', 'marks.js'));
+  const selfM = { config: { paths: { dataDir: idir.replace(/[\\/]inner$/, '') } } };
+  const readMaster = marks.expandInnerRead(selfM, { msg: { isMaster: true, chatType: 'private' } }, '[[feel:read]]');
+  check('主人能读回感受', readMaster.includes('测试感受') || readMaster.includes('全角'), readMaster.slice(0, 30));
+  const readGroup = marks.expandInnerRead(selfM, { msg: { isMaster: false, chatType: 'group' } }, '[[feel:read]]');
+  check('群聊不泄露感受', readGroup === '', readGroup);
   fsb.rmSync(root2, { recursive: true, force: true });
 } catch (e) {
   check('会话归一化', false, String(e && e.message).slice(0, 40));

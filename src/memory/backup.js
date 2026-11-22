@@ -152,7 +152,14 @@ function summarize(bundle) {
       } catch { /* 坏卡不影响统计 */ }
     }
   }
-  return { sessions: chats.size, messages, notes };
+  // 感受/教训/日记也报个数，恢复后能确认它们真的带回来了
+  const inner = (bundle && bundle.files && bundle.files.inner) || {};
+  const countEntries = (body) => String(body || '').split('\n').filter((line) => line.startsWith('- [')).length;
+  const diary = (bundle && bundle.files && bundle.files.diary) || {};
+  return { sessions: chats.size, messages, notes,
+    feelings: countEntries(inner['feelings.md']),
+    lessons: countEntries(inner['lessons.md']),
+    diaryDays: Object.keys(diary).length };
 }
 
 function writeSnapshot(root, reason = 'manual') {
@@ -296,18 +303,14 @@ function restoreFrom(root, bundle) {
     preparedFiles[item.name] = JSON.stringify(value, null, 2);
     restored.push(item.name);
   }
-  restoreFiles(dir, files.memory, preparedFiles, preparedDirs);
-  // 感受/教训/日记：小文本目录，直接落盘（restoreFiles 只处理 memory/personas 两种目录）
+  // 感受/教训/日记也走事务：和 memory/personas 同一个 preparedDirs 提交点
   for (const key of ['inner', 'diary']) {
-    const entries = files[key];
-    if (!entries) continue;
-    for (const [rel, body] of Object.entries(entries)) {
-      const target = path.join(dir, key, rel);
-      fs.mkdirSync(path.dirname(target), { recursive: true });
-      fs.writeFileSync(target, body, 'utf8');
+    if (files[key]) {
+      preparedDirs[key] = files[key];
+      restored.push(key + '/');
     }
-    restored.push(key + '/');
   }
+  restoreFiles(dir, files.memory, preparedFiles, preparedDirs);
   return { restored, ...summarize(bundle) };
 }
 

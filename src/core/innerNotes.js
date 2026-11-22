@@ -61,9 +61,19 @@ function append(kind, text, { dir = null, now = Date.now() } = {}) {
   if (!k) return { ok: false, kind };
   const body = String(text == null ? '' : text).replace(/\s+/g, ' ').trim().slice(0, MAX_ENTRY);
   if (!body) return { ok: false, kind };
-  const lines = readLines(k, dir);
-  lines.push(`- [${stamp(now)}] ${body}`);
-  return { ok: writeLines(k, dir, lines), kind: k };
+  const file = fileOf(k, dir);
+  if (!file) return { ok: false, kind: k };
+  try {
+    // appendFileSync 是单次 O_APPEND 写：并发消息不会互相覆盖（2026-11-22）
+    fs.mkdirSync(path.dirname(file), { recursive: true });
+    fs.appendFileSync(file, `- [${stamp(now)}] ${body}\n`, 'utf8');
+    // 超过上限再压缩一次；不每写一条都重写整个文件
+    const lines = readLines(k, dir);
+    if (lines.length > MAX_LINES + 20) writeLines(k, dir, lines);
+    return { ok: true, kind: k };
+  } catch (err) {
+    return { ok: false, kind: k };
+  }
 }
 
 /** 最近 n 条（旧→新）。 */
@@ -107,4 +117,11 @@ function consume(text, { dir = null, now = Date.now() } = {}) {
   return { text: cleanedText, writes };
 }
 
-module.exports = { append, recent, block, consume, FILES, MAX_ENTRY, MAX_LINES };
+/** 人话列表：给「我写过什么」类标记用 */
+function describe(kind, n = 6, { dir = null } = {}) {
+  const list = recent(kind, n, { dir });
+  if (!list.length) return '';
+  return list.map((x) => `${x.at} ${x.text}`).join('\n');
+}
+
+module.exports = { append, recent, block, consume, describe, FILES, MAX_ENTRY, MAX_LINES };
