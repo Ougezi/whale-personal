@@ -97,6 +97,48 @@ console.log('=== 5. 启动器隔离 ===');
   else ok('启动器源码无官方入口字符串');
 }
 
+console.log('=== 6. 文档解析库（PDF）===');
+{
+  // 2026-11-22：个人版打包时把 wheel 套成了 vendor/vendor，pdfium.dll 没合并到顶层，
+  // 结果所有 PDF 都读不出来（日志报 Could not find library 'pdfium'）。
+  const candidates = [
+    path.join(ROOT, 'dist', 'whale-personal', 'bridge', 'vendor'),
+    path.join(ROOT, '..', 'personal-layer', 'bridge', 'vendor'),
+  ];
+  const found = candidates.filter((v) => fs.existsSync(v));
+  if (!found.length) {
+    ok('没有找到运行目录/个人层 vendor（源码包无所谓，跳过）');
+  }
+  for (const vendor of found) {
+    const label = path.relative(path.join(ROOT, '..'), vendor);
+    const dll = path.join(vendor, 'pypdfium2_raw', 'pdfium.dll');
+    const pkg = path.join(vendor, 'pypdfium2', '__init__.py');
+    const nested = path.join(vendor, 'vendor');
+    if (!fs.existsSync(dll)) {
+      bad(`${label}: 缺 pypdfium2_raw/pdfium.dll（PDF 读不出来；把嵌套的 vendor/vendor 合并回顶层）`);
+      continue;
+    }
+    if (!fs.existsSync(pkg)) {
+      bad(`${label}: 缺 pypdfium2 包本身`);
+      continue;
+    }
+    if (fs.existsSync(nested)) bad(`${label}: 还有多余的 vendor/vendor 嵌套，建议删掉`);
+    // 真导入一次：文件在但 DLL 位数/依赖不对时，只有 import 能发现
+    const py = path.join(ROOT, 'dist', 'whale-personal', 'runtime', 'python', 'python.exe');
+    if (vendor.startsWith(path.join(ROOT, 'dist')) && fs.existsSync(py)) {
+      const r = spawnSync(py, ['-c', 'import sys; sys.path.insert(0, sys.argv[1]); import pypdfium2; print("ok")', vendor],
+        { encoding: 'utf8', timeout: 20000 });
+      if (r.status !== 0) {
+        bad(`${label}: pypdfium2 导入失败：` + String(r.stderr || r.stdout || '').split('\n').slice(-2).join(' '));
+      } else {
+        ok(`${label}: pypdfium2 可导入（PDF 能读）`);
+      }
+    } else {
+      ok(`${label}: pdfium.dll 在`);
+    }
+  }
+}
+
 if (failures) {
   console.error(`\n自查失败：${failures} 项`);
   process.exit(1);
