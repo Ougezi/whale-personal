@@ -82,10 +82,8 @@ const EMOTION_RANGE = Object.freeze({
   欲: [0.09, 0.15],
 });
 
-/** 兼容旧名字：区间中点（有外部代码按标量用过它） */
-const EMOTION_TRIGGER = Object.freeze({
-  喜: 0.25, 怒: 0.18, 哀: 0.12, 惧: 0.05, 爱: 0.2, 恶: 0.18, 欲: 0.12,
-});
+/** 被催促时的怒增量（比被骂轻，单独一条，免得藏魔法数字） */
+const PRESSURE_ANGER_RANGE = Object.freeze([0.08, 0.12]);
 
 /** 给提示词用的人话（不报数值） */
 const EMOTION_LINES = Object.freeze({
@@ -164,6 +162,8 @@ function emotionLabel(state) {
 
 const WANTS = Object.freeze(['见', '听', '香', '味', '触', '意']);
 const WANT_BASE = Object.freeze({ 见: 60, 听: 60, 香: 60, 味: 60, 触: 60, 意: 60 });
+/** 六欲上限：250（200 太容易被刷满，尤其是意） */
+const WANT_MAX = 250;
 
 /** 每小时掉多少（区间） */
 const WANT_DECAY_RANGE = Object.freeze({
@@ -217,7 +217,7 @@ function wantsOf(state) {
   if (!src) return out;
   for (const name of WANTS) {
     if (src[name] == null) continue;
-    out[name] = Math.round(clamp(Number(src[name]) || 0, 0, 200));
+    out[name] = Math.round(clamp(Number(src[name]) || 0, 0, WANT_MAX));
   }
   return out;
 }
@@ -227,7 +227,7 @@ function decayWants(wants, dtMs, rng = Math.random) {
   const out = {};
   for (const name of WANTS) {
     const rate = rand(rng, WANT_DECAY_RANGE[name][0], WANT_DECAY_RANGE[name][1]);
-    out[name] = Math.round(clamp((Number(wants[name]) || 0) - rate * hours, 0, 200));
+    out[name] = Math.round(clamp((Number(wants[name]) || 0) - rate * hours, 0, WANT_MAX));
   }
   return out;
 }
@@ -367,7 +367,7 @@ function signals(text, rng = Math.random) {
   if (PRESSURE.test(s)) {
     out.valence += rand(rng, ...AXIS_RANGE.pressure.valence);
     out.arousal += rand(rng, ...AXIS_RANGE.pressure.arousal);
-    out.emotions.怒 += rand(rng, 0.08, 0.12);
+    out.emotions.怒 += rand(rng, PRESSURE_ANGER_RANGE[0], PRESSURE_ANGER_RANGE[1]);
     out.emotions.惧 += rand(rng, EMOTION_RANGE.惧[0], EMOTION_RANGE.惧[1]);
   }
   // 长句通常意味着认真聊，稍微提神
@@ -385,7 +385,7 @@ function update(state, text, now = Date.now(), rng = Math.random) {
 
   const wants = {};
   for (const name of WANTS) {
-    wants[name] = Math.round(clamp((base.wants[name] || 0) + (fed[name] || 0), 0, 200));
+    wants[name] = Math.round(clamp((base.wants[name] || 0) + (fed[name] || 0), 0, WANT_MAX));
   }
 
   const couple = coupling(wants, rng);
@@ -441,7 +441,7 @@ function nudge(dir, { emotions = {}, wants = {}, now = Date.now(), rng = Math.ra
   next.wants = { ...base.wants };
   for (const name of WANTS) {
     if (!wants[name]) continue;
-    next.wants[name] = Math.round(clamp((next.wants[name] || 0) + Number(wants[name]), 0, 200));
+    next.wants[name] = Math.round(clamp((next.wants[name] || 0) + Number(wants[name]), 0, WANT_MAX));
   }
   next.scales = scalesOf(prev);
   next.lastSpike = prev.lastSpike && typeof prev.lastSpike === 'object' ? prev.lastSpike : {};
@@ -538,13 +538,14 @@ module.exports = {
   VERSION,
   EMOTIONS,
   EMOTION_HALF_LIFE_MS,
-  EMOTION_TRIGGER,
   EMOTION_RANGE,
   SCALE_RANGE,
   RUMINATION_WINDOW_MS,
   RUMINATION_RANGE,
   RUMINATION_MAX,
   WANTS,
+  WANT_MAX,
+  PRESSURE_ANGER_RANGE,
   WANT_BASE,
   WANT_DECAY_RANGE,
   WANT_FEED_RANGE,
