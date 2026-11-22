@@ -106,7 +106,7 @@ function cleanReaction(raw) {
  * 说「这事我真没法接受」之后，情绪却涨了喜 —— 心情和话对不上。所以这里改成：
  *   - 用 mood.signals(她说的那句话) 读出真实情绪（骂、难过、亲昵……）
  *   - 用 mood.feedWants 读出这句话喂到了哪样欲望
- *   - 只有"好奇被满足"是固定的：意 +10~15
+ *   - 好奇被满足：自主上网 意 +35，主人分享 意 +15（固定值）
  * 纯函数，方便测试。
  */
 function writeBackFor(reaction, { rng = Math.random, source = 'auto' } = {}) {
@@ -131,8 +131,8 @@ function writeBackFor(reaction, { rng = Math.random, source = 'auto' } = {}) {
   } catch (err) {
     // 同上
   }
-  // 好奇被满足：自己刷 33~37（中点 35），主人分享 13~17（中点 15）
-  wants.意 = source === 'owner' ? randInt(rng, 13, 17) : randInt(rng, 33, 37);
+  // 好奇被满足：自己刷固定 35，主人分享固定 15（自检按这个值断言）
+  wants.意 = source === 'owner' ? 15 : 35;
   return { emotions, wants };
 }
 
