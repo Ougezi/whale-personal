@@ -101,7 +101,38 @@ Get-Content "$env:TEMP\whale-check-update.json" -Raw
 ```
 
 实测：指到本地 http 服务、清单里 `latest=9.9.9` → `--check-update` 返回
-`{"latest":"9.9.9","hasUpdate":true,"policy":"Warn"}`；不写这一行则回退到默认四源 + 上次缓存。
+`{"latest":"9.9.9","hasUpdate":true,"policy":"Warn"}`；不写这一行则回退到默认源 + 上次缓存。
+
+### 默认源里已经加了能通的镜像（4.2.4）
+
+这台机器上 `github.com/.../releases/download`、`raw.githubusercontent.com`、`gh-proxy`、`cdn.jsdelivr.net`
+全都超时/重置，但 **jsDelivr 的边缘域名能通**：`gcore.jsdelivr.net`、`fastly.jsdelivr.net`、
+`testingcf.jsdelivr.net`（它们回源到同一个公开仓库，不需要额外账号/存储）。所以默认源顺序是：
+
+```
+gcore → fastly → testingcf → cdn.jsdelivr.net → GitHub Release → raw → gh-proxy
+```
+
+插件市场的下载候选也加了同样的三个边缘域名（`launcher/PluginMarket.cs` 的 `DownloadCandidates` +
+host 白名单），实测 `gcore.jsdelivr.net/gh/Ougezi/whale-girl-plugins@main/index.json` 返回 200。
+
+> 这就是本机「自己想办法存储」的落点：**不额外租存储**，用 jsDelivr 对公开仓库的多域名回源；
+> 真要完全自持，再把它换成一个自己的静态地址（写进 `update-source.txt` 即可，不用改代码）。
+
+## 增量更新包（4.2.4 起）
+
+不传 470 MB 的整包，只传**代码增量**：
+
+```powershell
+# 打增量包（src/bridge/启动器/脚本，不含 runtime、assets、data）→ 约 1.8 MB
+powershell -ExecutionPolicy Bypass -File scripts\personal\make-update-zip.ps1
+
+# 本地应用（会先停进程、把 src/bridge/scripts 备份成 _pre-update-<时间戳>、再覆盖、自动重启）
+powershell -ExecutionPolicy Bypass -File scripts\personal\apply-update-zip.ps1 `
+  -Zip dist\whale-personal-update-4.2.4.zip -Target "<便携目录>"
+```
+
+发布时把 `whale-personal-update-<版本>.zip` 和 `release-manifest.json` 一起挂到 Release 资产即可。
 
 ## 还没剥离干净的地方（诚实清单）
 

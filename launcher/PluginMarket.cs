@@ -256,6 +256,8 @@ namespace WhaleLauncher
                 var parts = rest.Split('/');
                 if (parts.Length >= 3)
                     yield return $"https://cdn.jsdelivr.net/gh/{parts[0]}/{parts[1]}@{parts[2]}/{string.Join("/", parts.Skip(3))}";
+yield return $"https://gcore.jsdelivr.net/gh/{parts[0]}/{parts[1]}@{parts[2]}/{string.Join("/", parts.Skip(3))}";
+yield return $"https://fastly.jsdelivr.net/gh/{parts[0]}/{parts[1]}@{parts[2]}/{string.Join("/", parts.Skip(3))}";
             }
             if (url.StartsWith("https://raw.githubusercontent.com/", StringComparison.Ordinal)
                 || url.StartsWith("https://github.com/", StringComparison.Ordinal)
@@ -292,7 +294,7 @@ namespace WhaleLauncher
             using var timeout = new CancellationTokenSource(TimeSpan.FromSeconds(feedback ? 5 : 20));
             for (var hop = 0; hop < 5; hop++)
             {
-                var allowedHost = uri.Host is "raw.githubusercontent.com" or "github.com" or "release-assets.githubusercontent.com"
+                var allowedHost = uri.Host is "raw.githubusercontent.com" or "github.com" or "release-assets.githubusercontent.com" or "gcore.jsdelivr.net" or "fastly.jsdelivr.net" or "testingcf.jsdelivr.net"
                     or "objects.githubusercontent.com" or "cdn.jsdelivr.net" or "gh-proxy.com" or "ghfast.top"
                     || (feedback && uri.Host == "api.github.com");
                 if (uri.Scheme != Uri.UriSchemeHttps || !uri.IsDefaultPort || uri.UserInfo.Length != 0 || !allowedHost)

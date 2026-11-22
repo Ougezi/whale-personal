@@ -111,6 +111,11 @@ namespace WhaleLauncher
             "https://github.com/" + Repo + "/releases/latest/download/release-manifest.json",
             "https://raw.githubusercontent.com/" + Repo + "/main/release-manifest.json",
             "https://gh-proxy.com/https://raw.githubusercontent.com/" + Repo + "/main/release-manifest.json",
+            // 个人版实测：这台网络到不了 github.com 下载域名，但 jsDelivr 的 gcore/fastly/testcf
+            // 边缘域名能通（回源到同一个公开仓库）。
+            "https://gcore.jsdelivr.net/gh/" + Repo + "@main/release-manifest.json",
+            "https://fastly.jsdelivr.net/gh/" + Repo + "@main/release-manifest.json",
+            "https://testingcf.jsdelivr.net/gh/" + Repo + "@main/release-manifest.json",
             "https://cdn.jsdelivr.net/gh/" + Repo + "@main/release-manifest.json",
         };
 
