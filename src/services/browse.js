@@ -106,7 +106,7 @@ function cleanReaction(raw) {
  * 说「这事我真没法接受」之后，情绪却涨了喜 —— 心情和话对不上。所以这里改成：
  *   - 用 mood.signals(她说的那句话) 读出真实情绪（骂、难过、亲昵……）
  *   - 用 mood.feedWants 读出这句话喂到了哪样欲望
- *   - 好奇被满足：35 / 15 是上限，实际按上限的 50%~100% 随机浮动
+ *   - 好奇被满足由 mood.bumpLearn 记（次数上限 200/100，每次 +25~50 / +10~20）
  * 纯函数，方便测试。
  */
 function writeBackFor(reaction, { rng = Math.random, source = 'auto' } = {}) {
@@ -131,9 +131,7 @@ function writeBackFor(reaction, { rng = Math.random, source = 'auto' } = {}) {
   } catch (err) {
     // 同上
   }
-  // 好奇被满足：35 / 15 是上限，实际取 上限 × 50%~100%（自己刷 18~35，主人分享 8~15）
-  const learnCap = source === 'owner' ? 15 : 35;
-  wants.意 = randInt(rng, Math.round(learnCap * 0.5), learnCap);
+  // 好奇被满足改由 mood.bumpLearn 处理（它管「次数上限 + 增量区间」），这里不再返回意
   return { emotions, wants };
 }
 
@@ -226,6 +224,12 @@ class BrowseService {
 
     // 写回：情绪来自她自己那句话（不再一律加喜），只有"好奇被满足"固定给意
     const applied = writeBackFor(reaction, { rng });
+    let learn = null;
+    try {
+      learn = mood.bumpLearn(dir, 'auto', { now, rng });
+    } catch (err) {
+      this.logger?.warn?.('自主上网：记学习次数失败（' + describeError(err) + '）');
+    }
     try {
       mood.nudge(dir, { emotions: applied.emotions, wants: applied.wants, now, rng });
     } catch (err) {
@@ -252,6 +256,7 @@ class BrowseService {
       url: pick.url || null,
       reaction,
       applied,
+      learn,
       countToday: countToday + 1,
       maxPerDay,
       intervalMin,
