@@ -397,15 +397,30 @@ try {
   // BUG 回归：写回必须跟着那句话的情绪走，不能一律加"喜"
   const neg = browse.writeBackFor('这事我真没法接受，太不尊重人了。', { rng: () => 0.5 });
   check('负面内容不涨喜', !Object.prototype.hasOwnProperty.call(neg.emotions, '喜'), JSON.stringify(neg.emotions));
-  // 35 / 15 是上限：抽样必须落在 [上限的一半, 上限] 且真的在浮动（不是固定值）
-  const autoSamples = Array.from({ length: 200 }, () => browse.writeBackFor('', { rng: Math.random, source: 'auto' }).wants.意);
-  check('自主上网好奇 ≤35 且浮动', autoSamples.every((v) => v >= 18 && v <= 35) && new Set(autoSamples).size > 3,
-    Math.min(...autoSamples) + '~' + Math.max(...autoSamples));
-  const ownerSamples = Array.from({ length: 200 }, () => browse.writeBackFor('', { rng: Math.random, source: 'owner' }).wants.意);
-  check('主人分享好奇 ≤15 且浮动', ownerSamples.every((v) => v >= 8 && v <= 15) && new Set(ownerSamples).size > 3,
-    Math.min(...ownerSamples) + '~' + Math.max(...ownerSamples));
+  // 学习：上限是「次数」不是数值；每次增量 25~50（自主）/ 10~20（主人）
+  const mkTmp = (tag) => require('node:fs').mkdtempSync(require('node:path').join(require('node:os').tmpdir(), tag));
+  const nowL = 1060000;
+  const learnDir = mkTmp('learn-auto-');
+  const firstLearn = mood5.bumpLearn(learnDir, 'auto', { now: nowL, rng: Math.random });
+  check('自主学习每次 +25~50', firstLearn.ok && firstLearn.gain >= 25 && firstLearn.gain <= 50, String(firstLearn.gain));
+  let lastAuto = firstLearn;
+  for (let i2 = 1; i2 < 200; i2 += 1) lastAuto = mood5.bumpLearn(learnDir, 'auto', { now: nowL, rng: Math.random });
+  check('自主学习次数上限 200', lastAuto.count === 200 && !lastAuto.capped, String(lastAuto.count));
+  const overAuto = mood5.bumpLearn(learnDir, 'auto', { now: nowL, rng: Math.random });
+  check('第 201 次不再涨意', overAuto.ok === false && overAuto.capped === true && overAuto.gain === 0, JSON.stringify(overAuto));
+  const ownerDirL = mkTmp('learn-owner-');
+  let lastOwner = null;
+  for (let i3 = 0; i3 < 100; i3 += 1) lastOwner = mood5.bumpLearn(ownerDirL, 'owner', { now: nowL, rng: Math.random });
+  check('主人分享每次 +10~20', lastOwner.gain >= 10 && lastOwner.gain <= 20, String(lastOwner.gain));
+  check('主人分享次数上限 100', lastOwner.count === 100 && !lastOwner.capped, String(lastOwner.count));
+  const overOwner = mood5.bumpLearn(ownerDirL, 'owner', { now: nowL, rng: Math.random });
+  check('主人分享第 101 次到上限', overOwner.capped === true && overOwner.ok === false, JSON.stringify(overOwner));
+  const nextDayDir = mkTmp('learn-day-');
+  const day1 = mood5.bumpLearn(nextDayDir, 'owner', { now: nowL, rng: Math.random });
+  const day2 = mood5.bumpLearn(nextDayDir, 'owner', { now: nowL + 24 * 3600 * 1000, rng: Math.random });
+  check('学习次数按天重置', day1.count === 1 && day2.count === 1 && day2.gain >= 10, JSON.stringify({ d1: day1.count, d2: day2.count }));
   // 六欲上限 250（超出要夹住）
-  const capDir = require('node:fs').mkdtempSync(require('node:path').join(require('node:os').tmpdir(), 'mood-cap-'));
+  const capDir = mkTmp('mood-cap-');
   mood5.nudge(capDir, { wants: { 意: 400 }, now: 1060000 });
   check('六欲上限 250', mood5.load(capDir).wants.意 === 250, String(mood5.load(capDir).wants.意));
   const warm = browse.writeBackFor('好想被抱一下', { rng: () => 0.5 });
