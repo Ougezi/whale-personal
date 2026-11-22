@@ -89,6 +89,12 @@
                 </StackPanel>
 
                 <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" VerticalAlignment="Center">
+                    <Button x:Name="BtnMarket" Style="{StaticResource TopBtn}" Width="34" Height="34" Padding="0" AutomationProperties.Name="插件市场"
+                            Click="OnMarket" ToolTip="插件市场：所有已装插件的面板">
+                        <Path Data="M4 4h6v6H4z M14 4h6v6h-6z M4 14h6v6H4z M14 14h6v6h-6z"
+                              Stroke="{Binding Foreground, RelativeSource={RelativeSource AncestorType=Button}}"
+                              StrokeThickness="1.6" StrokeLineJoin="Round" Width="16" Height="16" Stretch="Uniform" />
+                    </Button>
                     <Button x:Name="BtnTheme" Style="{StaticResource TopBtn}" Width="34" Height="34" Padding="0" AutomationProperties.Name="切换浅色或深色"
                             Click="OnToggleTheme" ToolTip="切换浅色 / 深色">
                         <Grid Width="16" Height="16">
