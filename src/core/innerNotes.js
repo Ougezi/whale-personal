@@ -28,6 +28,11 @@ function fileOf(kind, dir) {
   return name ? path.join(baseDir(dir), name) : '';
 }
 
+function today(now = Date.now()) {
+  const d = new Date(now);
+  return `${d.getFullYear()}-${d.getMonth() + 1}-${d.getDate()}`;
+}
+
 function stamp(now) {
   const d = new Date(now);
   const p = (n) => String(n).padStart(2, '0');
@@ -63,6 +68,7 @@ function append(kind, text, { dir = null, now = Date.now() } = {}) {
   if (!body) return { ok: false, kind };
   const file = fileOf(k, dir);
   if (!file) return { ok: false, kind: k };
+  if (isDuplicate(k, body, dir)) return { ok: true, kind: k, duplicate: true };
   try {
     // appendFileSync 是单次 O_APPEND 写：并发消息不会互相覆盖（2026-11-22）
     fs.mkdirSync(path.dirname(file), { recursive: true });
@@ -88,6 +94,7 @@ function recent(kind, n = 2, { dir = null } = {}) {
 
 /** 给提示词的一段；没有记录就返回空串。 */
 function block({ dir = null, limit = 2 } = {}) {
+  try { prune({ dir }); } catch { /* 过期清理失败不影响读取 */ }
   const feelings = recent('feelings', limit, { dir });
   const lessons = recent('lessons', limit, { dir });
   if (!feelings.length && !lessons.length) return '';
@@ -117,6 +124,42 @@ function consume(text, { dir = null, now = Date.now() } = {}) {
   return { text: cleanedText, writes };
 }
 
+/** 同一条不重复写：最近 30 条里有一样的就跳过（返回 duplicate） */
+function isDuplicate(kind, body, dir) {
+  const list = recent(kind, 30, { dir });
+  const norm = (x) => String(x || '').replace(/\s+/g, '');
+  return list.some((x) => norm(x.text) === norm(body));
+}
+
+/**
+ * 感受会过期（默认 90 天），教训不过期。
+ * 只在 block() 里每天顺手跑一次，失败不影响读取。
+ */
+const _lastPrune = new Map();
+function prune({ dir = null, now = Date.now(), keepDays = 90 } = {}) {
+  const day = today(now);
+  const key = (dir || 'default') + '|' + day;
+  if (_lastPrune.get(key)) return 0;
+  _lastPrune.set(key, true);
+  try {
+    const cutoff = now - keepDays * 86400000;
+    const keep = [];
+    let dropped = 0;
+    for (const line of readLines('feelings', dir)) {
+      const m = LINE_RE.exec(line);
+      if (!m) { keep.push(line); continue; }
+      const [mm, dd] = m[1].split(' ')[0].split('-').map(Number);
+      const [hh, mi] = m[1].split(' ')[1].split(':').map(Number);
+      const d = new Date(new Date(now).getFullYear(), mm - 1, dd, hh, mi);
+      if (d.getTime() > now) d.setFullYear(d.getFullYear() - 1);   // 跨年：未来日期按去年
+      if (d.getTime() < cutoff) dropped += 1;
+      else keep.push(line);
+    }
+    if (dropped) writeLines('feelings', dir, keep);
+    return dropped;
+  } catch { return 0; }
+}
+
 /** 人话列表：给「我写过什么」类标记用 */
 function describe(kind, n = 6, { dir = null } = {}) {
   const list = recent(kind, n, { dir });
@@ -124,4 +167,4 @@ function describe(kind, n = 6, { dir = null } = {}) {
   return list.map((x) => `${x.at} ${x.text}`).join('\n');
 }
 
-module.exports = { append, recent, block, consume, describe, FILES, MAX_ENTRY, MAX_LINES };
+module.exports = { append, recent, block, consume, describe, prune, isDuplicate, FILES, MAX_ENTRY, MAX_LINES };

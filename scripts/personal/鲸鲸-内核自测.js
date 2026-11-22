@@ -511,6 +511,15 @@ try {
     && inner.recent('feelings', 1, { dir: idir })[0].text.length <= 200, cc3.text);
   const cc4 = inner.consume('看[[feel 没写冒号]]的', { dir: idir });
   check('半截标记不留渣', !cc4.text.includes('[') && !cc4.text.includes(']'), cc4.text);
+  const dupA = inner.append('feel', '重复句', { dir: idir });
+  const dupB = inner.append('feel', '重复句', { dir: idir });
+  check('感受去重', dupA.ok && dupB.duplicate === true
+    && inner.recent('feelings', 20, { dir: idir }).filter((x) => x.text === '重复句').length === 1, JSON.stringify(dupB));
+  const pdir = fsx.mkdtempSync(path.join(osx.tmpdir(), 'prune-'));
+  fsx.mkdirSync(path.join(pdir, 'inner'), { recursive: true });
+  fsx.writeFileSync(path.join(pdir, 'inner', 'feelings.md'), '- [04-01 10:00] 很久以前\n- [11-22 10:00] 最近\n');
+  const dropped = inner.prune({ dir: pdir, now: new Date(2026, 10, 23).getTime(), keepDays: 90 });
+  check('感受过期清理', dropped === 1 && inner.recent('feelings', 5, { dir: pdir }).length === 1, String(dropped));
   // 备份要带上感受/教训/日记
   const fsb = require('node:fs');
   const root2 = fsb.mkdtempSync(path.join(require('node:os').tmpdir(), 'bk-'));

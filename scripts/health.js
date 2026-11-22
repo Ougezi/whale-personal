@@ -77,13 +77,30 @@ console.log('=== 4. 个人层提示词 ===');
     ['开页标记', '[[open:'],
     ['自助规则', 'selfRules'],
     // 2026-11-22：她会编「我这边闻着股香味」，又把话安到对方头上
-    ['感官边界', '【感官边界】'],
-    ['谁说的', '【谁说的】'],
+    ['边界（感官+归属）', '【边界】'],
     ['内心记录', '【内心记录】'],
   ];
   for (const [label, needle] of checks) {
     if (text.includes(needle)) ok(label + ' 在');
     else bad(label + ' 丢了');
+  }
+
+  // 提示词体检：无重复【块】，估算 token 不超上限（2026-11-23）
+  {
+    const r = spawnSync(process.execPath, [path.join(__dirname, 'tools', 'prompt-audit.js'), '--json'], { encoding: 'utf8' });
+    if (r.status !== 0) {
+      bad('提示词测绘失败：' + String(r.stderr || r.stdout || '').slice(-200));
+    } else {
+      let audit = null;
+      try { audit = JSON.parse(r.stdout); } catch { audit = null; }
+      if (!audit) bad('提示词测绘结果不是 JSON');
+      else {
+        if (!audit.duplicated || !audit.duplicated.length) ok(`提示词无重复块（${audit.blocks} 个）`);
+        else bad('提示词有重复块：' + audit.duplicated.map(([k, n]) => `${k}×${n}`).join('、'));
+        if (audit.estimatedTokens <= 3000) ok(`提示词估算 ${audit.estimatedTokens} tokens（≤3000）`);
+        else bad(`提示词估算 ${audit.estimatedTokens} tokens，超过 3000`);
+      }
+    }
   }
 }
 
