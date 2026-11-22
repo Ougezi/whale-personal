@@ -134,6 +134,18 @@ check('插件市场布局：分类/卡片/详情，写操作只绑刷抖音', ()
   return 'ok';
 });
 
+check('插件市场：排序/置顶 + 插件介绍页', () => {
+  const m = read('src/http/routes/market.js');
+  must(m.includes('/api/market/order'), '缺排序/置顶接口');
+  must(m.includes('intro:'), 'catalog 缺插件介绍');
+  must(m.includes('highlights:'), 'catalog 缺亮点');
+  const w = read('launcher/PluginMarketWindow.cs');
+  must(w.includes('TogglePin'), '窗口缺置顶逻辑');
+  must(w.includes('MovePlugin'), '窗口缺上移/下移逻辑');
+  must(w.includes('插件介绍'), '详情页缺插件介绍');
+  return 'ok';
+});
+
 check('自主上网反应只要一句（提示词与 maxTokens）', () => {
   const b = read('src/services/browse.js');
   must(/只(输出|回)[^。\n]{0,4}一句/.test(b), 'browse.js SYSTEM 里没有「只输出这一句」');
