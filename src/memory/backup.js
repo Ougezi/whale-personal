@@ -72,6 +72,24 @@ function collectMemoryFiles(memoryDir) {
   return out;
 }
 
+/** 打包纯文本目录（感受/教训/日记）：递归，保留相对路径，只收 md/txt */
+function collectTextDir(dir) {
+  const out = {};
+  const walk = (base, rel) => {
+    let entries = [];
+    try { entries = fs.readdirSync(base, { withFileTypes: true }); } catch { return; }
+    for (const entry of entries) {
+      const r = rel ? rel + '/' + entry.name : entry.name;
+      if (entry.isDirectory()) walk(path.join(base, entry.name), r);
+      else if (/\.(md|txt)$/i.test(entry.name)) {
+        try { out[r] = fs.readFileSync(path.join(base, entry.name), 'utf8'); } catch { /* 跳过读不了的文件 */ }
+      }
+    }
+  };
+  walk(dir, '');
+  return out;
+}
+
 /** 只打包一层用户文件（自建人设预设 / 删除标记），不递归子目录 */
 function collectFlatFiles(dir, pattern) {
   const out = {};
@@ -97,6 +115,11 @@ function collect(root, { withSecrets = false } = {}) {
   if (Object.keys(memory).length) bundle.files.memory = memory;
   const personas = collectFlatFiles(path.join(dir, 'personas'), /\.json$/i);
   if (Object.keys(personas).length) bundle.files.personas = personas;
+  // 感受/教训/日记也要进备份：它们不在 memory/ 下（2026-11-22）
+  for (const key of ['inner', 'diary']) {
+    const text = collectTextDir(path.join(dir, key));
+    if (Object.keys(text).length) bundle.files[key] = text;
+  }
   for (const item of FILES) {
     if (item.key === 'memory' || item.key === 'personas') continue;
     const value = readJson(path.join(dir, item.name));
@@ -200,8 +223,17 @@ function validateBundle(bundle) {
   }
   const files = bundle.files;
   if (!object(files)) throw new Error('备份里的 files 必须是对象');
-  for (const key of ['memory', 'personas', 'store', 'settings', 'persona', 'careState', 'shareState']) {
+  for (const key of ['memory', 'personas', 'store', 'settings', 'persona', 'careState', 'shareState', 'inner', 'diary']) {
     if (Object.hasOwn(files, key) && !object(files[key])) throw new Error('备份里的 ' + key + ' 结构不对，已取消恢复');
+  }
+  // 感受/教训/日记是纯文本目录：键必须是安全相对路径
+  for (const key of ['inner', 'diary']) {
+    for (const rel of Object.keys(files[key] || {})) {
+      if (rel.includes('..') || rel.includes('\\') || path.isAbsolute(rel) || /^[a-zA-Z]:/.test(rel)) {
+        throw new Error('备份里有非法路径，已取消恢复：' + rel);
+      }
+      if (typeof files[key][rel] !== 'string') throw new Error('备份里的 ' + key + ' 内容必须是文本，已取消恢复');
+    }
   }
   if (!files.memory && !files.store) throw new Error('备份里没有可恢复的记忆');
   if (files.store && (!object(files.store.sessions) || Object.values(files.store.sessions).some(session => !object(session)))) throw new Error('备份里的 store sessions 结构不对，已取消恢复');
@@ -265,6 +297,17 @@ function restoreFrom(root, bundle) {
     restored.push(item.name);
   }
   restoreFiles(dir, files.memory, preparedFiles, preparedDirs);
+  // 感受/教训/日记：小文本目录，直接落盘（restoreFiles 只处理 memory/personas 两种目录）
+  for (const key of ['inner', 'diary']) {
+    const entries = files[key];
+    if (!entries) continue;
+    for (const [rel, body] of Object.entries(entries)) {
+      const target = path.join(dir, key, rel);
+      fs.mkdirSync(path.dirname(target), { recursive: true });
+      fs.writeFileSync(target, body, 'utf8');
+    }
+    restored.push(key + '/');
+  }
   return { restored, ...summarize(bundle) };
 }
 
