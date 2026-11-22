@@ -506,6 +506,11 @@ try {
   check('感受教训带进提示词', inner.block({ dir: idir }).includes('心里记着的'), '');
   const cc2 = inner.consume('好[[feel：全角冒号也收]]的', { dir: idir });
   check('全角冒号标记', cc2.writes.length === 1 && !cc2.text.includes('[['), cc2.text);
+  const cc3 = inner.consume('前[[feel：' + '啊'.repeat(250) + ']]后', { dir: idir });
+  check('超长标记不泄漏', !cc3.text.includes('[[') && cc3.writes.length === 1
+    && inner.recent('feelings', 1, { dir: idir })[0].text.length <= 200, cc3.text);
+  const cc4 = inner.consume('看[[feel 没写冒号]]的', { dir: idir });
+  check('半截标记不留渣', !cc4.text.includes('[') && !cc4.text.includes(']'), cc4.text);
   // 备份要带上感受/教训/日记
   const fsb = require('node:fs');
   const root2 = fsb.mkdtempSync(path.join(require('node:os').tmpdir(), 'bk-'));

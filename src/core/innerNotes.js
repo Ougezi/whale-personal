@@ -92,12 +92,19 @@ function consume(text, { dir = null, now = Date.now() } = {}) {
   const src = String(text == null ? '' : text);
   const writes = [];
   // 中英文冒号都收（模型经常写全角）
-  const cleaned = src.replace(/\[\[(feel|lesson)[:：]\s*([^\]\n]{1,200})(?:\]\]|$)/gi, (all, kind, body) => {
+  // 正文长度不限：超长时截断存储，但标记必须从正文里拿干净（否则会漏给用户看）
+  const cleaned = src.replace(/\[\[(feel|lesson)[:：]\s*([^\]\n]*)(?:\]\]|$)/gi, (all, kind, body) => {
     const k = String(kind).toLowerCase();
     if (append(k, body, { dir, now }).ok) writes.push({ kind: k, text: String(body).trim().slice(0, 60) });
     return '';
   });
-  return { text: cleaned.replace(/[ \t]+\n/g, '\n').replace(/([^\n])[ \t]{2,}/g, '$1 ').trim(), writes };
+  // 兜底：没写冒号或写成半截的 [[feel ... 也一并清掉，不留残渣
+  const cleanedText = cleaned
+    .replace(/\[\[(feel|lesson)[^\]\n]*\]*/gi, '')
+    .replace(/[ \t]+\n/g, '\n')
+    .replace(/([^\n])[ \t]{2,}/g, '$1 ')
+    .trim();
+  return { text: cleanedText, writes };
 }
 
 module.exports = { append, recent, block, consume, FILES, MAX_ENTRY, MAX_LINES };
