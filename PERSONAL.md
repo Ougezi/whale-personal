@@ -60,7 +60,8 @@ dist/           本地便携版产物（不入库）
 - `browser.describeVideo(url)`：用 CDP 打开页面 → 找视频地址（`video.currentSrc` / `og:video` / `<source>`，
   再加上页面 HTML 里的 `play_addr|playwm|/video/tos/` 地址）→ 下载（校验 content-type/`ftyp`，非视频直接跳过）
   → ffmpeg 抽 3 帧 → 交给视觉模型逐帧描述 → 拼成「【视频画面】」塞进链接正文。
-- 聊天里视频类链接（抖音/B站/YouTube/快手）预算放宽到 30s，抽帧失败会如实说「没拿到画面」。
+- 聊天里视频类链接预算放宽到 30s，抽帧失败会如实说「没拿到画面」。
+- **抖音/快手不走这条路**：它们由基线的 `[[dy:…]]` + 桥接 sidecar（`bridge/douyin_agent.py`，独立 Chrome profile 和配额）处理，`chat.readLink` 里对这类域名直接跳过抽帧，避免两条通道重复抓。
 - 实测：本地 mp4 页面 → 3 帧全部抽出并成功调用视觉；B站链接 → 拿到的是 HTML，日志明确
   `拿到的不是视频文件（text/html）`，她的回复也如实降级。
 - 局限：抖音/B站多用 blob/MSE 或需要登录/签名，**没有平台接口时拿不到画面**；直链 mp4 的页面可用。
@@ -173,10 +174,10 @@ vision 接口实测 `usage`。
 用内核同一份提示词和参数（`SYSTEM` 80 字 + 一条热榜标题、`temperature 0.95`、`max_tokens 300`）打了一次真实请求：
 
 ```
-prompt_tokens=104  completion_tokens=116  total=220
+prompt_tokens=111  completion_tokens=12  total=123（优化前：104 / 116 / 220）
 ```
 
-- **自主上网**：每次 ≈ **220 tokens**（热榜抓取本身不花 token）
+- **自主上网**：每次 ≈ **123 tokens**（4.2.9 前是 220，加了「只回一句」+ maxTokens 120；热榜抓取本身不花 token）
   - 按额度 5 次/天：≈ **1,100 tokens/天**、≈ **33k/月**、≈ **40 万/年**
   - 按实测每次 0.2k 算，5 次也就 ¥0.00x 级别（DeepSeek 输入/输出单价另算）
 - **主人分享的链接**：读网页不调模型（0 tokens），但正文最多 1200 字会进那一轮的提示词，
@@ -337,6 +338,18 @@ powershell -ExecutionPolicy Bypass -File scripts\personal\apply-update-zip.ps1 `
 ```
 
 发布时把 `whale-personal-update-<版本>.zip` 和 `release-manifest.json` 一起挂到 Release 资产即可。
+
+## 自检脚本怎么用
+
+| 命令 | 查什么 |
+|---|---|
+| `npm run check-personal` | 个人层关键行为（六欲 200、学习 35/15、maxTokens 120、OCR 兜底、两个 API 的 token、CDP/持久 profile/抽帧、[[open]] 执行+剥离、提示词、更新源、启动器、配置默认、版本一致） |
+| `node scripts/health.js` | 基线：内核语法、桥接编译、文档参数同步、个人层提示词、启动器隔离 |
+| `npm run check-layers` | 分层依赖没有反向引用 |
+| `node scripts/release-check.js --release` | 发布一致性（版本/manifest/资产） |
+
+> 4.6.0 基线自带 health/release-check；`check-personal.js` 只守「个人层被覆盖」这类回归，
+> 两者互补。每次改动个人层后先跑 `npm run check-personal`。
 
 ## 还没剥离干净的地方（诚实清单）
 

@@ -347,6 +347,7 @@ async function describe(config, opts = {}) {
   try {
     return await describeRemote(config, opts);
   } catch (err) {
+    if (opts && opts.allowOcr === false) throw err;
     const ocr = require('./localOcr');
     if (ocr.available() && opts && opts.imageBase64) {
       try {

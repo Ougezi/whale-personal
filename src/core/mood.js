@@ -217,7 +217,7 @@ function wantsOf(state) {
   if (!src) return out;
   for (const name of WANTS) {
     if (src[name] == null) continue;
-    out[name] = Math.round(clamp(Number(src[name]) || 0, 0, 100));
+    out[name] = Math.round(clamp(Number(src[name]) || 0, 0, 200));
   }
   return out;
 }
@@ -227,7 +227,7 @@ function decayWants(wants, dtMs, rng = Math.random) {
   const out = {};
   for (const name of WANTS) {
     const rate = rand(rng, WANT_DECAY_RANGE[name][0], WANT_DECAY_RANGE[name][1]);
-    out[name] = Math.round(clamp((Number(wants[name]) || 0) - rate * hours, 0, 100));
+    out[name] = Math.round(clamp((Number(wants[name]) || 0) - rate * hours, 0, 200));
   }
   return out;
 }
@@ -385,7 +385,7 @@ function update(state, text, now = Date.now(), rng = Math.random) {
 
   const wants = {};
   for (const name of WANTS) {
-    wants[name] = Math.round(clamp((base.wants[name] || 0) + (fed[name] || 0), 0, 100));
+    wants[name] = Math.round(clamp((base.wants[name] || 0) + (fed[name] || 0), 0, 200));
   }
 
   const couple = coupling(wants, rng);
@@ -441,7 +441,7 @@ function nudge(dir, { emotions = {}, wants = {}, now = Date.now(), rng = Math.ra
   next.wants = { ...base.wants };
   for (const name of WANTS) {
     if (!wants[name]) continue;
-    next.wants[name] = Math.round(clamp((next.wants[name] || 0) + Number(wants[name]), 0, 100));
+    next.wants[name] = Math.round(clamp((next.wants[name] || 0) + Number(wants[name]), 0, 200));
   }
   next.scales = scalesOf(prev);
   next.lastSpike = prev.lastSpike && typeof prev.lastSpike === 'object' ? prev.lastSpike : {};
