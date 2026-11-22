@@ -55,6 +55,24 @@ dist/           本地便携版产物（不入库）
   实测：造一张写着「鲸鲸图片识别测试 / OCR fallback works 123」的图，无 Key 和坏地址两种情况下都正确读出。
 - 依赖：系统里要有 OCR 语言包（中文系统自带）；没有时返回空，仍会把原错误抛给调用方。
 
+## 4.6.9：接入抖音插件 0.4.0（下载/主页/合集/直播/搜用户/导出/索引/批量）
+
+插件 `dsh-douyin-watch` 升到 **0.4.0**，新增 9 个只读工具 + 2 个门控写工具；
+鲸鲸的 sidecar 与桥接任务路由同步接上，她用 `[[dy:…]]` 就能用：
+
+| 她说 | 路由到 | 结果 |
+|---|---|---|
+| 下载这条 <链接> / 存下来 / 原图 | `download` | 视频/图文原图/音频/封面落盘 `data/downloads/<day>/<kind>-<id>/`，manifest 去重 |
+| 看看 <作者> 的主页 / 合集 / 收藏 | `user` / `collection` | 主页作品列表（10~20 条，可翻页） |
+| 搜用户 xxx | `search_users` | secUid + 主页链接 |
+| 读评论 <链接> | `comments` | 评论（支持 `sort`/`replies` 展开二级回复/`cursor`） |
+| 导出 / 索引 / 批量 | `export` / `index` / `batch` | JSON/CSV 落盘、SQLite（node:sqlite）、断点续跑 |
+| 直播状态 | `live` | 只读是否在直播 |
+| 点赞/收藏 | `like` / `collect` | 默认关闭（enableOps + allowLike/allowCollect + confirm + 写预算） |
+
+实测（本机真实浏览器）：下载一篇图文 **6 图 / 1156 KB**、作者主页 **10 条**、去重返回 `cached`、
+导出/索引/账号探测 OK。插件 19 个工具全部通过 `verify-install` 契约校验。
+
 ## 4.6.8：表情包只用「自己的库」，不再发搜图拼图
 
 截图里她发的多格拼图/网图来自表情分类 **「搜来的」**（系统搜图时下载到 `data/stickers/搜来的`，
