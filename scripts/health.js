@@ -76,6 +76,9 @@ console.log('=== 4. 个人层提示词 ===');
     ['刷抖音提示词', '【刷抖音】'],
     ['开页标记', '[[open:'],
     ['自助规则', 'selfRules'],
+    // 2026-11-22：她会编「我这边闻着股香味」，又把话安到对方头上
+    ['感官边界', '【感官边界】'],
+    ['谁说的', '【谁说的】'],
   ];
   for (const [label, needle] of checks) {
     if (text.includes(needle)) ok(label + ' 在');

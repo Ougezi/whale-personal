@@ -204,7 +204,7 @@ function format(items, rng = Math.random) {
     picks.push(pool.splice(Math.floor(x * pool.length) % pool.length, 1)[0].text);
   }
   return {
-    text: `【脑子里挂着的】${picks.join('；')}（这些是你自己心里想的，不一定要说出来，也别每句都提）`,
+    text: `【脑子里挂着的】${picks.join('；')}（这些是你自己心里想的念头或愿望，不是已经发生的事；不一定要说出来，也别每句都提）`,
     items: items.length,
     picks,
   };
