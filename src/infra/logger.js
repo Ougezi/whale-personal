@@ -159,7 +159,8 @@ function createLogger({ level = 'info', fileLevel = 'debug', file = null, tag = 
       info: (...a) => emit('info', a, tagName),
       // warn/error 的 tagName 只是兜底：抓得到调用栈时 emit 会用 file:line
       warn: (...a) => emit('warn', a, tagName),
-      error: (...a) => emit('error', a, tagName),
+      // 错误计数：排障时 /api/health 能看到「哪类错误最多」，不打扰也不丢失
+      error: (...a) => { try { require('./errorMeter').bump(tagName || 'kernel'); } catch { /* 计数失败不影响日志 */ } return emit('error', a, tagName); },
       child: (name) => make(tagName ? `${tagName}/${name}` : String(name)),
       tag: tagName,
       level,

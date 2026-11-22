@@ -180,11 +180,16 @@ function normalizeEvent(raw, chatId, now) {
     participants: (Array.isArray(raw.participants) ? raw.participants : []).map((p) => text(p, 100)).filter(Boolean).slice(0, 20),
     importance: clampNum(raw.importance, 0, 1, 0.4),
     confidence: clampNum(raw.confidence, 0, 1, 0.6),
+    // 结局：false = 还没解决（提醒她别重复追问）；true = 已了结；undefined = 不知道
+    resolved: raw.resolved === true ? true : (raw.resolved === false ? false : undefined),
     source: {
       chatId: String(chatId),
       messageIds: (Array.isArray(source.messageIds) ? source.messageIds : []).map((m) => text(m, 120)).filter(Boolean).slice(0, 40),
     },
     createdAt: Number(raw.createdAt) || now,
+    // 事件也要能被下架：activeEvents 会过滤 deleted，但这里以前没保存这个标记，
+    // 结果一存盘就复活（memory 修复时踩到）。偏好/线索都保留，唯独事件丢了。
+    deleted: Boolean(raw.deleted),
   };
   if (raw.valence != null) event.valence = clampNum(raw.valence, -1, 1, 0);
   if (typeof raw.resolved === 'boolean') event.resolved = raw.resolved;
@@ -481,6 +486,7 @@ function forget(card, needle, now = Date.now()) {
 }
 
 module.exports = {
+  normalizeEvent,   // 自测要验证「情景结局」等字段是否被保留
   MemoryIsolationError,
   assertChat,
   newCard,
@@ -508,13 +514,20 @@ function evictOverflow(list, cap, now, scoreFn = (x) => (x.confidence || 0) * Ma
   while (list.length > cap) {
     let victim = -1;
     let lowest = Infinity;
+    let fallback = -1;
     for (let i = 0; i < list.length; i += 1) {
       const item = list[i];
       // 已删除 / 已取代的先走，不占名额
       if (item.deleted || item.superseded) { victim = i; break; }
+      // 人工纠正和「能力」类事实最后才考虑：它们是纠正过时认知的唯一手段，
+      // 被挤掉就等于记忆修复白做（2026-11-21 记忆污染事故）。
+      const protectedItem = item.source === 'manual_fix' || item.kind === 'capability' || item.pinned;
+      if (protectedItem) { if (fallback < 0) fallback = i; continue; }
       const s = scoreFn(item);
       if (s < lowest) { lowest = s; victim = i; }
     }
+    // 全是被保护的条目时，才动它们
+    if (victim < 0) victim = fallback;
     if (victim < 0) break;
     list.splice(victim, 1);
   }

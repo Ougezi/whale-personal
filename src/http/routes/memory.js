@@ -25,6 +25,56 @@ function memoryDirOf(runtime) {
 }
 
 module.exports = function register(router) {
+  // 记忆重载：外部脚本改了磁盘记忆后不用重启内核（2026-11 架构审查）
+  router.post('/api/memory/reload', (runtime, req, res) => {
+    if (!isLoopbackRequest(req)) return json(res, 403, { ok: false, error: '仅允许本机调用' });
+    try {
+      runtime.store.chatStore.load();
+      const chats = [...runtime.store.chatStore.chats.values()];
+      return json(res, 200, { ok: true, chats: chats.length,
+        messages: chats.reduce((n, c) => n + ((c.messages || []).length), 0) });
+    } catch (err) {
+      return json(res, 500, { ok: false, error: describeError(err) });
+    }
+  });
+
+
+  /**
+   * POST /api/memory/note  { chat, uid, text, kind?, confidence? }
+   *
+   * 桥接用它把**真实发生过的事**写进记忆（例如"图发出去了"），
+   * 这样她的自述有事实依据，不用靠猜——猜错的话又会被摘进记忆，越滚越歪。
+   * 只允许本机调用；只写偏好/事实，不碰原文消息。
+   */
+  router.post('/api/memory/note', (runtime, req, res) => {
+    if (!isLoopbackRequest(req)) return json(res, 403, { ok: false, error: '记忆写入只允许在本机操作' });
+    return (async () => {
+      try {
+        const body = await readBody(req);
+        const chat = String((body && body.chat) || '').trim();
+        const uid = String((body && body.uid) || '').trim();
+        const note = String((body && body.text) || '').trim();
+        if (!chat || !uid || !note) return json(res, 400, { ok: false, error: 'chat / uid / text 都不能为空' });
+        // 必须先确认这个会话真的存在：addNote → ensureChat 会给不存在的 id 凭空建一个会话
+        // （2026-11-21 自测时写了个假 wxid，库存里多出一个幽灵会话）
+        const chats = runtime.store.chatStore.chats;
+        if (!chats || typeof chats.get !== 'function' || !chats.get(chat)) {
+          return json(res, 404, { ok: false, error: '会话不存在，拒绝写入（避免凭空建会话）' });
+        }
+        const kind = ['fact', 'preference', 'promise', 'recent', 'taboo'].includes(body.kind) ? body.kind : 'recent';
+        const confidence = Number.isFinite(Number(body.confidence)) ? Number(body.confidence) : 0.9;
+        const active = runtime.store.addNote(chat, uid, { text: note, key: String(body.key || '') , kind }, {
+          confidence,
+          source: 'bridge',
+          explicit: true,
+        });
+        return json(res, 200, { ok: true, active: active.length });
+      } catch (err) {
+        return json(res, 500, { ok: false, error: errorMessage(err) });
+      }
+    })();
+  });
+
   function registerList(route, field, groupsOnly) {
   router.get(route, (runtime, req, res) => {
     if (!isLoopbackRequest(req)) return json(res, 403, { ok: false, error: '记忆管理只允许在本机操作' });

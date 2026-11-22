@@ -155,11 +155,13 @@ function createRuntime({ root = path.resolve(__dirname, '..'), env = process.env
   runtime.bot = new Bot({ config, store, llm: runtime.llm, logger: child('pipeline'), trace, version: VERSION });
   // 主人问起日记时，聊天模型通过 [[diary:日期]] 标记读取；不给它直接塞全文。
   runtime.bot.diary = runtime.diary;
-  // 自主上网：隔几小时自己刷一条热榜，用自己的话说一句，再写回情绪与念头
+  // 自主上网：隔几小时自己刷一条热榜，用自己的话说一句，再写回情绪与念头。
+  // 节奏与上限在 config.browse.*（默认 180 分钟 / 每天 5 次），features.browse 可整关。
   try {
     const { BrowseService } = require('./services/browse');
     runtime.browse = new BrowseService(runtime);
     runtime.browse.start();
+    // 挂到 bot 上：微信里说「去看看」时 pipeline 直接调（见 chat.js handleBrowseAsk）
     runtime.bot.browse = runtime.browse;
   } catch (err) {
     logger.warn('自主上网没有启动（不影响聊天）：' + describeError(err));

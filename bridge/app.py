@@ -308,6 +308,11 @@ class BridgeRuntime(AccountMixin, WindowMixin, SenderMixin, StickerMixin, VoiceM
         G.threading.Thread(target=self.send_watchdog, daemon=True).start()
         G.threading.Thread(target=self.battery_watch, daemon=True).start()
         G.threading.Thread(target=self.care_watch, daemon=True).start()
+        try:
+            import selfcheck
+            selfcheck.start(self)
+        except Exception as _e:
+            G.log('自检模块启动失败（不影响聊天）：', repr(_e))
         G.threading.Thread(target=self.bridge_heartbeat, daemon=True).start()
         G.threading.Thread(target=self.listener_watch, daemon=True).start()
         G.threading.Thread(target=self.contacts_sync_once, daemon=True).start()

@@ -33,7 +33,15 @@ async function careForChat(runtime, chatId) {
     return { ok: true, text: care.pickTemplate(), mock: true, hour };
   }
   try {
-    const { system, user } = care.buildCarePrompt({ persona: personaCfg, recent, name, hour });
+    const desire = care.careDesire(runtime.config);
+    const { system, user } = care.buildCarePrompt({
+      persona: personaCfg,
+      recent,
+      name,
+      hour,
+      want: desire.needy ? desire.want : null,
+      wantLine: desire.needy ? desire.line : '',
+    });
     const raw = await runtime.llm.complete({ system, turns: [{ role: 'user', content: user }] });
     const text = care.cleanCareText(raw) || care.pickTemplate();
     return { ok: true, text, mock: false, hour };

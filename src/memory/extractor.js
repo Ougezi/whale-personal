@@ -121,9 +121,11 @@ function lightweightCandidates(messages, { now = Date.now() } = {}) {
 
 const EPISODE_SYSTEM = [
   '你在整理一段聊天 episode，供以后回忆用。只输出 JSON，不要解释、不要代码块。',
-  '格式：{"summary":"...","facts":[{"uid":"u1","text":"...","confidence":0.8}],"traits":[{"uid":"u1","text":"...","confidence":0.7,"evidence":["msg_1"]}],"events":[{"uid":"u1","title":"≤20字","summary":"60~150字","keywords":["..."],"importance":0.6,"confidence":0.8}],"threads":[{"uid":"u1","text":"..."}],"relations":[{"a":"u1","b":"u2","text":"同事","confidence":0.8}]}',
+  '格式：{"summary":"...","facts":[{"uid":"u1","text":"...","key":"槽位名","confidence":0.8}],"traits":[{"uid":"u1","text":"...","confidence":0.7,"evidence":["msg_1"]}],"events":[{"uid":"u1","title":"≤20字","summary":"60~150字","keywords":["..."],"importance":0.6,"confidence":0.8}],"threads":[{"uid":"u1","text":"..."}],"relations":[{"a":"u1","b":"u2","text":"同事","confidence":0.8}]}',
   'summary：80~150 字，写这段在聊什么、情绪基调、有没有没解决的事；群聊必须保留「谁说的」，不要揉成「用户说」。',
   'facts：只写这些人自己明确说过的、以后还用得上的事实；第三人称转述、玩笑、假设、反问不写。',
+  'facts 的 key：写这条事实属于哪个「槽位」，同一个槽位换说法要复用同一个 key（如 city、job、能否读PDF、搜图能力），'
+    + '换了值就用同一个 key 表示替换；实在想不出槽位就留空字符串。key 用 2~12 个字，不要写整句。',
   'traits：至少两次独立观察才写，confidence ≥ 0.65，evidence 填消息 id；一次情绪不写。',
   'events：一段事一条，不要每句话一条；summary 60~150 字。',
   'relations：只写两人之间明确说出口的关系（朋友 / 同事 / 同学 / 室友 / 情侣 / 夫妻 / 兄弟 / 姐妹 / 亲戚等），text ≤40 字；a、b 都必须是下面发言人列表里的 uid，不确定就不写。',
@@ -170,7 +172,7 @@ function parseEpisode(raw) {
     if (!f) return null;
     const body = clampText(typeof f === 'string' ? f : f.text, 60);
     if (!body) return null;
-    return { uid: String(f.uid || ''), text: body, confidence: clamp01(f.confidence, 0.6) };
+    return { uid: String(f.uid || ''), text: body, key: clampText(f.key, 12), confidence: clamp01(f.confidence, 0.6) };
   }).filter(Boolean);
   const traits = (Array.isArray(obj.traits) ? obj.traits : []).slice(0, 8).map((t) => {
     if (!t) return null;

@@ -285,13 +285,16 @@ const DEFAULT_CONFIG = {
     jitterMinutes: 25,
     maxPerDay: 6,
     quietAfterMinutes: 20,
+    // 六欲：到点之外还要「她真的缺了什么」才开口；阈值是六欲低于多少算缺
     followDesire: true,
     needThreshold: 30,
   },
+  // 念头流：模型偶尔写一条（perDay=0 就只用本地模板）
   thoughts: {
     modelIntervalMin: 30,
     modelPerDay: 24,
   },
+  // 自主上网：隔多久看一次、每天最多看几条、看哪些热榜
   browse: {
     intervalMin: 180,
     maxPerDay: 5,

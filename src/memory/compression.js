@@ -22,11 +22,18 @@ const SUMMARY_SYSTEM = [
   '群聊必须保留「谁说的」，不要把多人揉成「用户说」。不要编造记录里没有的事。',
 ].join('\n');
 
+// 文档消息（桥接注入的文档正文）允许更长：单段上限 8000 字 + 前缀/提示，留到 9000。
+// 普通聊天仍按 maxTurnChars（1800）截断，避免一条超长消息把 recent 预算挤爆。
+const DOC_TEXT_LIMIT = 65000;
+const DOC_MARKERS = ['（对方发了一份文档', '（同一份文档'];
+
 function clampPromptMessage(m) {
   const textValue = String(m.text || '');
+  let limit = LIMITS.maxTurnChars;
+  if (DOC_MARKERS.some((k) => textValue.startsWith(k))) limit = Math.max(limit, DOC_TEXT_LIMIT);
   return {
     ...m,
-    text: textValue.length > LIMITS.maxTurnChars ? textValue.slice(0, LIMITS.maxTurnChars) : textValue,
+    text: textValue.length > limit ? textValue.slice(0, limit) : textValue,
   };
 }
 

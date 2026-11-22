@@ -6,6 +6,21 @@ const { isLoopbackRequest } = require('../security');
 const memoryBackup = require('../../memory/backup');
 
 module.exports = function register(router) {
+  // 一键健康：错误计数 + 记忆规模 + 运行时长，排障先看这个
+  router.get('/api/health', (runtime, req, res) => {
+    let errors = { total: 0, top: {} };
+    try { errors = require('../../infra/errorMeter').stats(); } catch { /* 计数模块不可用就报空 */ }
+    let memory = null;
+    try { memory = runtime.store ? runtime.store.summary() : null; } catch { /* 记忆统计失败不影响健康接口 */ }
+    let bridgeErrors = null;
+    try {
+      const p = require('node:path').join(runtime.config.root, 'data', 'bridge-errors.json');
+      bridgeErrors = JSON.parse(require('node:fs').readFileSync(p, 'utf8'));
+    } catch { /* 桥接还没写过计数就报空 */ }
+    return json(res, 200, { ok: true, uptimeSec: Math.round(process.uptime()),
+      errors, bridgeErrors, memory });
+  });
+
   router.get('/api/status', (runtime, req, res) => json(res, 200, statusPayload(runtime)));
   // 启动器状态页的「最近动态」：只读内存快照，本机可读（与 /api/status 同级信息）。
   router.get('/api/recent', (runtime, req, res, info) => {

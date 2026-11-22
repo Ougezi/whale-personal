@@ -4,12 +4,12 @@ const { configuredWhitelist, sendDenial } = require('../core/wechatSendPolicy');
 const { masterLists, masterTargetFacts, sameWxid } = require('../core/master');
 const { parseBoolean } = require('../infra/configValues');
 const time = require('../infra/time');
-
-// 读布尔开关：兼容老配置里的字符串 "false"（Boolean("false") 会被当成开）
-const { toBool } = require('../infra/features');
 const mood = require('../core/mood');
 const fs = require('node:fs');
 const path = require('node:path');
+
+// 读布尔开关：兼容老配置里的字符串 "false"（Boolean("false") 会被当成开）
+const { toBool } = require('../infra/features');
 
 /**
  * 主动搭话（care）：没事的时候她自己来找你说句话，问问「在干啥 / 累不累」。
@@ -49,6 +49,7 @@ function normalizeCare(config) {
     jitterMinutes: Number.isFinite(jitter) && jitter >= 0 ? jitter : 25,
     maxPerDay: Number.isFinite(maxPerDay) && maxPerDay >= 0 ? maxPerDay : 6,
     quietAfterMinutes: Number.isFinite(quiet) && quiet >= 0 ? quiet : 20,
+    // P3：缺了才说（下面的 careDesire 判），阈值是"六欲低于多少算缺"
     followDesire,
     needThreshold: Math.min(100, Math.max(0, needThreshold)),
   };
@@ -80,8 +81,11 @@ function stableJitter(lastSentTs, jitterMinutes) {
  * @returns {{due:boolean, reason:string, ...}}
  */
 /**
- * 现在缺不缺、最缺哪一样（六个欲望里最低的那个）。
- * 读 data/mood.json，先按当前时间衰减（不写盘）；读不到就放行，绝不让她突然沉默。
+ * 现在缺不缺、最缺哪一样。
+ *
+ * 读 data/mood.json，先按当前时间衰减（不写盘），再问 mood.neediest。
+ * 读不到文件、没有 dataDir、JSON 坏了 —— 一律返回 enabled:false 让调用方放行：
+ * 一个状态文件缺失绝不能让她突然沉默。
  */
 function careDesire(config, { care = null, threshold = null } = {}) {
   const cfgCare = care || normalizeCare(config);
@@ -149,7 +153,8 @@ function careDue(config, { lastSentTs = 0, sentToday = 0, now = Date.now() } = {
     };
   }
 
-  // 六欲闸门：到点只是前提，还得她真的缺了什么才开口；状态读不出来时不拦
+  // —— 六欲闸门（P3）：到点只是前提，还得她真的缺了什么才开口 ——
+  // 缺了才说；状态读不出来时不拦（fail-open），宁可多说一句也不能突然沉默。
   const desire = careDesire(config, { care });
   const needy = !desire.enabled || desire.needy;
   if (care.followDesire && !needy) {
@@ -218,7 +223,7 @@ function buildCarePrompt({ persona = {}, recent = [], name = '', hour = null, wa
     const part = hour < 6 ? '凌晨' : hour < 11 ? '早上' : hour < 14 ? '中午' : hour < 18 ? '下午' : hour < 23 ? '晚上' : '深夜';
     lines.push(`- 现在是${part}，语气跟这个时间搭一点。`);
   }
-  // 她这次开口是因为真的缺了什么，句子围着那个缺口说
+  // P3：她这次开口是因为真的缺了什么，句子围着那个缺口说，别通用问句
   if (wantLine) {
     lines.push(`- 你这会儿${wantLine}，就顺着这个开口（这是你自己的感觉，不是要求对方做什么）。`);
   }

@@ -217,7 +217,7 @@ function wantsOf(state) {
   if (!src) return out;
   for (const name of WANTS) {
     if (src[name] == null) continue;
-    out[name] = Math.round(clamp(Number(src[name]) || 0, 0, 200));
+    out[name] = Math.round(clamp(Number(src[name]) || 0, 0, 100));
   }
   return out;
 }
@@ -227,7 +227,7 @@ function decayWants(wants, dtMs, rng = Math.random) {
   const out = {};
   for (const name of WANTS) {
     const rate = rand(rng, WANT_DECAY_RANGE[name][0], WANT_DECAY_RANGE[name][1]);
-    out[name] = Math.round(clamp((Number(wants[name]) || 0) - rate * hours, 0, 200));
+    out[name] = Math.round(clamp((Number(wants[name]) || 0) - rate * hours, 0, 100));
   }
   return out;
 }
@@ -385,7 +385,7 @@ function update(state, text, now = Date.now(), rng = Math.random) {
 
   const wants = {};
   for (const name of WANTS) {
-    wants[name] = Math.round(clamp((base.wants[name] || 0) + (fed[name] || 0), 0, 200));
+    wants[name] = Math.round(clamp((base.wants[name] || 0) + (fed[name] || 0), 0, 100));
   }
 
   const couple = coupling(wants, rng);
@@ -441,7 +441,7 @@ function nudge(dir, { emotions = {}, wants = {}, now = Date.now(), rng = Math.ra
   next.wants = { ...base.wants };
   for (const name of WANTS) {
     if (!wants[name]) continue;
-    next.wants[name] = Math.round(clamp((next.wants[name] || 0) + Number(wants[name]), 0, 200));
+    next.wants[name] = Math.round(clamp((next.wants[name] || 0) + Number(wants[name]), 0, 100));
   }
   next.scales = scalesOf(prev);
   next.lastSpike = prev.lastSpike && typeof prev.lastSpike === 'object' ? prev.lastSpike : {};
@@ -466,10 +466,21 @@ function label(state) {
   return '平静';
 }
 
+const BEHAVIOR_LINES = Object.freeze({
+  喜: '话会比平时多一点', 怒: '说话更短更冲', 哀: '话少一点',
+  惧: '有点不安，容易多想', 爱: '想多黏一会儿', 恶: '不太想搭话', 欲: '想被人陪一下',
+});
+
+function behaviorOf(state) {
+  const top = topEmotions(state, 1)[0];
+  return top ? (BEHAVIOR_LINES[top.name] || '') : '';
+}
+
 function line(state) {
   const mood = label(state);
   const feeling = emotionLabel(state);
-  const tail = feeling ? `；这会儿${feeling}` : '';
+  const beh = behaviorOf(state);
+  const tail = feeling ? `；这会儿${feeling}${beh ? '，' + beh : ''}` : '';
   return `【此刻心情】${mood}${tail}（自然流露就好，不要报心情数值，也不要解释这条）`;
 }
 

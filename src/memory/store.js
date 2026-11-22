@@ -14,6 +14,7 @@ const personCard = require('./personCard');
 const episode = require('./episode');
 const compression = require('./compression');
 const retrieval = require('./retrieval');
+const vectorIndex = require('./vectorIndex');
 const format = require('./format');
 const extractor = require('./extractor');
 const migrate = require('./migrate');
@@ -351,10 +352,11 @@ class Store {
    * 真实 token 比估算多（scale > 1）就按 D/scale 裁剪，别把 prompt 顶爆；
    * 估算偏保守（scale < 1）则多给一点窗口。不能直接改 this.plan，否则不同模型互相污染。
    */
-  buildContext({
+  async buildContext({
     key, uid = '', name = '', query = '', now = null, isGroup = false, currentSeq = 0,
     mentionedNames = [], relationsEnabled = undefined, tokenScale = 1,
     historyTurns = 0, groupHistoryTurns = 0,
+    vectorSearch = false,
   } = {}) {
     const chat = this.chatStore.ensureChat(key);
     const at = Number(now) || this._now();
@@ -393,13 +395,39 @@ class Store {
       .filter((m) => m.role === 'user' && m.seq !== protectSeq && m.text)
       .slice(-2)
       .map((m) => m.text);
+    // 向量检索（可选）：取查询向量 + 事件向量；任何一步失败都退回纯 BM25
+    let queryVec = null;
+    let eventVectors = null;
+    if (vectorSearch) {
+      try {
+        const activeEvents = require('./personCard').activeEvents(card);
+        const texts = activeEvents.map((e) => retrieval.eventDoc(e));
+        eventVectors = await vectorIndex.getVectors(texts, { logger: this.logger });
+        const qText = [query, ...recentUser.slice(-2),
+          chat.meta.episode ? chat.meta.episode.activeTopic : ''].filter(Boolean).join(' ');
+        queryVec = eventVectors ? await vectorIndex.getQueryVector(qText, { logger: this.logger }) : null;
+        if (this.logger && eventVectors) {
+          this.logger.info('向量检索：事件 ' + eventVectors.filter(Boolean).length + ' 条已编码');
+        }
+      } catch (err) {
+        queryVec = null;
+        eventVectors = null;
+      }
+    }
+    // 自适应召回：寒暄取 3 条，复杂问题取 7 条（原来固定 5）
+    const _q = String(query || '');
+    const _kBase = Number(plan.caps.events) || LIMITS.retrievalTopK;
+    const _rich = _q.length >= 40 || /为什么|怎么办|你觉得|记得|是不是|要不要|分析/.test(_q);
+    const _k = Math.max(3, Math.min(8, _kBase + (_rich ? 2 : 0) - (_q.length <= 8 ? 2 : 0)));
     const events = retrieval.selectEvents(card, {
       query,
       recentTexts: recentUser,
       activeTopic: chat.meta.episode ? chat.meta.episode.activeTopic : '',
       now: at,
       uid,
-      topK: plan.caps.events,
+      topK: _k,
+      queryVec,
+      vectors: eventVectors,
     });
     const block = format.buildMemoryBlock({
       card,
@@ -412,13 +440,28 @@ class Store {
       memoryBudget: plan.memory,
       caps: plan.caps,
     });
+    // 关系演进 + 群聊接话：软信息，拼在记忆块末尾（字数很少，不影响预算大头）
+    const _extra = [];
+    try {
+      const _n = chat.messages.length;
+      card.rel = { count: (Number(card.rel && card.rel.count) || 0) + 1, lastAt: at };
+      if (_n > 0) {
+        const _last = chat.messages[_n - 1];
+        const _d = _last && _last.ts ? Math.max(0, Math.round((at - Number(_last.ts)) / 86400000)) : 0;
+        _extra.push(`【关系】你们已经聊过 ${card.rel.count} 轮，上一条是${_d <= 0 ? '刚刚' : _d + ' 天前'}。`);
+      }
+    } catch { /* 关系只是锦上添花，失败不影响记忆 */ }
+    if (isGroup && chat.meta && chat.meta.episode && chat.meta.episode.activeTopic) {
+      _extra.push(`【群里刚才在聊】${String(chat.meta.episode.activeTopic).slice(0, 60)}——接着聊，别重复问。`);
+    }
+    const blockFinal = _extra.length ? `${block}\n${_extra.join('\n')}` : block;
     // 「这条消息提到了谁」：只做内部状态，不进任何界面；名字对不上人就整块不输出。
     const relationCtx = this._buildRelationsBlock(chat, { uid, mentionedNames, relationsEnabled });
     return {
       chatId: chat.chatId,
       card,
       events,
-      block,
+      block: blockFinal,
       relationsBlock: relationCtx.block,
       relationsTokens: relationCtx.tokens,
       relations: relationCtx.edges,
@@ -427,7 +470,7 @@ class Store {
       recent: recent.messages,
       recentTokens: recent.tokens,
       summaryTokens: chat.summary.tokens,
-      memoryTokens: estimateBudgetTokens(block),
+      memoryTokens: estimateBudgetTokens(blockFinal),
       // 对话预算（不含 system）：system 只由上层测量，不参与这里的挤压
       dialogueBudget: plan.dialogueBudget,
       configuredDialogueBudget: this.plan.dialogueBudget,
@@ -542,6 +585,8 @@ class Store {
     const lastMsg = chat.messages[chat.messages.length - 1];
     personCard.addPreference(card, {
       text: textValue,
+      // key 透传：同一槽位的新值会取代旧值（桥接写"搜图能力"这类事实靠它）
+      key: trimText(raw.key, 60),
       kind,
       confidence: Number.isFinite(Number(meta.confidence)) ? Number(meta.confidence) : importanceToConfidence(raw.importance || meta.importance),
       source: meta.source || (lastMsg && lastMsg.id) || '',

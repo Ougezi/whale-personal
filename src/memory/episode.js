@@ -153,6 +153,8 @@ async function closeEpisode({ chat, chatStore, llm = null, logger = null, now = 
       for (const fact of personFacts) {
         personCard.addPreference(card, {
           text: fact.text,
+          // 有 key 才能「同槽位替换」；没 key 时退回文本近似合并
+          key: fact.key || '',
           confidence: Math.min(0.9, Number(fact.confidence) || 0.7),
           source: messageIds[messageIds.length - 1] || '',
           kind: 'fact',

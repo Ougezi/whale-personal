@@ -6,6 +6,9 @@ const persona = require('../persona');
 const personaStore = require('../persona/store');
 const { matchMaster, masterWarnings } = require('../core/master');
 const links = require('../adapters/links');
+const mood = require('../core/mood');
+const thoughts = require('../core/thoughts');
+const features = require('../infra/features');
 const context = require('../core/context');
 const { estimateTokens } = require('../memory/tokens');
 const { recentSenders, budgetSnapshot } = require('./status');
@@ -120,8 +123,6 @@ function debugSessions(runtime) {
   return list.slice(0, 50);
 }
 
-const mood = require('../core/mood');
-const thoughts = require('../core/thoughts');
 
 async function debugPrompt(runtime, body) {
   const config = runtime.config;
@@ -180,6 +181,7 @@ async function debugPrompt(runtime, body) {
     moodLine: innerLine,
     now,
     envBlock: envInfo.systemBlock(config, VERSION),
+    selfRules: (() => { try { return require('../core/selfRules').formatBlock(config.paths?.dataDir || path.join(process.cwd(), 'data')); } catch { return ''; } })(),
   });
   const turns = context.buildTurns(
     { ...msg, cleanText: text },

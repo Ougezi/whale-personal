@@ -127,8 +127,16 @@ function buildTurns(msg, history, memoryBlock = '', tailBlock = '', timeZone = '
         + (tail ? '\n\n' + tail : ''),
     }];
   }
+  // 文档消息（桥接注入的正文）单段可达 8000 字，这里也要放宽，否则模型只看到开头；
+  // 普通聊天仍按 900 / 1800 截断，避免长消息挤爆上下文。
+  const DOC_LIMIT = 65000;   // 长文档分段全文合并后一次进 prompt（6 段 × 10000）
+  const isDocText = (t) => {
+    const s = String(t || '');
+    return s.startsWith('（对方发了一份文档') || s.startsWith('（同一份文档');
+  };
   const push = (role, content) => {
-    const limit = isGroup ? 900 : MAX_TURN_CHARS;
+    const base = isGroup ? 900 : MAX_TURN_CHARS;
+    const limit = isDocText(content) ? Math.max(base, DOC_LIMIT) : base;
     const trimmed = String(content || '').slice(0, limit);
     if (!trimmed) return;
     turns.push({ role, content: trimmed });

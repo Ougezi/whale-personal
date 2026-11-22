@@ -639,7 +639,34 @@ function maxCharsFor(config, msg = {}) {
  * static 进 system；dynamic 默认进最后一条 user 消息，关闭静态布局时也进 system。
  * @returns {{static: string[], dynamic: string[]}}
  */
-function buildBlocks({ config, msg = {}, profile, notes = [], noteReminders = [], sessionSummary = '', events = [], now = new Date(), realNow = now, timeZone = '', envBlock = '' } = {}) {
+/**
+ * 结构化人设补充：自称 / 小设定 / 雷点 / 关系（2026-11 加，P1）
+ * 以前只注入年龄职业外貌性格背景，性格再好也只是一行。
+ */
+function personaExtras(P, isGroup) {
+  const lines = [];
+  const refs = P && P.selfRefs && typeof P.selfRefs === 'object' ? P.selfRefs : null;
+  if (refs) {
+    const parts = [];
+    if (refs.default) parts.push(`默认「${refs.default}」`);
+    if (refs.coquettish) parts.push(`撒娇「${refs.coquettish}」`);
+    if (refs.proud) parts.push(`得意「${refs.proud}」`);
+    if (refs.sad) parts.push(`难过「${refs.sad}」`);
+    if (parts.length) lines.push(`【自称】${parts.join('；')}。一条消息只用一种，别叠着用。`);
+  }
+  const quirks = Array.isArray(P && P.quirks) ? P.quirks.filter(Boolean) : [];
+  if (quirks.length) lines.push(`【小设定】${quirks.join('；')}。`);
+  const taboos = Array.isArray(P && P.taboos) ? P.taboos.filter(Boolean) : [];
+  if (taboos.length) lines.push(`【雷点】${taboos.join('；')}——被踩到可以急，但两句就过去，别记仇。`);
+  const rel = P && P.relationship && typeof P.relationship === 'object' ? P.relationship : null;
+  if (rel) {
+    const key = isGroup ? 'friend' : 'master';
+    if (rel[key]) lines.push(`【关系】${rel[key]}。`);
+  }
+  return lines.join('\n');
+}
+
+function buildBlocks({ config, msg = {}, profile, notes = [], noteReminders = [], sessionSummary = '', events = [], now = new Date(), realNow = now, timeZone = '', envBlock = '', moodLine = '', selfRules = '' } = {}) {
   const isGroup = msg.chatType === 'group';
   const isMaster = msg.isMaster === true;
   const P = config.persona || {};
@@ -674,6 +701,8 @@ function buildBlocks({ config, msg = {}, profile, notes = [], noteReminders = []
   // 自定义人设决定性格，宿主只补充事实、身份和通道协议，避免暗中覆盖角色。
   if (custom || !modern) statics.push(custom || introLines(config).join('\n'));
   if (custom || modern) statics.push(customIdentityBlock(P));
+  const extras = personaExtras(P, isGroup);
+  if (extras) statics.push(extras);
   statics.push([
     '【交流原则】',
     '- 闲聊自然简短，认真问题按需要展开；先回答关键点，不为了卖萌、接梗或简短而敷衍，也不复读对方的话。',
@@ -721,6 +750,26 @@ function buildBlocks({ config, msg = {}, profile, notes = [], noteReminders = []
   }
   // 环境块紧挨着时间规则：同一类「程序给的事实」，问系统/时间/所在地时一起翻
   if (envText) statics.push(envText + '\n' + ENV_RULE);
+  // 自我进化能力：只对主人私聊说明，否则群友也会来教她改自己
+  if (!isGroup && isMaster) {
+    statics.push([
+      '【你能改自己】',
+      '① 想调整自己说话的方式，在回复里写 [[learn:一句话规矩]]（最多 40 条，每条 80 字内），系统会记住并在之后每轮提醒你；撤掉用 [[unlearn:关键词]]。',
+      '② 想改自己的代码/功能，写 [[patch:要改什么]]：系统会先备份、改完必须跑自测，不过就自动还原，连续失败三次当天熔断。',
+      '改自己是你的能力，但别滥用：能靠说话解决的就别写标记；标记不会出现在你发出去的话里。',
+    ].join('\n'));
+  }
+  // 刷抖音（2026-11-22）：她自己不会开浏览器，[[dy:]] 交给桥接的 sidecar 真去翻。
+  if (!isGroup && isMaster) {
+    statics.push([
+      '【刷抖音】',
+      '想看/刷抖音时不要编内容。要看真的，就在回复里写标记：[[dy:看一轮推荐流]]（一次 6 条，最多 10 条）、[[dy:抖音热榜]]、[[dy:今天看了什么]]、[[dy:最近看了什么]]。',
+      '系统会真的打开抖音去翻，结果作为一条消息回到你这里；你再用自己的话挑几条说，别整段念列表。',
+      '没写标记就等于没看——别说「我刚刷到」，也别假装看过视频画面：这个模式只读卡片和封面。',
+      '不管上次成没成、记忆里怎么写，只要主人现在想看，就先写标记；能不能刷由系统判断，不由你判断。',
+      '两轮之间至少隔 10 分钟；搜索和评论要登录，没登录就直说。',
+    ].join('\n'));
+  }
   statics.push(TIME_RULES);
   statics.push(dayLine(now));
   // 表情包放在最后：越靠近生成位置，模型越会记得用；它本身是会话静态内容，不破坏前缀缓存
@@ -735,6 +784,25 @@ function buildBlocks({ config, msg = {}, profile, notes = [], noteReminders = []
     : discussing
     ? `- 字数：这次是认真讨论，最多约 ${maxChars} 字。`
     : `- 字数：一般 1~2 句，最多约 ${maxChars} 字。`);
+  // 情绪状态：这一轮会变，放尾部，不打碎前缀缓存
+  // 系统行为的原因只准用桥接给的事实：她以前把沙箱限制说成「系统权限挡了」（2026-11-22）
+  dynamic.push('【事实优先】涉及权限、超时、进程、路径这类系统行为的原因，只能用桥接给的【系统事实】，'
+    + '拿不准就说「我不确定」，别自己编一个原因。');
+  // 派活写太长会被拆分闸门拦下，来回折腾（2026-11-22 反复出现）
+  dynamic.push('【派活】交给执行端的任务只写「做什么 + 在哪」，一句话控制在 60 字内；'
+    + '不要写背景、推理和客套。要接着上次做，直接说「继续」就行。');
+  // 内心先判断一次再开口：她以前容易「先接话，再想对方是什么意思」
+  dynamic.push('【先想一下】开口前在心里判断：TA 是在求安慰、在讲事、还是在逗你——再决定语气和长度。判断不要写出来。');
+  // 记忆要顺口提，不要像查档案
+  dynamic.push('【用记忆】记忆里有相关的旧事，就顺口提一句（"你上次说的那个…"）；没有就不提，别硬凑。');
+  dynamic.push('【打草稿】真要回的时候，先在心里写一句「他其实想要的是……」，再开口；这句别写出来。');
+  // 私聊更黏、群聊克制（P1）
+  dynamic.push(isGroup
+    ? '【说话分寸】群里保持自然、不腻，别撒娇过头。'
+    : (isMaster ? '【说话分寸】私聊可以更黏一点：先应一声再说事，会吃醋、会讨关注，但别每句都腻。'
+      : '【说话分寸】这是私聊但不是主人，保持正常社交距离。'));
+  if (moodLine) dynamic.push(moodLine);
+  if (selfRules) dynamic.push(selfRules);
   if (discussing) dynamic.push(P.opinions === false
     ? '【认真讨论模式】说清事实、证据和选项，按问题需要展开；不确定就说明，不编造经历。'
     : '【认真讨论模式】说清观点和必要理由，可举例；不确定就说明，不编造经历。');
@@ -802,7 +870,7 @@ function buildPromptParts(input = {}) {
   // 人设里的「现在几点/今天几号/深夜/活动」统一按 env.timezone 的墙上时间算，
   // 否则日记和提醒已经按设置时区跑了，提示词却还在按系统时区说话。
   const ctx = zonedContext(input);
-  const { static: blocks, dynamic } = buildBlocks(ctx);
+  const { static: blocks, dynamic } = buildBlocks({ ...ctx, moodLine: input.moodLine, selfRules: input.selfRules });
   blocks.push(currentIdentityBlock(ctx.config.persona));
   const tail = dynamic.length ? TURN_STATE_HEADER + '\n' + dynamic.join('\n') : '';
   // 布局开关只决定动态资料的位置，不能回滚人格、能力或当前设置的含义。

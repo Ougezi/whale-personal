@@ -7,6 +7,7 @@
  * 重排，最后用 MMR 去重。返回 3~5 条，约 300~500 token。
  */
 const { LIMITS, DAY_MS } = require('./constants');
+const { cosine } = require('../core/embed');
 const personCard = require('./personCard');
 
 // 详情展开阈值：相关度够高（_score 的 relevance 分量）或 importance ≥ 0.8
@@ -85,9 +86,14 @@ function recencyScore(date, now, halfLifeDays) {
  * @param {{query?:string, recentTexts?:string[], activeTopic?:string, now?:number, topK?:number, uid?:string}} opts
  * @returns {Array<object>} 事件（带 _score）
  */
-function selectEvents(card, { query = '', recentTexts = [], activeTopic = '', now = Date.now(), topK = LIMITS.retrievalTopK, uid = '' } = {}) {
+// 向量相似度重标定：低于 FLOOR 视为不相关，FLOOR+RANGE 视为完全相关
+const VEC_FLOOR = 0.30;
+const VEC_RANGE = 0.32;
+
+function selectEvents(card, { query = '', recentTexts = [], activeTopic = '', now = Date.now(), topK = LIMITS.retrievalTopK, uid = '', queryVec = null, vectors = null } = {}) {
   const events = personCard.activeEvents(card);
   if (!events.length) return [];
+  const useVec = Boolean(queryVec && Array.isArray(vectors));
   const queryText = [query, ...(recentTexts || []).slice(-2), activeTopic].filter(Boolean).join(' ');
   const qt = tokens(queryText);
   const bm = bm25(events, qt);
@@ -99,13 +105,29 @@ function selectEvents(card, { query = '', recentTexts = [], activeTopic = '', no
     if (uid && Array.isArray(ev.participants) && ev.participants.length && !ev.participants.includes(String(uid))) continue;
     const relevance = qt.length ? Math.min(1, bm[i] / maxBm) : 0;
     const r = recencyScore(ev.date, now, 14);
-    const score = 0.55 * relevance
-      + 0.20 * r
-      + 0.15 * (Number(ev.importance) || 0)
-      + 0.10 * (Number(ev.confidence) || 0)
-      + 0.05 * (ev.pinned ? 1 : 0);
-    if (score < LIMITS.retrievalMinScore) continue;
-    scored.push({ event: ev, score, relevance });
+    const importance = Number(ev.importance) || 0;
+    const confidence = Number(ev.confidence) || 0;
+    // 有向量就混排：字面相关 45% + 语义相似 35% + 时效/重要度/置信 做微调。
+    // 没有向量（模型没装/编码失败）退回原来的纯 BM25 公式，行为逐字不变。
+    const vec = useVec && vectors[i] ? vectors[i] : null;
+    const rawSim = vec ? Math.max(0, cosine(queryVec, vec)) : 0;
+    // bge-small-zh 的相似度挤在 0.25~0.6：不相关约 0.30，相关 0.45+。
+    // 直接当 0~1 用会被 BM25 完全压住，所以先做线性重标定再混排。
+    const vecSim = Math.max(0, Math.min(1, (rawSim - VEC_FLOOR) / VEC_RANGE));
+    // 自适应权重：BM25 的「相对分」会把最弱匹配也归一成 1，所以再看绝对强度。
+    // 字面强 → 以字面为主；字面几乎没有 → 让语义主导（这才是转述查询该赢的地方）。
+    // 字面分用「绝对强度」而不是「相对第一名」：相对分会让最弱匹配也吃满分。
+    // 向量模式下语义占大头（0.60），字面留 0.30 兜底关键词查询。
+    const relAbs = Math.min(1, bm[i] / 3);
+    // 反馈闭环：被反复用到的记忆加权（封顶 3 次），长期没用又老的轻微降权
+    const useN = Math.min(1, (Number(ev.useCount) || 0) / 3);
+    const idleDays = ev.lastUsedAt ? (now - Number(ev.lastUsedAt)) / 86400000 : 999;
+    const usage = 0.04 * useN - (idleDays > 120 ? 0.02 : 0);
+    const score = useVec
+      ? (0.30 * relAbs + 0.60 * vecSim + 0.05 * r + 0.03 * importance + 0.02 * confidence + usage)
+      : (0.55 * relevance + 0.20 * r + 0.15 * importance + 0.10 * confidence + 0.05 * (ev.pinned ? 1 : 0) + usage);
+    if (score < (useVec ? 0.16 : LIMITS.retrievalMinScore)) continue;
+    scored.push({ event: ev, score, relevance: useVec ? Math.max(relevance, vecSim) : relevance });
   }
   scored.sort((a, b) => b.score - a.score);
 
@@ -134,11 +156,23 @@ function selectEvents(card, { query = '', recentTexts = [], activeTopic = '', no
   }
   // 详情展开的双阈值：真相关，或重要到必须记住。
   // 记忆窗口改成「索引行常驻 + 详情按需展开」后，format 靠这个标记决定要不要渲染详情段。
-  return picked.map((x) => ({
-    ...x.event,
-    _score: Number(x.score.toFixed(4)),
-    expand: x.relevance >= EXPAND_RELEVANCE || (Number(x.event.importance) || 0) >= EXPAND_IMPORTANCE,
-  }));
+  return picked.map((x) => {
+    // 使用计数：被召回的记一笔，长期没被用的以后可以降权（从「仓库」变「经验」）
+    try {
+      x.event.useCount = (Number(x.event.useCount) || 0) + 1;
+      x.event.lastUsedAt = now;
+    } catch { /* 事件对象可能是只读视图，记不上不影响召回 */ }
+    const stamp = Date.parse(x.event && x.event.date);
+    const agoDays = Number.isFinite(stamp)
+      ? Math.max(0, Math.round((now - stamp) / 86400000))
+      : null;
+    return {
+      ...x.event,
+      _score: Number(x.score.toFixed(4)),
+      _agoDays: agoDays,
+      expand: x.relevance >= EXPAND_RELEVANCE || (Number(x.event.importance) || 0) >= EXPAND_IMPORTANCE,
+    };
+  });
 }
 
 /** episode 话题切换用：当前消息和最近几条的重合度 */
@@ -147,4 +181,4 @@ function topicOverlap(text, recentTexts) {
   return overlap(text, recent);
 }
 
-module.exports = { tokens, overlap, bm25, selectEvents, topicOverlap, recencyScore };
+module.exports = { tokens, overlap, bm25, selectEvents, topicOverlap, recencyScore, eventDoc };

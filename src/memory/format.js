@@ -107,7 +107,11 @@ function firstSentence(textValue, max) {
 function indexLine(ev) {
   const date = ev && ev.date ? ev.date : '';
   const title = clip(ev && ev.title, 24);
-  const prefix = `- [${date}] ${title}：`;
+  // 时间感：让模型知道这是「几天前」的事，说话才有时态
+  const ago = Number(ev && ev._agoDays);
+  const agoText = Number.isFinite(ago) && ago >= 1 ? `（${ago} 天前）` : '';
+  const pend = ev && ev.resolved === false ? '（未解决）' : '';
+  const prefix = `- [${date}] ${title}${agoText}${pend}：`;
   const room = Math.max(0, INDEX_MAX_CHARS - Array.from(prefix).length);
   return clip(prefix + firstSentence(ev && ev.summary, room), INDEX_MAX_CHARS);
 }

@@ -93,10 +93,13 @@ const FIELDS = {
   'care.jitterMinutes': { type: 'int', min: 0, max: 180 },
   'care.maxPerDay': { type: 'int', min: 0, max: 50 },
   'care.quietAfterMinutes': { type: 'int', min: 0, max: 1440 },
+  // P3 六欲：到点之外还要"她真的缺了什么"；needThreshold 是六欲低于多少算缺
   'care.followDesire': { type: 'bool' },
   'care.needThreshold': { type: 'int', min: 0, max: 100 },
+  // 念头流：模型写念头的节流（perDay=0 就只用本地模板）
   'thoughts.modelIntervalMin': { type: 'int', min: 1, max: 1440 },
   'thoughts.modelPerDay': { type: 'int', min: 0, max: 200 },
+  // 自主上网：隔多久看一次、每天最多看几条、看哪些来源
   'browse.intervalMin': { type: 'int', min: 10, max: 1440 },
   'browse.maxPerDay': { type: 'int', min: 0, max: 50 },
 
@@ -177,6 +180,22 @@ const FIELDS = {
   'wechat.bgSend.fallbackToForeground': { type: 'bool' },
   'wechat.bgSend.stripUnencodable': { type: 'bool' },
   'wechat.bgSend.unhideWindow': { type: 'bool' },
+  // 2026-11 新增：委托、自检、思考分级。以前没有校验，写错也静默用默认值
+  'schemaVersion': { type: 'int', min: 1, max: 99 },
+  'delegation.timeout': { type: 'int', min: 10, max: 43200 },
+  'delegation.maxConcurrent': { type: 'int', min: 1, max: 8 },
+  'delegation.maxPerDay': { type: 'int', min: 0, max: 500 },
+  'delegation.adaptiveTimeout': { type: 'bool' },
+  'delegation.smallSeconds': { type: 'int', min: 30, max: 3600 },
+  'delegation.mediumSeconds': { type: 'int', min: 60, max: 21600 },
+  'delegation.stallMinutes': { type: 'float', min: 0.1, max: 1440 },
+  'delegation.firstNudgeSeconds': { type: 'int', min: 5, max: 600 },
+  'delegation.readOnly': { type: 'bool' },
+  'selfcheck.enabled': { type: 'bool' },
+  'selfcheck.intervalMinutes': { type: 'int', min: 1, max: 1440 },
+  'selfcheck.notify': { type: 'bool' },
+  'deepseek.thinkingMode': { type: 'enum', values: ['auto', 'on', 'off'] },
+  'chat.dailyTokenBudget': { type: 'int', min: 10000, max: 100000000 },
   'wechat.pipelineWorkers': { type: 'int', min: 1, max: 16 },
   'wechat.pipelineQueueLimit': { type: 'int', min: 1, max: 32 },
 };

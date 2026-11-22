@@ -2,6 +2,24 @@
 """Bridge runtime mixin: SenderMixin."""
 import engine as G
 
+import re as _re_mark
+
+# 任何 [[xxx:… 残留（含未闭合）都不该出现在微信里。
+# 放在发送出口做兜底：不管上层怎么漏，最后一道闸一定剥干净。
+_MARK_CLOSED = _re_mark.compile(r"\[\[[A-Za-z_]{2,16}\s*:[^\]]*\]?\]?", _re_mark.I)
+_MARK_OPEN = _re_mark.compile(r"\[\[[A-Za-z_]{2,16}\s*:[^\]]*$", _re_mark.S)
+
+
+def strip_marker_remnants(text):
+    s = str(text or "")
+    out = _MARK_CLOSED.sub("", s)
+    out = _MARK_OPEN.sub("", out)
+    out = _re_mark.sub(r"[，,、]\s*([。！？!?])", r"\1", out)
+    out = _re_mark.sub(r">\s*[，,、]\s*", ">", out)
+    if not out.strip():
+        return out if not _MARK_CLOSED.search(s) else ""
+    return out
+
 
 class SenderMixin:
 
@@ -443,6 +461,13 @@ class SenderMixin:
         pending = getattr(self, '_text_send_inflight', None)
         if pending is not None and pending.is_alive():
             G.log('前一次不透明发送尚未结束，本条不进入输入框')
+            return False
+        _clean = strip_marker_remnants(text)
+        if _clean != str(text or ""):
+            G.log('发送前剥掉残留标记：', str(text)[:40].replace('\n', ' '))
+        text = _clean
+        if not str(text or '').strip():
+            G.log('剥掉标记后没内容了，这条不发')
             return False
         if chat_username and self.chat_paused(chat_username):
             G.log('跳过已失效的会话：', G.safe_name(chat_display_name))

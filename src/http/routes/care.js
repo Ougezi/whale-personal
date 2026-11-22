@@ -32,7 +32,8 @@ module.exports = function register(router) {
     });
     runtime.logger?.debug?.(`[care] due=${Boolean(out.due)} reason=${out.reason || '-'} ` +
       `target=${out.target ? (out.target.kind || 'unknown') : 'none'} windows=${(out.windows || []).length} ` +
-      `gap=${out.gapMinutes ?? '-'} sent=${out.sentToday ?? 0}/${out.maxPerDay ?? 0}`);
+      `gap=${out.gapMinutes ?? '-'} sent=${out.sentToday ?? 0}/${out.maxPerDay ?? 0} ` +
+      `want=${out.desire && out.desire.want ? out.desire.want : '-'}${out.desire && out.desire.value != null ? '(' + out.desire.value + ')' : ''}`);
     return json(res, 200, {
       ok: true,
       due: Boolean(out.due),
@@ -44,6 +45,7 @@ module.exports = function register(router) {
       sentToday: out.sentToday,
       maxPerDay: out.maxPerDay,
       now: out.now || '',
+      desire: out.desire || null,
     });
   });
 
