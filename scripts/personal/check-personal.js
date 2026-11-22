@@ -82,6 +82,17 @@ check('表情包只用本地库（隐藏 搜来的）', () => {
   return 'ok';
 });
 
+check('抖音插件 0.4.0 已接入（sidecar + 桥接路由）', () => {
+  const b = read('bridge/douyin_agent.py');
+  must(/"download"/.test(b) && b.includes('search_users') && b.includes('comments'), '桥接缺新任务路由');
+  const side = require('node:fs').readFileSync('D:/dsh/profiles/desktop/whale-douyin/service.mjs', 'utf8');
+  must(side.includes('buildExtTools'), 'sidecar 没接 ext 工具');
+  for (const op of ['download:', 'user:', 'comments:', 'export:', 'index:', 'batch:', 'accounts:']) must(side.includes(op), 'sidecar 缺 op ' + op);
+  const pkg = JSON.parse(require('node:fs').readFileSync('D:/dsh/plugins/dsh-douyin-watch/package.json', 'utf8'));
+  must(pkg.version === '0.4.0', '插件版本不是 0.4.0，实际 ' + pkg.version);
+  return 'ok';
+});
+
 check('自主上网反应只要一句（提示词与 maxTokens）', () => {
   const b = read('src/services/browse.js');
   must(/只(输出|回)[^。\n]{0,4}一句/.test(b), 'browse.js SYSTEM 里没有「只输出这一句」');

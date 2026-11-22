@@ -66,9 +66,44 @@ def extract(text):
 _NUM = re.compile(r"(\d{1,2})\s*(?:条|个|张)")
 
 
+_URL = re.compile(r"https?://[^\s，。]+")
+
+
 def route(task):
     """自然语言 → (操作, 参数)。宁可多看一轮，也不要猜太细。"""
     t = str(task or "")
+    url = ""
+    murl = _URL.search(t)
+    if murl:
+        url = murl.group(0).rstrip(".,;!?)）】]")
+    if re.search(r"下载|存下来|保存(视频|图片|图文)|原图", t):
+        return "download", {"modalId": url or t, "parts": ["video", "images", "audio", "cover"]}
+    if re.search(r"主页|作者|博主|ta的|他的作品|她的作品|合集|收藏", t):
+        if url or re.search(r"MS4wLjAB", t):
+            arg = url or re.search(r"(MS4wLjAB[\w-]+)", t).group(1)
+            return "user", {"user": arg, "limit": 20}
+        q = re.sub(r"^(看看|读一下|读|查|找|搜一下|搜)(一下)?", "", t)
+        q = re.sub(r"(的主页|主页|的作品|作品|合集|收藏).*$", "", q).strip()
+        return "user", {"query": q or t, "limit": 20}
+    if re.search(r"搜用户|找用户|用户搜索", t):
+        q = re.sub(r".*(搜用户|找用户|用户搜索)[:：]?", "", t).strip()
+        return "search_users", {"keyword": q or t, "limit": 20}
+    if re.search(r"评论", t):
+        return "comments", {"modalId": url or t, "limit": 20, "replies": True}
+    if re.search(r"导出|csv|json", t):
+        return "export", {"format": "csv" if "csv" in t.lower() else "json"}
+    if re.search(r"索引|检索|sqlite", t):
+        return "index", {"query": ""}
+    if re.search(r"批量|跑一遍|全跑", t):
+        return "batch", {}
+    if re.search(r"直播", t):
+        return "live", {"url": url} if url else {}
+    if re.search(r"账号|通道|profile", t):
+        return "accounts", {"action": "list"}
+    if re.search(r"点赞", t):
+        return "like", {"modalId": url or t, "confirm": True}
+    if re.search(r"收藏这条|收藏一下", t):
+        return "collect", {"modalId": url or t, "confirm": True}
     if re.search(r"热榜|热搜|热度|热门", t):
         return "hot", {"limit": 10}
     if re.search(r"日报|汇总|总结|今天.{0,4}(看了|刷了)", t):
@@ -89,6 +124,18 @@ _LABEL = {
     "recent": "翻最近看过的",
     "login": "看抖音登录状态",
     "status": "看抖音状态",
+    "download": "下载这条作品",
+    "user": "读作者主页",
+    "collection": "读合集/收藏",
+    "live": "看直播状态",
+    "search_users": "搜抖音用户",
+    "comments": "读评论",
+    "export": "导出知识库",
+    "index": "知识库建索引/检索",
+    "batch": "批量跑作者/关键词",
+    "accounts": "看浏览器账号通道",
+    "like": "点赞",
+    "collect": "收藏",
 }
 
 
@@ -100,7 +147,8 @@ def run(task, timeout=None):
     if not available():
         return False, "抖音模块不在（sidecar 目录或 node 缺失），这轮没刷成"
     op, args = route(task)
-    out = _call(op, args, timeout=timeout or (240 if op in ("watch", "hot") else 60))
+    slow = op in ("watch", "hot", "download", "user", "batch", "comments", "collection", "live", "search_users")
+    out = _call(op, args, timeout=timeout or (240 if slow else 60))
     text = str(out.get("text") or "").strip()
     ok = bool(out.get("ok"))
     if not text:
