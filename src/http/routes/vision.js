@@ -35,6 +35,7 @@ module.exports = function register(router) {
         imageBase64: vision.TEST_IMAGE,
         mime: 'image/png',
         prompt: '这张图是什么颜色？只回答颜色。',
+        allowOcr: false,
       });
       return json(res, 200, { ok: true, sample: String(text || '').slice(0, 60), vision: vision.status(runtime.config) });
     } catch (err) {
