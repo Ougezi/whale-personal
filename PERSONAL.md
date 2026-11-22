@@ -80,8 +80,28 @@ powershell -ExecutionPolicy Bypass -File scripts/personal/migrate-data.ps1 `
   `gh api -X PATCH repos/Ougezi/whale-personal -f private=true`，但那样启动器就检查不到更新了。
 - 这台机器上 `github.com/.../releases/download/`、`raw.githubusercontent.com` 和几个镜像**全部超时**
   （`api.github.com` 正常、`git push` 间歇成功）。也就是说：**代码和清单都对了，但这台机器的网络
-  拉不到清单**，启动器会静默跳过更新检查。换一个能访问 GitHub 下载域名的网络就正常；
-  或者以后把清单也放到国内可达的地方（改 `UpdateManifest.Sources` 即可）。
+  拉不到清单**，启动器会静默跳过更新检查。
+
+### 自查更新渠道（个人版加的）
+
+```powershell
+# 清单一拉、判定完就退出；结果写在 %TEMP%\whale-check-update.json
+& "<便携目录>\WhaleLauncher.exe" --check-update
+Get-Content "$env:TEMP\whale-check-update.json" -Raw
+```
+
+输出里有 `current / latest / hasUpdate / policy / error / sources`。
+
+### 换一个能拉到的清单地址
+
+网络到不了 GitHub 时，在这个文件里写一行地址（可 `#` 注释），它会排在所有默认源**前面**：
+
+```
+<app>\data\update-source.txt      # 例如 http://127.0.0.1:8123/release-manifest.json
+```
+
+实测：指到本地 http 服务、清单里 `latest=9.9.9` → `--check-update` 返回
+`{"latest":"9.9.9","hasUpdate":true,"policy":"Warn"}`；不写这一行则回退到默认四源 + 上次缓存。
 
 ## 还没剥离干净的地方（诚实清单）
 

@@ -41,6 +41,39 @@ namespace WhaleLauncher
                 return;
             }
             StartRuntimeOnLaunch = Array.Exists(e.Args, a => string.Equals(a, "--autostart", StringComparison.OrdinalIgnoreCase));
+            // 个人版：--check-update 只做一次更新检查，把结果写到 %TEMP%\whale-check-update.json 再退出
+            // （WinExe 没有控制台，所以用文件回传；用来验证自己的更新渠道通不通）
+            if (Array.Exists(e.Args, a => string.Equals(a, "--check-update", StringComparison.OrdinalIgnoreCase)))
+            {
+                ShutdownMode = ShutdownMode.OnExplicitShutdown;
+                try
+                {
+                    var chk = await UpdateManifestService.FetchAsync(AppContext.BaseDirectory);
+                    var payload = new
+                    {
+                        ok = chk.Manifest != null,
+                        current = chk.Current,
+                        latest = chk.Manifest?.Latest,
+                        hasUpdate = chk.HasUpdate,
+                        policy = chk.Policy.ToString(),
+                        error = chk.Error,
+                        sources = UpdateManifestService.SourcesFor(AppContext.BaseDirectory),
+                    };
+                    var outFile = Path.Combine(Path.GetTempPath(), "whale-check-update.json");
+                    File.WriteAllText(outFile, System.Text.Json.JsonSerializer.Serialize(payload,
+                        new System.Text.Json.JsonSerializerOptions
+                        {
+                            WriteIndented = true,
+                            Encoder = System.Text.Encodings.Web.JavaScriptEncoder.UnsafeRelaxedJsonEscaping,
+                        }), new UTF8Encoding(false));
+                    Shutdown(0);
+                }
+                catch
+                {
+                    Shutdown(3);
+                }
+                return;
+            }
             // 自更新后重启会带 --replace <pid>：等旧实例真的退出，再去抢单实例锁
             WaitForReplacedInstance();
             CleanupOldExes();

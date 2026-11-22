@@ -106,7 +106,7 @@ namespace WhaleLauncher
         private const string Repo = "Ougezi/whale-personal";
 
         // 顺序不重要（并行拉），但源要覆盖三种网络：GitHub 直连 / 墙内镜像 / CDN 兜底。
-        private static readonly string[] Sources =
+        private static readonly string[] DefaultSources =
         {
             "https://github.com/" + Repo + "/releases/latest/download/release-manifest.json",
             "https://raw.githubusercontent.com/" + Repo + "/main/release-manifest.json",
@@ -114,6 +114,28 @@ namespace WhaleLauncher
             "https://cdn.jsdelivr.net/gh/" + Repo + "@main/release-manifest.json",
         };
 
+        /// <summary>
+        /// 清单地址。个人版加一条：data\update-source.txt 里写一行地址（可 # 注释），
+        /// 就排在最前面 —— 到不了 GitHub 时指向本地 http / 国内镜像 / 内网都行。
+        /// </summary>
+        public static string[] SourcesFor(string baseDir)
+        {
+            var list = new List<string>();
+            try
+            {
+                var file = Path.Combine(baseDir, "data", "update-source.txt");
+                if (File.Exists(file))
+                {
+                    var line = File.ReadAllLines(file)
+                        .Select(x => (x ?? "").Trim())
+                        .FirstOrDefault(x => x.Length > 0 && !x.StartsWith("#"));
+                    if (!string.IsNullOrWhiteSpace(line)) list.Add(line);
+                }
+            }
+            catch { }
+            list.AddRange(DefaultSources);
+            return list.ToArray();
+        }
         private static readonly HttpClient Http = new HttpClient(new HttpClientHandler { UseProxy = false })
         {
             // 启动时不该被网络拖住：拿不到就按缓存 / 放行。
@@ -210,7 +232,7 @@ namespace WhaleLauncher
             UpdateManifest best = cached;
             try
             {
-                var all = await Task.WhenAll(Sources.Select(DownloadAsync));
+                var all = await Task.WhenAll(SourcesFor(baseDir).Select(DownloadAsync));
                 best = SelectNewest(all, cached);
             }
             catch { }
