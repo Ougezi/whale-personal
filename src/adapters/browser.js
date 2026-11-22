@@ -55,6 +55,13 @@ function freePort() {
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 
 let shared = null; // { child, port, profile, startedAt }
+let idleTimer = null;
+// 浏览器只在真的用的时候活着：5 分钟没人用就关掉，别在后台常驻一个 Chrome
+function scheduleIdleShutdown() {
+  if (idleTimer) clearTimeout(idleTimer);
+  idleTimer = setTimeout(() => shutdownBrowser(), 5 * 60 * 1000);
+  if (idleTimer.unref) idleTimer.unref();
+}
 
 async function launchBrowser({ timeoutMs = 12000 } = {}) {
   if (shared && shared.child && !shared.child.killed) return shared;
@@ -92,6 +99,7 @@ function shutdownBrowser() {
   if (!shared) return;
   const { child, profile } = shared;
   shared = null;
+  if (idleTimer) { clearTimeout(idleTimer); idleTimer = null; }
   try { child.kill(); } catch { /* ignore */ }
   setTimeout(() => { try { fs.rmSync(profile, { recursive: true, force: true }); } catch { /* ignore */ } }, 1500);
 }
@@ -122,6 +130,7 @@ async function renderPage(url, { timeoutMs = 20000, maxChars = 6000 } = {}) {
       } catch { /* ignore */ }
     });
   });
+  if (idleTimer) { clearTimeout(idleTimer); idleTimer = null; }
   try {
     await new Promise((resolve, reject) => {
       ws.addEventListener('open', resolve, { once: true });
@@ -157,6 +166,7 @@ async function renderPage(url, { timeoutMs = 20000, maxChars = 6000 } = {}) {
       text,
     };
   } finally {
+    scheduleIdleShutdown();
     try { ws.close(); } catch { /* ignore */ }
     try { await fetch('http://127.0.0.1:' + port + '/json/close/' + target.id); } catch { /* ignore */ }
   }
