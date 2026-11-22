@@ -44,7 +44,7 @@ if (-not $SkipLauncher) {
 }
 
 Write-Host "  [2/4] 拷内核与桥接" -ForegroundColor Yellow
-foreach ($d in @("src", "bridge", "assets", "config", "docs", "examples")) {
+foreach ($d in @("src", "bridge", "scripts", "assets", "config", "docs", "examples")) {
     $from = Join-Path $repo $d
     if (Test-Path $from) { robocopy $from (Join-Path $outDir $d) /E /NFL /NDL /NJH /NJS /NP | Out-Null }
 }
