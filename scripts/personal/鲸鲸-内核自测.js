@@ -716,6 +716,41 @@ try {
   check('记忆体检', false, String(e && e.message).slice(0, 50));
 }
 
+// 牵挂 / 共情 / 复合情绪 / 表达 / 联系协调（R1–R5，2026-11-23）
+try {
+  const fsx = require('node:fs');
+  const osx = require('node:os');
+  const concerns = require(path.join(ROOT, 'src', 'core', 'concerns.js'));
+  const empathy = require(path.join(ROOT, 'src', 'core', 'empathy.js'));
+  const moodR = require(path.join(ROOT, 'src', 'core', 'mood.js'));
+  const careR = require(path.join(ROOT, 'src', 'services', 'care.js'));
+  const cdir = fsx.mkdtempSync(path.join(osx.tmpdir(), 'concern-'));
+  const c1 = concerns.add(cdir, { text: '明天再说换工作的事', now: 1000 });
+  concerns.add(cdir, { text: '明天再说换工作的事', now: 2000 });
+  check('牵挂：写入去重', c1 && concerns.list(cdir, { now: 3000 }).length === 1, '');
+  check('牵挂：注入文案', concerns.block({ dir: cdir, now: 3000 }).includes('欠着的'), '');
+  concerns.close(cdir, '换工作', 4000);
+  check('牵挂：可关闭', concerns.list(cdir, { now: 5000 }).length === 0, '');
+  check('共情：生气安抚', empathy.assess('烦死了').tone === 'soothe', '');
+  check('共情：忙时简短', empathy.assess('在开会').tone === 'brief', '');
+  const stR = moodR.baseline(0);
+  stR.emotions = { 喜: 0, 怒: 0.5, 哀: 0.6, 惧: 0, 爱: 0, 恶: 0, 欲: 0 };
+  check('复合情绪：委屈', moodR.composite(stR) === '委屈', moodR.composite(stR));
+  stR.emotions = { 喜: 0, 怒: 0.9, 哀: 0, 惧: 0, 爱: 0, 恶: 0, 欲: 0 };
+  check('表达映射：怒→炸毛', moodR.expressionFor(stR) === '炸毛', '');
+  const cfgR = { paths: { dataDir: cdir }, care: { enabled: true, everyMinutes: 1, followDesire: false } };
+  const t0 = new Date(2026, 10, 23, 11, 0).getTime();
+  const active = careR.careDue(cfgR, { lastSentTs: 0, sentToday: 0, now: t0, ownerActiveAt: t0 - 1000 });
+  check('联系协调：主人在聊让位', active.due === false && active.reason === 'owner_active', active.reason);
+  const boosted = careR.careDue(cfgR, { lastSentTs: t0 - 1000, sentToday: 0, now: t0, eventScore: 3 });
+  check('联系协调：事件分可直接开口', boosted.due === true, boosted.reason);
+  const noAns = careR.careDue(cfgR, { lastSentTs: t0 - 61000, sentToday: 0, now: t0 });
+  const doubled = careR.careDue(cfgR, { lastSentTs: t0 - 61000, sentToday: 0, now: t0, unanswered: 1 });
+  check('联系协调：未回冷却翻倍', noAns.due === true && doubled.due === false && doubled.reason === 'too_soon', noAns.reason + '/' + doubled.reason);
+} catch (e) {
+  check('牵挂账本', false, String(e && e.message).slice(0, 50));
+}
+
 console.log('\n通过 ' + pass + '/' + (pass + fail));
   process.exit(fail ? 1 : 0);
 })();

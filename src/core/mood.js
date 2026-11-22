@@ -528,12 +528,49 @@ function behaviorOf(state) {
   return top ? (BEHAVIOR_LINES[top.name] || '') : '';
 }
 
+const COMPOSITES = [
+  { name: '委屈', need: ['哀', '怒'], min: 0.35 },
+  { name: '心软', need: ['爱', '喜'], min: 0.35 },
+  { name: '恼火', need: ['怒', '恶'], min: 0.35 },
+  { name: '发怵', need: ['惧', '哀'], min: 0.3 },
+];
+
+/** 复合情绪名（七情组合） */
+function composite(state) {
+  const e = emotionsOf(state);
+  for (const c of COMPOSITES) {
+    if (c.need.every((k) => (e[k] || 0) >= c.min)) return c.name;
+  }
+  return '';
+}
+
+/** 情绪 → 表情包分类（R4）：怒炸毛、喜开心、爱傲娇、哀沉默 */
+function expressionFor(state) {
+  const top = topEmotions(state, 1)[0];
+  if (!top) return '';
+  if (top.name === '怒') return '炸毛';
+  if (top.name === '喜') return '开心';
+  if (top.name === '爱') return '傲娇';
+  if (top.name === '哀' || top.name === '恶') return '';
+  return '';
+}
+
+/** 同向极端连续时加速回落：scales 越大挂越久，这里压到 0.8 */
+function dampIfExtreme(state) {
+  const top = topEmotions(state, 1)[0];
+  if (!top || top.value < 0.8) return false;
+  if (state && state.scales) state.scales[top.name] = Math.min(Number(state.scales[top.name]) || 1, 0.8);
+  return true;
+}
+
 function line(state) {
   const mood = label(state);
   const feeling = emotionLabel(state);
   const beh = behaviorOf(state);
   const tail = feeling ? `；这会儿${feeling}${beh ? '，' + beh : ''}` : '';
-  return `【此刻心情】${mood}${tail}（自然流露就好，不要报心情数值，也不要解释这条）`;
+  const comp = composite(state);
+  const compText = comp ? `（这会儿有点${comp}）` : '';
+  return `【此刻心情】${mood}${tail}${compText}（自然流露就好，不要报心情数值，也不要解释这条）`;
 }
 
 /* ------------------------------------------------------------------ 落盘 */
@@ -585,6 +622,9 @@ function peek({ dir, text = '', now = Date.now(), rng = Math.random }) {
 }
 
 module.exports = {
+  composite,
+  expressionFor,
+  dampIfExtreme,
   BASELINE,
   HALF_LIFE_MS,
   VERSION,

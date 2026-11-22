@@ -104,7 +104,7 @@ function careDesire(config, { care = null, threshold = null } = {}) {
   }
 }
 
-function careDue(config, { lastSentTs = 0, sentToday = 0, now = Date.now() } = {}) {
+function careDue(config, { lastSentTs = 0, sentToday = 0, now = Date.now(), eventScore = 0, ownerActiveAt = 0, unanswered = 0 } = {}) {
   const care = normalizeCare(config);
   if (!care.enabled) return { due: false, reason: 'disabled', care };
 
@@ -137,9 +137,15 @@ function careDue(config, { lastSentTs = 0, sentToday = 0, now = Date.now() } = {
 
   // 抖动只用来「打散节奏」，不能盖过用户明确设的间隔：
   // 比如 everyMinutes=1、jitterMinutes=25，再不收窄就变成等 22 分钟，等于设置没生效。
+  // R5：主人在聊就先让位；没回过的主动不再连发；事件分高可以直接开口
+  if (ownerActiveAt && now - Number(ownerActiveAt) < 20 * 60000) {
+    return { due: false, reason: 'owner_active', now: formatMinutes(minutesOfDay), sentToday: Number(sentToday) };
+  }
   const jitterCap = Math.max(0, Math.floor(care.everyMinutes / 2));
   const jitter = stableJitter(lastSentTs, Math.min(care.jitterMinutes, jitterCap));
-  const gapMinutes = Math.max(1, care.everyMinutes + jitter);
+  let gapMinutes = Math.max(1, care.everyMinutes + jitter);
+  if (Number(unanswered) > 0) gapMinutes *= 2;   // 上一条主动没回：冷却翻倍
+  if (Number(eventScore) >= 3) gapMinutes = 0;   // 有由头（委托完成/久未回）：可以直接开口
   const gapMs = gapMinutes * 60 * 1000;
   const elapsed = lastSentTs ? now - Number(lastSentTs) : Infinity;
   if (lastSentTs && elapsed < gapMs) {

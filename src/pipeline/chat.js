@@ -19,6 +19,8 @@
  */
 const path = require('node:path');
 const innerNotes = require('../core/innerNotes');
+const concerns = require('../core/concerns');
+const empathy = require('../core/empathy');
 const sessionMod = require('./session');
 const marks = require('./marks');
 const persona = require('../persona');
@@ -803,6 +805,15 @@ class Bot {
     state.discussUntil = 0;
     msg.discussion = discussion;
 
+    // R1：主人说「明天再说/回头聊」时记一笔牵挂
+    try {
+      const _t = String(clean && clean.text || '');
+      if (isMaster && /(明天|回头|改天|等会|晚点).{0,8}(再说|聊|弄|说|处理)|先这样/.test(_t)) {
+        concerns.add((this.config && this.config.paths && this.config.paths.dataDir) || path.join(process.cwd(), 'data'),
+          { text: _t.slice(0, 60), kind: 'promise', now: nowMs });
+      }
+    } catch { /* 牵挂失败不影响回复 */ }
+
     // 6) 组装提示词：只加载「当前 chat + 当前说话人」的卡，绝不跨聊天取。
     // 记忆块（人物卡 + 相关事件 + 摘要）放进最后一条 user 消息，进 system 会打断前缀缓存。
     // 关系块（A 提到 B）挂在记忆块后面，同一个尾部位置；开关跟着 features.relations 走。
@@ -991,7 +1002,17 @@ class Bot {
         || path.join(process.cwd(), 'data');
       notesLine = innerNotes.block({ dir: dataDir, limit: 2 });
     } catch (err) { notesLine = ''; }
-    const innerLine = [moodLine, thoughtLine, notesLine].filter(Boolean).join('\n');
+    // R1 牵挂 + R2 共情：都进动态段，字很少
+    let concernLine = '';
+    let empathyLine = '';
+    try {
+      const _dir = (this.config && this.config.paths && this.config.paths.dataDir) || path.join(process.cwd(), 'data');
+      concernLine = concerns.block({ dir: _dir, limit: 3, now: nowMs });
+      empathyLine = empathy.line(empathy.assess(String(clean && clean.text || ''), moodState));
+    } catch { /* 不强求 */ }
+    // R4：把情绪挂到 decision 上，发不发图由 mood.expressionFor 决定
+    try { if (decision && moodState) decision.moodState = moodState; } catch { /* 不影响回复 */ }
+    const innerLine = [moodLine, thoughtLine, notesLine, empathyLine, concernLine].filter(Boolean).join('\n');
 
     const promptParts = persona.buildPromptParts({
       config: this.config,
@@ -1723,7 +1744,12 @@ class Bot {
       const rawEnsure = this.config.sticker && this.config.sticker.ensureSend;
       const ensure = rawEnsure === true || rawEnsure === 1 || /^(1|true|on|yes)$/i.test(String(rawEnsure || ''));
       const demanded = Boolean(decision && decision.stickerDemand);
-      if (stickers.isStickerRequest(userText) || (ensure && demanded)) {
+      const _emo = (!category && decision && decision.moodState)
+        ? require('../core/mood').expressionFor(decision.moodState) : '';
+      if (_emo) {
+        category = stickers.categoryFromName(this.config, _emo) || stickers.resolveUsableCategory(this.config, _emo) || '';
+      }
+      if (!category && (stickers.isStickerRequest(userText) || (ensure && demanded))) {
         category = stickers.categoryInText(this.config, userText)
           || (ensure && demanded ? stickers.moodCategory(this.config, userText + '\n' + String(text || '')) : '')
           || stickers.defaultCategory(this.config);
