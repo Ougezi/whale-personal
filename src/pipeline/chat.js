@@ -21,6 +21,7 @@ const path = require('node:path');
 const persona = require('../persona');
 const features = require('../infra/features');
 const { matchMaster, isVerifiedOwner } = require('../core/master');
+const opsGate = require('../services/opsGate');
 const links = require('../adapters/links');
 const browser = require('../adapters/browser');
 const vision = require('../adapters/vision');
@@ -643,6 +644,7 @@ class Bot {
     }
     // 后面生成的文本要判断「是不是在对主人说话」（例如不许带脏字回骂）
     msg.isMaster = isMaster;
+    msg.isGroup = isGroup;
 
     // 提醒：任何会话、任何人都能设（「十点半提醒我开会」）。
     // 放在最前面：群里没 @ 她也要能设，且不能被后面的静默/忽略逻辑挡掉。
@@ -682,6 +684,10 @@ class Bot {
     // 魔咒 / 管理员权限（只有绑定 ID 的主人在验证魔咒后可用）
     const adminReply = this.handleAdmin({ msg, clean, key, state, isMaster, nowMs });
     if (adminReply) return adminReply;
+
+    // 写操作开关：只有主人私聊一句话能改（「允许点赞」「关闭写操作」「每天最多 3 次」）
+    const opsReply = this.handleOpsSwitch({ msg, clean, isMaster, isGroup, key });
+    if (opsReply) return opsReply;
 
     // 主人私聊里说「去看看 / 上网看看」→ 真的去看一条热榜，回她自己那句话
     const browseReply = await this.handleBrowseAsk({ msg, clean, key, isMaster, isGroup, atMe });
@@ -1350,6 +1356,18 @@ class Bot {
     }
   }
 
+  /** 主人私聊一句话改写操作开关；不认识的句子返回 null，不抢普通聊天 */
+  handleOpsSwitch({ msg, clean, isMaster, isGroup, key }) {
+    if (!isMaster || isGroup) return null;
+    const intent = opsGate.parse(clean && clean.text);
+    if (!intent) return null;
+    const out = opsGate.apply(intent);
+    if (!out) return null;
+    const types = intent.intents.map((x) => x.type).join('+');
+    this.logger && this.logger.info('[ops] ' + types + ' → ' + JSON.stringify(out.state));
+    return { action: 'reply', key, msg, atMe: true, canned: out.reply, reason: 'ops_switch' };
+  }
+
   handleAdmin({ msg, clean, key, state, isMaster, nowMs }) {
     // 不接受昵称兜底或上游传来的 isMaster 标记作为管理凭据。
     isMaster = isVerifiedOwner(this.config, msg);
@@ -1898,6 +1916,14 @@ class Bot {
     // 没闭合的半截也要清掉，绝不能漏给用户看到（也不能因此吞掉正文）。
     // [[open:URL]]：非流式路径已经在 _handleOnce 里执行过；流式路径不能漏给用户看到，这里统一剥掉
     text = text.replace(/\[\[open[:：][^\]]*\]\]/gi, '').trim();
+    // 写操作标记 [[ops:like]]：只在主人私聊里生效，正文里一律剥掉
+    const opsMark = opsGate.stripMarkers(text);
+    text = opsMark.text;
+    if (opsMark.intents.length && decision.msg && decision.msg.isMaster && !decision.msg.isGroup) {
+      for (const intent of opsMark.intents) {
+        try { opsGate.apply(intent); } catch (err) { this.logger && this.logger.warn('[ops] 标记执行失败：' + describeError(err)); }
+      }
+    }
     const stickerMark = stripStickerMarks(text);
     if (stickerMark.category && decision) decision.stickerCategory = stickerMark.category;
     text = stickerMark.text;

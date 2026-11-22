@@ -11,6 +11,7 @@
  */
 
 const douyinSidecar = require('../../adapters/douyinSidecar');
+const opsGate = require('../../services/opsGate');
 const { json, readBody } = require('../util');
 const { safeEqual } = require('../security');
 const path = require('node:path');
@@ -91,34 +92,6 @@ function pluginCatalog(runtime) {
   };
 }
 
-/** 写操作总闸的落盘位置：sidecar 每次启动读它；内核这边也留一份给面板显示 */
-function opsFile() {
-  return path.join(douyinSidecar.DIR, 'state', 'ops.json');
-}
-
-function readOps() {
-  try {
-    const j = JSON.parse(fs.readFileSync(opsFile(), 'utf8'));
-    return {
-      enableOps: Boolean(j.enableOps),
-      allowLike: Boolean(j.allowLike),
-      allowCollect: Boolean(j.allowCollect),
-      dailyWriteActions: Math.max(0, Math.min(20, Number(j.dailyWriteActions) || 0))
-    };
-  } catch {
-    return { enableOps: false, allowLike: false, allowCollect: false, dailyWriteActions: 0 };
-  }
-}
-
-function writeOps(next) {
-  const file = opsFile();
-  fs.mkdirSync(path.dirname(file), { recursive: true });
-  const tmp = file + '.tmp';
-  fs.writeFileSync(tmp, JSON.stringify(next, null, 1), 'utf8');
-  fs.renameSync(tmp, file);
-  return next;
-}
-
 module.exports = function register(router) {
   router.get('/api/market/plugins', async (runtime, req, res) => {
     return json(res, 200, pluginCatalog(runtime));
@@ -133,17 +106,13 @@ module.exports = function register(router) {
     let body = {};
     try { body = await readBody(req, 64 * 1024); } catch { body = {}; }
     if (!authorized(runtime, req, body)) return json(res, 401, { ok: false, error: '需要 x-bot-token' });
-    const cur = readOps();
-    const next = {
-      enableOps: body.enableOps == null ? cur.enableOps : Boolean(body.enableOps),
-      allowLike: body.allowLike == null ? cur.allowLike : Boolean(body.allowLike),
-      allowCollect: body.allowCollect == null ? cur.allowCollect : Boolean(body.allowCollect),
-      dailyWriteActions: body.dailyWriteActions == null ? cur.dailyWriteActions : Math.max(0, Math.min(20, Number(body.dailyWriteActions) || 0))
-    };
-    // 关总闸时，分项也一并关掉，避免留下“开关看着开、实际不生效”的歧义
-    if (!next.enableOps) { next.allowLike = false; next.allowCollect = false }
-    writeOps(next);
-    return json(res, 200, { ok: true, ...next, file: opsFile() });
+    const next = opsGate.write({
+      enableOps: body.enableOps == null ? undefined : Boolean(body.enableOps),
+      allowLike: body.allowLike == null ? undefined : Boolean(body.allowLike),
+      allowCollect: body.allowCollect == null ? undefined : Boolean(body.allowCollect),
+      dailyWriteActions: body.dailyWriteActions == null ? undefined : body.dailyWriteActions,
+    });
+    return json(res, 200, { ok: true, ...next, file: opsGate.opsFile() });
   });
 
   router.post('/api/douyin/run', async (runtime, req, res) => {
