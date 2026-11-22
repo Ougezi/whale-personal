@@ -93,6 +93,12 @@ const FIELDS = {
   'care.jitterMinutes': { type: 'int', min: 0, max: 180 },
   'care.maxPerDay': { type: 'int', min: 0, max: 50 },
   'care.quietAfterMinutes': { type: 'int', min: 0, max: 1440 },
+  'care.followDesire': { type: 'bool' },
+  'care.needThreshold': { type: 'int', min: 0, max: 100 },
+  'thoughts.modelIntervalMin': { type: 'int', min: 1, max: 1440 },
+  'thoughts.modelPerDay': { type: 'int', min: 0, max: 200 },
+  'browse.intervalMin': { type: 'int', min: 10, max: 1440 },
+  'browse.maxPerDay': { type: 'int', min: 0, max: 50 },
 
   // ---- 语音识别 ----
   'voice.enabled': { type: 'bool' },

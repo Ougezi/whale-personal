@@ -285,6 +285,17 @@ const DEFAULT_CONFIG = {
     jitterMinutes: 25,
     maxPerDay: 6,
     quietAfterMinutes: 20,
+    followDesire: true,
+    needThreshold: 30,
+  },
+  thoughts: {
+    modelIntervalMin: 30,
+    modelPerDay: 24,
+  },
+  browse: {
+    intervalMin: 180,
+    maxPerDay: 5,
+    sources: ['weibo', 'bilibili', 'toutiao'],
   },
   group: {
     mutedGroups: [],

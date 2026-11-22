@@ -155,6 +155,15 @@ function createRuntime({ root = path.resolve(__dirname, '..'), env = process.env
   runtime.bot = new Bot({ config, store, llm: runtime.llm, logger: child('pipeline'), trace, version: VERSION });
   // 主人问起日记时，聊天模型通过 [[diary:日期]] 标记读取；不给它直接塞全文。
   runtime.bot.diary = runtime.diary;
+  // 自主上网：隔几小时自己刷一条热榜，用自己的话说一句，再写回情绪与念头
+  try {
+    const { BrowseService } = require('./services/browse');
+    runtime.browse = new BrowseService(runtime);
+    runtime.browse.start();
+    runtime.bot.browse = runtime.browse;
+  } catch (err) {
+    logger.warn('自主上网没有启动（不影响聊天）：' + describeError(err));
+  }
   // 本机所在地：后台探一次（Windows 定位服务优先，挂 VPN 也准），之后定期刷新。
   // 只放在内存里，给 <env> 块用；关掉 features.envContext 或 env.autoDetect=false 就完全不动。
   try {

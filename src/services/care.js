@@ -7,6 +7,9 @@ const time = require('../infra/time');
 
 // 读布尔开关：兼容老配置里的字符串 "false"（Boolean("false") 会被当成开）
 const { toBool } = require('../infra/features');
+const mood = require('../core/mood');
+const fs = require('node:fs');
+const path = require('node:path');
 
 /**
  * 主动搭话（care）：没事的时候她自己来找你说句话，问问「在干啥 / 累不累」。
@@ -37,6 +40,8 @@ function normalizeCare(config) {
   const jitter = Number(c.jitterMinutes);
   const maxPerDay = Number(c.maxPerDay);
   const quiet = Number(c.quietAfterMinutes);
+  const followDesire = c.followDesire == null ? true : toBool(c.followDesire, true);
+  const needThreshold = Number.isFinite(Number(c.needThreshold)) ? Number(c.needThreshold) : 30;
   return {
     enabled: toBool(c.enabled, true),
     windows: parseWindows(c.windows),
@@ -44,6 +49,8 @@ function normalizeCare(config) {
     jitterMinutes: Number.isFinite(jitter) && jitter >= 0 ? jitter : 25,
     maxPerDay: Number.isFinite(maxPerDay) && maxPerDay >= 0 ? maxPerDay : 6,
     quietAfterMinutes: Number.isFinite(quiet) && quiet >= 0 ? quiet : 20,
+    followDesire,
+    needThreshold: Math.min(100, Math.max(0, needThreshold)),
   };
 }
 
@@ -72,6 +79,27 @@ function stableJitter(lastSentTs, jitterMinutes) {
  *   - now          当前时间（毫秒），测试用
  * @returns {{due:boolean, reason:string, ...}}
  */
+/**
+ * 现在缺不缺、最缺哪一样（六个欲望里最低的那个）。
+ * 读 data/mood.json，先按当前时间衰减（不写盘）；读不到就放行，绝不让她突然沉默。
+ */
+function careDesire(config, { care = null, threshold = null } = {}) {
+  const cfgCare = care || normalizeCare(config);
+  const limit = Number.isFinite(threshold) ? Number(threshold) : cfgCare.needThreshold;
+  const dir = config && config.paths && config.paths.dataDir ? config.paths.dataDir : '';
+  if (!dir) return { enabled: false, reason: 'no_data_dir', needy: false, want: null, value: null, threshold: limit };
+  try {
+    if (!fs.existsSync(path.join(dir, 'mood.json'))) {
+      return { enabled: false, reason: 'no_mood_file', needy: false, want: null, value: null, threshold: limit };
+    }
+    const state = mood.decay(mood.load(dir), Date.now());
+    const need = mood.neediest(state, limit);
+    return { enabled: true, threshold: limit, ...need };
+  } catch (err) {
+    return { enabled: false, reason: 'mood_unreadable', needy: false, want: null, value: null, threshold: limit };
+  }
+}
+
 function careDue(config, { lastSentTs = 0, sentToday = 0, now = Date.now() } = {}) {
   const care = normalizeCare(config);
   if (!care.enabled) return { due: false, reason: 'disabled', care };
@@ -121,9 +149,26 @@ function careDue(config, { lastSentTs = 0, sentToday = 0, now = Date.now() } = {
     };
   }
 
+  // 六欲闸门：到点只是前提，还得她真的缺了什么才开口；状态读不出来时不拦
+  const desire = careDesire(config, { care });
+  const needy = !desire.enabled || desire.needy;
+  if (care.followDesire && !needy) {
+    return {
+      due: false,
+      reason: 'not_needy',
+      desire,
+      gapMinutes,
+      now: formatMinutes(minutesOfDay),
+      sentToday: Number(sentToday),
+      maxPerDay: care.maxPerDay,
+      waitMinutes: null,
+    };
+  }
+
   return {
     due: true,
     reason: 'ok',
+    desire,
     gapMinutes,
     now: formatMinutes(minutesOfDay),
     sentToday: Number(sentToday),
@@ -153,7 +198,7 @@ function pickTemplate(rng = Math.random) {
  * 生成「主动搭话」用的提示词。
  * 参考最近聊过什么：别重复、接着话头问，比干巴巴一句「在干啥」自然。
  */
-function buildCarePrompt({ persona = {}, recent = [], name = '', hour = null } = {}) {
+function buildCarePrompt({ persona = {}, recent = [], name = '', hour = null, want = null, wantLine = '' } = {}) {
   const who = String(persona.name || '鲸鲸');
   const master = String(persona.ownerName || '主人');
   const lines = [
@@ -172,6 +217,10 @@ function buildCarePrompt({ persona = {}, recent = [], name = '', hour = null } =
   if (Number.isFinite(hour)) {
     const part = hour < 6 ? '凌晨' : hour < 11 ? '早上' : hour < 14 ? '中午' : hour < 18 ? '下午' : hour < 23 ? '晚上' : '深夜';
     lines.push(`- 现在是${part}，语气跟这个时间搭一点。`);
+  }
+  // 她这次开口是因为真的缺了什么，句子围着那个缺口说
+  if (wantLine) {
+    lines.push(`- 你这会儿${wantLine}，就顺着这个开口（这是你自己的感觉，不是要求对方做什么）。`);
   }
   const user = recent.length
     ? '最近你们聊的（旧→新，只用来参考语气和话题，别复述）：\n' + recent.slice(-8).join('\n')
@@ -339,6 +388,7 @@ module.exports = {
   isMasterTarget,
   CARE_TEMPLATES,
   pickTemplate,
+  careDesire,
   buildCarePrompt,
   cleanCareText,
   formatMinutes,

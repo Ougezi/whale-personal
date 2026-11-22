@@ -103,7 +103,7 @@ namespace WhaleLauncher
             return Regex.Replace(plain, @"^([ \t]*)[-*]\s+", "$1• ");
         }
 
-        private const string Repo = "Banan1cee/whale_girl";
+        private const string Repo = "Ougezi/whale-personal";
 
         // 顺序不重要（并行拉），但源要覆盖三种网络：GitHub 直连 / 墙内镜像 / CDN 兜底。
         private static readonly string[] Sources =

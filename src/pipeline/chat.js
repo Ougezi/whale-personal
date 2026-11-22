@@ -107,6 +107,10 @@ const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 // 程序版本：环境块里要报给模型（问「你是什么版本」时不能瞎说）。
 // app.js 构造 Bot 时会显式传进来；测试里直接 new Bot 时用这个默认值。
 const VERSION = require('../../package.json').version;
+const mood = require('../core/mood');
+const thoughts = require('../core/thoughts');
+const thoughtGen = require('../services/thoughtGen');
+const browseCore = require('../services/browse');
 
 class Bot {
   constructor({ config, store, llm, logger, trace = null, now = () => new Date(), rng = Math.random, mockChunkDelayMs = 12, linkReader = null, calibration = null, moments = null, version = VERSION }) {
@@ -665,6 +669,10 @@ class Bot {
     const adminReply = this.handleAdmin({ msg, clean, key, state, isMaster, nowMs });
     if (adminReply) return adminReply;
 
+    // 主人私聊里说「去看看 / 上网看看」→ 真的去看一条热榜，回她自己那句话
+    const browseReply = await this.handleBrowseAsk({ msg, clean, key, isMaster, isGroup, atMe });
+    if (browseReply) return browseReply;
+
     // 4) 群聊里没被叫到就先不说话
     // （triggerResult 以前叫 trigger，把模块导入 trigger 遮蔽了（L12），改个名）
     const pluginInput = this.pluginContext({ key, msg });
@@ -981,6 +989,45 @@ class Bot {
     // 提示词拆成两块：system 只放静态人设/规则/日期，尾部放这一轮会变的东西
     // （心情、说话人、字数、@、梗、联网资料、动作账本……），前缀缓存才不会被每轮打断。
     // features.staticSystem=false 时完全回到旧行为：所有内容都在 system，tail 为空串。
+    // 情绪状态（三轴 + 七情 + 六欲）：有惯性；关掉 features.mood 就不读写
+    let moodLine = '';
+    let moodState = null;
+    const innerDir = this.config.paths?.dataDir || path.join(process.cwd(), 'data');
+    if (features.isOn(this.config, 'mood')) {
+      try {
+        const ticked = mood.tick({
+          dir: innerDir,
+          text: (clean && clean.text) || msg.text || '',
+          now: nowMs,
+        });
+        moodLine = ticked.line;
+        moodState = ticked.state;
+      } catch (err) {
+        moodLine = '';
+      }
+    }
+    // 念头流：跨轮携带、3 小时淡掉；每轮最多带出两条，明说「不一定要说出来」
+    let thoughtLine = '';
+    if (features.isOn(this.config, 'thoughts')) {
+      try {
+        thoughtLine = thoughts.line(innerDir, { state: moodState, now: nowMs }).text;
+      } catch (err) {
+        thoughtLine = '';
+      }
+    }
+    // 模型写的念头：不 await（不拖慢这一轮），节流在 thoughtGen 里；下一轮才看得到
+    if (features.isOn(this.config, 'thoughts')) {
+      try {
+        const heard = String((clean && clean.text) || msg.text || '').slice(0, 60);
+        thoughtGen
+          .maybe(this, { dir: innerDir, state: moodState, now: nowMs, recent: heard ? ['对方：' + heard] : [] })
+          .catch(() => {});
+      } catch (err) {
+        // 生成念头是锦上添花，失败不许影响回复
+      }
+    }
+    const innerLine = [moodLine, thoughtLine].filter(Boolean).join('\n');
+
     const promptParts = persona.buildPromptParts({
       config: this.config,
       msg: { ...msg, senderName: displayName, chatTitle: msg.chatTitle || session.title, isMaster, atMe, addressedToBot: Boolean(atMe || msg.replyToBot), mentionedNames, groupParticipants, linkText, discussion, groupStyleText, fight, fightDirty, fightOnMaster, voiceRequested, replyToName: msg.replyToName, ts: nowMs },
@@ -992,6 +1039,7 @@ class Bot {
       // 外部动作账本：她做过什么（发表情包、交给桥接、读链接、联网），
       // 不塞进去她就永远不知道自己的副作用，只能编。
       events: recentEvents,
+      moodLine: innerLine,
       now,
       envBlock,
     });
@@ -1257,6 +1305,24 @@ class Bot {
   }
 
   /** 管理员命令。返回 decision，或 null 表示继续走普通聊天流程。 */
+  /**
+   * 「去看看 / 上网看看」：一句口令，真的去看一条热榜。
+   * 只认主人私聊；结果写回情绪与念头，回复用她自己那句话。
+   */
+  async handleBrowseAsk({ msg, clean, key, isMaster, isGroup, atMe }) {
+    if (!this.browse || typeof this.browse.tick !== 'function') return null;
+    if (!isMaster || isGroup) return null;
+    const raw = String((clean && clean.text) || '').trim();
+    if (!browseCore.isBrowseAsk(raw)) return null;
+    const base = { action: 'command', commandType: 'browse', key, msg, atMe: true, reason: 'browse' };
+    try {
+      const out = await this.browse.tick({ force: true });
+      return { ...base, text: browseCore.formatReply(out).text };
+    } catch (err) {
+      return null;
+    }
+  }
+
   handleAdmin({ msg, clean, key, state, isMaster, nowMs }) {
     // 不接受昵称兜底或上游传来的 isMaster 标记作为管理凭据。
     isMaster = isVerifiedOwner(this.config, msg);

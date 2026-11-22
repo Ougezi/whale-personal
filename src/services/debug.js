@@ -120,6 +120,9 @@ function debugSessions(runtime) {
   return list.slice(0, 50);
 }
 
+const mood = require('../core/mood');
+const thoughts = require('../core/thoughts');
+
 async function debugPrompt(runtime, body) {
   const config = runtime.config;
   const senderName = String(body.senderName || '').trim() || '朋友';
@@ -152,11 +155,29 @@ async function debugPrompt(runtime, body) {
   // system 只放静态块；每轮会变的东西（说话人、时间、字数、梗、链接、联网…）在 tail 里，
   // 真发请求时 tail 挂在最后一条 user 消息后面。这里两块分开返回，方便对照。
   // 环境块也按真实配置拼一份带进来，诊断页看到的 system 跟实际发出的才是同一份。
+  // 情绪 / 念头只读预览：和真实提示词同一套状态，但看一眼不改变它
+  let moodLine = '';
+  try {
+    if (features.isOn(config, 'mood')) {
+      const dir = config.paths?.dataDir || path.join(process.cwd(), 'data');
+      moodLine = mood.peek({ dir, text, now: now.getTime() }).line;
+    }
+  } catch { moodLine = ''; }
+  let thoughtLine = '';
+  try {
+    if (features.isOn(config, 'thoughts')) {
+      const dir = config.paths?.dataDir || path.join(process.cwd(), 'data');
+      thoughtLine = thoughts.peek(dir, { now: now.getTime() }).text;
+    }
+  } catch { thoughtLine = ''; }
+  const innerLine = [moodLine, thoughtLine].filter(Boolean).join('\n');
+
   const parts = persona.buildPromptParts({
     config,
     msg,
     profile: { count: 1, notes: [] },
     notes: [],
+    moodLine: innerLine,
     now,
     envBlock: envInfo.systemBlock(config, VERSION),
   });
