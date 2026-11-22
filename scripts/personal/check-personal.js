@@ -49,7 +49,9 @@ check('学习：次数上限 200/100，增量 25~50 / 10~20', () => {
 check('抖音链接：渲染 + 抓图 + 转写', () => {
   const chat = read('src/pipeline/chat.js');
   must(chat.includes('readDouyinNote'), 'chat.js 没有 readDouyinNote');
-  must(/isDouyinLink\s*\?\s*60000/.test(chat), '抖音链接预算不是 60s');
+  must(/isDouyinLink\s*\?\s*180000/.test(chat), '抖音链接预算不是 180s');
+  must(chat.includes('douyinSidecar'), 'chat.js 没接 sidecar');
+  must(read('src/adapters/douyinSidecar.js').includes('readLink'), 'douyinSidecar.js 缺 readLink');
   const br = read('src/adapters/browser.js');
   must(br.includes('imagesFromPage'), 'browser.js 没有 imagesFromPage');
   must(br.includes('douyinDefault'), 'browser.js 没有过滤抖音占位图');
