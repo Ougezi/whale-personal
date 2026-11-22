@@ -91,12 +91,13 @@ function block({ dir = null, limit = 2 } = {}) {
 function consume(text, { dir = null, now = Date.now() } = {}) {
   const src = String(text == null ? '' : text);
   const writes = [];
-  const cleaned = src.replace(/\[\[(feel|lesson):\s*([^\]\n]{1,200})(?:\]\]|$)/gi, (all, kind, body) => {
+  // 中英文冒号都收（模型经常写全角）
+  const cleaned = src.replace(/\[\[(feel|lesson)[:：]\s*([^\]\n]{1,200})(?:\]\]|$)/gi, (all, kind, body) => {
     const k = String(kind).toLowerCase();
     if (append(k, body, { dir, now }).ok) writes.push({ kind: k, text: String(body).trim().slice(0, 60) });
     return '';
   });
-  return { text: cleaned.replace(/[ \t]+\n/g, '\n').trim(), writes };
+  return { text: cleaned.replace(/[ \t]+\n/g, '\n').replace(/([^\n])[ \t]{2,}/g, '$1 ').trim(), writes };
 }
 
 module.exports = { append, recent, block, consume, FILES, MAX_ENTRY, MAX_LINES };

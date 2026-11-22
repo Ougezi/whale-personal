@@ -504,6 +504,18 @@ try {
   const cc = inner.consume('好 [[lesson:以后先确认是谁说的]] 的', { dir: idir });
   check('标记收走并写入', !cc.text.includes('[[') && cc.writes.length === 1 && inner.recent('lessons', 1, { dir: idir }).length === 1, cc.text);
   check('感受教训带进提示词', inner.block({ dir: idir }).includes('心里记着的'), '');
+  const cc2 = inner.consume('好[[feel：全角冒号也收]]的', { dir: idir });
+  check('全角冒号标记', cc2.writes.length === 1 && !cc2.text.includes('[['), cc2.text);
+  // 备份要带上感受/教训/日记
+  const fsb = require('node:fs');
+  const root2 = fsb.mkdtempSync(path.join(require('node:os').tmpdir(), 'bk-'));
+  fsb.mkdirSync(path.join(root2, 'data', 'memory'), { recursive: true });
+  fsb.mkdirSync(path.join(root2, 'data', 'inner'), { recursive: true });
+  fsb.writeFileSync(path.join(root2, 'data', 'memory', 'note.txt'), 'x');
+  fsb.writeFileSync(path.join(root2, 'data', 'inner', 'feelings.md'), '- [11-22 23:00] 测试\n');
+  const bk = require(path.join(ROOT, 'src', 'memory', 'backup.js')).collect(root2);
+  check('备份含感受记录', Object.keys(bk.files.inner || {}).includes('feelings.md'), JSON.stringify(Object.keys(bk.files)));
+  fsb.rmSync(root2, { recursive: true, force: true });
 } catch (e) {
   check('会话归一化', false, String(e && e.message).slice(0, 40));
 }

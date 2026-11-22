@@ -19,7 +19,7 @@
  */
 const path = require('node:path');
 const innerNotes = require('../core/innerNotes');
-const session = require('./session');
+const sessionMod = require('./session');
 const persona = require('../persona');
 const features = require('../infra/features');
 const { matchMaster, isVerifiedOwner } = require('../core/master');
@@ -193,7 +193,7 @@ class Bot {
   }
 
   sessionKey(msg) {
-    return session.sessionKey(msg);
+    return sessionMod.sessionKey(msg);
   }
 
   /**
@@ -289,20 +289,20 @@ class Bot {
 
   /** 最近别人说过的原话（含当前这条），用来判断她是不是在复读 */
   recentHeard(decision, limit = 6) {
-    return session.recentHeard(this, decision, limit);
+    return sessionMod.recentHeard(this, decision, limit);
   }
 
   /** 她最近说过的几句，用来避免自己复读自己 */
   recentOwn(decision, limit = 4) {
-    return session.recentOwn(this, decision, limit);
+    return sessionMod.recentOwn(this, decision, limit);
   }
 
   normalize(msg) {
-    return session.normalize(msg);
+    return sessionMod.normalize(msg);
   }
 
   buildTurns(msg, history, memoryBlock, tailBlock) {
-    return session.buildTurns(this, msg, history, memoryBlock, tailBlock);
+    return sessionMod.buildTurns(this, msg, history, memoryBlock, tailBlock);
   }
 
   /**
@@ -313,7 +313,7 @@ class Bot {
    * 也不能让整条消息静默丢掉。原文也读不出来时返回空 recent，至少还能回当前这条。
    */
   recentOnlyContext(key, { isGroup = false } = {}) {
-    return session.recentOnlyContext(this, key, { isGroup });
+    return sessionMod.recentOnlyContext(this, key, { isGroup });
   }
 
   /**

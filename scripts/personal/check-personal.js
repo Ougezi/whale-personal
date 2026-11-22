@@ -122,6 +122,18 @@ check('写操作开关：主人一句话 / 标记 / 落盘', () => {
   return 'ok';
 });
 
+check('插件市场布局：分类/卡片/详情，写操作只绑刷抖音', () => {
+  const w = read('launcher/PluginMarketWindow.cs');
+  must(w.includes('OpenDetail'), '缺详情页');
+  must(w.includes('RenderChips'), '缺分类 chips');
+  must(w.includes('BuildCard'), '缺卡片');
+  must(w.includes('"douyin-watch"'), '写操作没按插件 id 绑定');
+  const m = read('src/http/routes/market.js');
+  for (const key of ['icon', 'category', 'desc']) must(m.includes(key + ':'), 'catalog 缺 ' + key);
+  must(m.includes('刷抖音'), 'catalog 没有刷抖音条目');
+  return 'ok';
+});
+
 check('自主上网反应只要一句（提示词与 maxTokens）', () => {
   const b = read('src/services/browse.js');
   must(/只(输出|回)[^。\n]{0,4}一句/.test(b), 'browse.js SYSTEM 里没有「只输出这一句」');

@@ -37,54 +37,54 @@ function pluginCatalog(runtime) {
     dataDir,
     plugins: [
       {
-        id: 'douyin-watch', name: '刷抖音（观看/日报）', version: '0.4.0', status: douyinOk ? 'ready' : 'missing',
+        id: 'douyin-watch', name: '刷抖音（观看/日报）', icon: '抖', category: '抖音', version: '0.4.0', status: douyinOk ? 'ready' : 'missing',
         desc: '推荐流卡片、每日额度、兴趣衰减、日报；她的抖音 sidecar 提供。',
         panels: [
-          { id: 'watch', title: '刷一轮推荐流', kind: 'douyin', op: 'watch', args: { cards: 6 } },
-          { id: 'hot', title: '热榜', kind: 'douyin', op: 'hot', args: { limit: 10 } },
-          { id: 'report', title: '今天的日报', kind: 'douyin', op: 'report', args: {} },
-          { id: 'login', title: '抖音登录状态', kind: 'douyin', op: 'link', args: { url: '' } },
-          { id: 'accounts', title: '浏览器通道', kind: 'douyin', op: 'accounts', args: { action: 'list' } }
+          { id: 'watch', title: '刷一轮推荐流', desc: '按每日额度读一轮卡片，0 模型调用', kind: 'douyin', op: 'watch', args: { cards: 6 } },
+          { id: 'hot', title: '热榜', desc: '匿名可用，自动翻页', kind: 'douyin', op: 'hot', args: { limit: 10 } },
+          { id: 'report', title: '今天的日报', desc: '今天看了什么、兴趣变化', kind: 'douyin', op: 'report', args: {} },
+          { id: 'login', title: '抖音登录状态', desc: '看浏览器通道是否已登录', kind: 'douyin', op: 'link', args: { url: '' } },
+          { id: 'accounts', title: '浏览器通道', desc: 'Chrome / Edge 各自 profile', kind: 'douyin', op: 'accounts', args: { action: 'list' } }
         ]
       },
       {
-        id: 'douyin-kb', name: '抖音知识库（下载/主页/评论）', version: '0.4.0', status: douyinOk ? 'ready' : 'missing',
+        id: 'douyin-kb', name: '抖音知识库（下载/主页/评论）', icon: '库', category: '抖音', version: '0.4.0', status: douyinOk ? 'ready' : 'missing',
         desc: '下载原文件、作者主页、合集、评论、搜用户、导出、SQLite 索引、批量。',
         panels: [
-          { id: 'download', title: '下载一条作品', kind: 'douyin', op: 'download', args: { modalId: '' }, input: { field: 'modalId', hint: 'id / 链接 / 短链' } },
-          { id: 'user', title: '读作者主页', kind: 'douyin', op: 'user', args: { user: '', limit: 20 }, input: { field: 'user', hint: '主页链接 / sec_uid' } },
-          { id: 'comments', title: '读评论', kind: 'douyin', op: 'comments', args: { modalId: '', limit: 20 }, input: { field: 'modalId', hint: '视频 id / 链接' } },
-          { id: 'export', title: '导出知识库', kind: 'douyin', op: 'export', args: { format: 'json' } },
-          { id: 'index', title: 'SQLite 索引', kind: 'douyin', op: 'index', args: {} }
+          { id: 'download', title: '下载一条作品', desc: '视频/图文原图/音频/封面，落盘去重', kind: 'douyin', op: 'download', args: { modalId: '' }, input: { field: 'modalId', hint: 'id / 链接 / 短链' } },
+          { id: 'user', title: '读作者主页', desc: '发布/喜欢/收藏/合集列表', kind: 'douyin', op: 'user', args: { user: '', limit: 20 }, input: { field: 'user', hint: '主页链接 / sec_uid' } },
+          { id: 'comments', title: '读评论', desc: '还支持 sort / replies / cursor', kind: 'douyin', op: 'comments', args: { modalId: '', limit: 20 }, input: { field: 'modalId', hint: '视频 id / 链接' } },
+          { id: 'export', title: '导出知识库', desc: 'JSON / CSV 落盘', kind: 'douyin', op: 'export', args: { format: 'json' } },
+          { id: 'index', title: 'SQLite 索引', desc: 'node:sqlite 检索', kind: 'douyin', op: 'index', args: {} }
         ]
       },
       {
-        id: 'fetch', name: '网页抓取', version: '4.6', status: 'ready',
+        id: 'fetch', name: '网页抓取', icon: '网', category: '网络', version: '4.7', status: 'ready',
         desc: '直连抓正文，打不开用本机浏览器渲染；统计落 data/fetch-stats.jsonl。',
         panels: [
-          { id: 'browser', title: '浏览器状态', kind: 'http', method: 'GET', path: '/api/fetch/browser' },
-          { id: 'fetch', title: '抓一个网页', kind: 'http', method: 'POST', path: '/api/fetch', body: { url: '' }, input: { field: 'url', hint: 'https://…' } }
+          { id: 'browser', title: '浏览器状态', desc: 'CDP 是否可用', kind: 'http', method: 'GET', path: '/api/fetch/browser' },
+          { id: 'fetch', title: '抓一个网页', desc: '直连失败自动用浏览器渲染', kind: 'http', method: 'POST', path: '/api/fetch', body: { url: '' }, input: { field: 'url', hint: 'https://…' } }
         ]
       },
       {
-        id: 'vision', name: '看图 / 文字识别', version: '4.6', status: 'ready',
+        id: 'vision', name: '看图 / 文字识别', icon: '眼', category: '图像', version: '4.7', status: 'ready',
         desc: '视觉模型优先，没配 Key 自动退本机 Windows OCR。',
         panels: [
           { id: 'stats', title: '看图的两种模式', kind: 'info', text: '聊天里发图会自动识别；本机 OCR 是兜底，不需要额外 Key。' }
         ]
       },
       {
-        id: 'search-image', name: '搜图（表情/网图）', version: '4.6', status: 'bridge',
+        id: 'search-image', name: '搜图（表情/网图）', icon: '搜', category: '图像', version: '4.7', status: 'bridge',
         desc: '由桥接处理：她在聊天里写 [[pic:关键词]] 或你让她「搜一张…」。下载的图进 data/stickers/搜来的（已从表情分类里隐藏）。',
         panels: [{ id: 'how', title: '怎么用', kind: 'info', text: '在微信里说「搜一张…」或让她写 [[pic:关键词]]；下载的图不会当表情发出去。' }]
       },
       {
-        id: 'delegation', name: '委托执行（DSH）', version: '4.6', status: 'ready',
+        id: 'delegation', name: '委托执行（DSH）', icon: '手', category: '工具', version: '4.7', status: 'ready',
         desc: '她写 [[dsh:任务]] 把动手活交给 DSH 执行端；本机有每日上限与超时。',
         panels: [{ id: 'how', title: '怎么用', kind: 'info', text: '在微信里说「动手：…」；只读任务默认，改文件才会升级权限。' }]
       },
       {
-        id: 'toolbox', name: '自检 / 状态', version: '4.6', status: 'ready',
+        id: 'toolbox', name: '自检 / 状态', icon: '检', category: '系统', version: '4.7', status: 'ready',
         desc: '内核与桥接的当前状态、健康自查。',
         panels: [{ id: 'status', title: '内核状态', kind: 'http', method: 'GET', path: '/api/status' }]
       }
