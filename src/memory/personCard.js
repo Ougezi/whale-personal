@@ -199,6 +199,8 @@ function normalizeEvent(raw, chatId, now) {
     validTo: raw.validTo == null ? null : (Number(raw.validTo) || null),
     supersededBy: text(raw.supersededBy, 60) || null,
     sourceEventId: text(raw.sourceEventId, 60) || null,
+    // 分层（M2）：L1 原文/事件、L2 规则/教训、L3 稳定画像
+    layer: ['L1', 'L2', 'L3'].includes(String(raw.layer)) ? String(raw.layer) : 'L1',
     // 事件也要能被下架：activeEvents 会过滤 deleted，但这里以前没保存这个标记，
     // 结果一存盘就复活（memory 修复时踩到）。偏好/线索都保留，唯独事件丢了。
     deleted: Boolean(raw.deleted),

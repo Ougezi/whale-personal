@@ -3,6 +3,7 @@
 'use strict';
 
 const path = require('node:path');
+const fs = require('node:fs');
 const { json } = require('../util');
 const { isLoopbackRequest } = require('../security');
 const innerNotes = require('../../core/innerNotes');
@@ -22,6 +23,22 @@ module.exports = function register(router) {
       feelings: innerNotes.recent('feelings', 10, { dir }),
       lessons: innerNotes.recent('lessons', 10, { dir }),
     });
+  });
+
+  // GET /api/inner?kind=insights：睡眠任务产出的洞察（只读）
+  router.get('/api/inner/insights', (runtime, req, res) => {
+    local(req);
+    let limit = 20;
+    try {
+      const u = new URL(req.url, 'http://localhost');
+      limit = Math.max(1, Math.min(50, Number(u.searchParams.get('limit')) || 20));
+    } catch { /* 参数坏了用默认 */ }
+    let lines = [];
+    try {
+      const file = path.join(runtime.config.paths.dataDir, 'inner', 'insights.md');
+      lines = fs.readFileSync(file, 'utf8').split('\n').filter(Boolean).slice(-limit);
+    } catch { /* 没产出就空 */ }
+    return json(res, 200, { ok: true, items: lines });
   });
 
   // GET /api/inner/list?kind=feelings|lessons&limit=20

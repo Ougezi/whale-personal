@@ -125,6 +125,14 @@ function createRuntime({ root = path.resolve(__dirname, '..'), env = process.env
     });
   } catch { /* 定时器起不来不影响主流程 */ }
 
+  // 记忆睡眠（M3）：每天 4 点后整理一次，失败不影响聊天
+  try {
+    runtime.scheduler.every('memory.sleep', 30 * 60 * 1000, () => {
+      const r = require('./services/memorySleep').maybeRun({ dataDir: config.paths.dataDir, logger: child('sleep') });
+      if (r && r.ran) logger.info('记忆睡眠：卡片 ' + r.cards + ' 矛盾 ' + r.conflicted + ' 巩固 ' + r.consolidated + ' 晋升 ' + r.promoted + ' 洞察 ' + r.insights);
+    });
+  } catch { /* 定时器起不来不影响主流程 */ }
+
   runtime.llm = new DeepSeekClient({ config, logger: child('llm') });
   runtime.diary = new DiaryService(config, {
     store,

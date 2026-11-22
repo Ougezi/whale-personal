@@ -12,6 +12,7 @@ const path = require('node:path');
 const { ChatStore } = require('./chatStore');
 const personCard = require('./personCard');
 const audit = require('./audit');
+const filter = require('./filter');
 const episode = require('./episode');
 const compression = require('./compression');
 const retrieval = require('./retrieval');
@@ -237,6 +238,8 @@ class Store {
 
   _onUserMessage(chat, entry) {
     if (!entry.uid || !entry.text) return;
+    // M1：低信息量消息（表情/纯@/短反应）不抽事实，原文仍然在
+    if (!filter.worthRemembering(entry.text, entry)) return;
     try {
       // 已有卡就直接用，别在这里重复把 count 加一次（profile() 那步才算“聊过一次”）
       const card = this.chatStore.getCard(chat, entry.uid) || this.chatStore.ensurePerson(chat, entry.uid, entry.name);
@@ -274,7 +277,9 @@ class Store {
     // 连续 20 条 user 消息：轻量候选，只写偏好，不写 L2
     if (chat.meta.stats.userMessagesSinceExtract >= LIMITS.factExtractEveryUserMessages) {
       try {
-        const last = chat.messages.filter((m) => m.role === 'user').slice(-LIMITS.factExtractEveryUserMessages);
+        const last = chat.messages.filter((m) => m.role === 'user')
+          .filter((m) => filter.worthRemembering(m.text, m))
+          .slice(-LIMITS.factExtractEveryUserMessages);
         const candidates = extractor.lightweightCandidates(last, { now: entry.ts });
         const byUid = new Map();
         for (const c of candidates) {

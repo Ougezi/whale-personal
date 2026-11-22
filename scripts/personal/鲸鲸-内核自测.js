@@ -607,6 +607,115 @@ try {
   check('审计读写', false, String(e && e.message).slice(0, 50));
 }
 
+// 选择性入库（M1，2026-11-23）
+try {
+  const filter = require(path.join(ROOT, 'src', 'memory', 'filter.js'));
+  check('过滤纯表情', filter.worthRemembering('[微笑][微笑]') === false, '');
+  check('过滤纯 @', filter.worthRemembering('@某人') === false, '');
+  check('过滤短反应', filter.worthRemembering('哈哈哈哈') === false, '');
+  check('过滤太短', filter.worthRemembering('好') === false, '');
+  check('保留正常句子', filter.worthRemembering('今天去面试了，感觉还行') === true, '');
+  check('@ 后面有内容要记', filter.worthRemembering('@某人 明天下午三点开会') === true, '');
+} catch (e) {
+  check('选择性入库', false, String(e && e.message).slice(0, 40));
+}
+
+// 分层与教训状态（M2，2026-11-23）
+try {
+  const fsx = require('node:fs');
+  const osx = require('node:os');
+  const inner2 = require(path.join(ROOT, 'src', 'core', 'innerNotes.js'));
+  const d2 = fsx.mkdtempSync(path.join(osx.tmpdir(), 'm2-'));
+  fsx.mkdirSync(path.join(d2, 'inner'), { recursive: true });
+  fsx.writeFileSync(path.join(d2, 'inner', 'lessons.md'), '- [11-20 10:00] 旧格式教训\n');
+  check('旧行默认已确认', inner2.recent('lessons', 1, { dir: d2 })[0].status === 'confirmed', '');
+  inner2.append('lesson', '待确认教训', { dir: d2 });
+  check('新教训默认 pending', inner2.recent('lessons', 1, { dir: d2 })[0].status === 'pending', '');
+  check('pending 不进提示词', !inner2.block({ dir: d2 }).includes('待确认教训'), '');
+  inner2.append('lesson', '已确认教训', { dir: d2, status: 'confirmed' });
+  check('confirmed 进提示词', inner2.block({ dir: d2 }).includes('已确认教训'), '');
+  const evL = pc.normalizeEvent({ summary: 'x', layer: 'L2' }, 'c', 1);
+  const evD = pc.normalizeEvent({ summary: 'y' }, 'c', 1);
+  check('事件分层默认 L1', evL.layer === 'L2' && evD.layer === 'L1', evL.layer + '/' + evD.layer);
+} catch (e) {
+  check('教训状态', false, String(e && e.message).slice(0, 40));
+}
+
+// 夜间睡眠任务（M3，2026-11-23）
+try {
+  const fsx = require('node:fs');
+  const osx = require('node:os');
+  const sleep = require(path.join(ROOT, 'src', 'services', 'memorySleep.js'));
+  const now = new Date(2026, 10, 23, 10, 0).getTime();
+  const DAY = 86400000;
+  const root2 = fsx.mkdtempSync(path.join(osx.tmpdir(), 'sleep-'));
+  const pdir = path.join(root2, 'data', 'memory', 'chats', 'h1', 'people');
+  fsx.mkdirSync(pdir, { recursive: true });
+  const card = {
+    version: 2, chatId: 'c1', uid: 'u1',
+    events: [
+      { id: 'e1', title: '工作', summary: '他在找工作', createdAt: now - 40 * DAY, importance: 0.3, layer: 'L1' },
+      { id: 'e2', title: '工作', summary: '他在找工作', createdAt: now - 10 * DAY, importance: 0.3, layer: 'L1' },
+      { id: 'e3', title: '旅行', summary: '他想去旅行', createdAt: now - 1 * DAY, importance: 0.6, resolved: false, keywords: ['旅行'] },
+      { id: 'e4', title: '换房', summary: '他在看房子', createdAt: now - 2 * DAY, importance: 0.6, resolved: false },
+      { id: 'e5', title: '考试', summary: '他要考试了', createdAt: now - 3 * DAY, importance: 0.6, resolved: false },
+      { id: 'e6', title: '旧事', summary: '很久以前的小事', createdAt: now - 40 * DAY, importance: 0.2, layer: 'L1' },
+    ],
+  };
+  fsx.writeFileSync(path.join(pdir, 'p1.json'), JSON.stringify(card));
+  const idir = path.join(root2, 'data', 'inner');
+  fsx.mkdirSync(idir, { recursive: true });
+  const old = new Date(now - 10 * DAY);
+  const at = String(old.getMonth() + 1).padStart(2, '0') + '-' + String(old.getDate()).padStart(2, '0') + ' 10:00';
+  fsx.writeFileSync(path.join(idir, 'lessons.md'), '- [' + at + '] (pending) 旧教训\n');
+  const rep = sleep.run({ dataDir: path.join(root2, 'data'), now });
+  const after = JSON.parse(fsx.readFileSync(path.join(pdir, 'p1.json'), 'utf8'));
+  const e1 = after.events.find((e) => e.id === 'e1');
+  const e6 = after.events.find((e) => e.id === 'e6');
+  check('睡眠：矛盾失效', rep.conflicted >= 1 && e1 && e1.validTo === now, JSON.stringify(rep));
+  check('睡眠：旧事归档', rep.consolidated >= 1 && e6 && e6.validTo === now
+    && fsx.existsSync(path.join(root2, 'data', 'memory', 'archive.md')), String(rep.consolidated));
+  check('睡眠：教训晋升', rep.promoted === 1 && !fsx.readFileSync(path.join(idir, 'lessons.md'), 'utf8').includes('(pending)'), String(rep.promoted));
+  check('睡眠：洞察产出', rep.insights >= 1 && fsx.readFileSync(path.join(idir, 'insights.md'), 'utf8').includes('没结局'), String(rep.insights));
+  const again = sleep.maybeRun({ dataDir: path.join(root2, 'data'), now });
+  check('睡眠：同日幂等', again.ran === false, again.reason || '');
+} catch (e) {
+  check('睡眠任务', false, String(e && e.message).slice(0, 50));
+}
+
+// 记忆体检（M4，2026-11-23）
+try {
+  const fsx = require('node:fs');
+  const osx = require('node:os');
+  const inspect = require(path.join(ROOT, 'src', 'memory', 'inspect.js'));
+  const sroot = fsx.mkdtempSync(path.join(osx.tmpdir(), 'inspect-'));
+  const sp = path.join(sroot, 'memory', 'chats', 'h1', 'people');
+  fsx.mkdirSync(sp, { recursive: true });
+  const legacy = 1000;                       // S2 之前
+  const fresh = Date.now();
+  fsx.writeFileSync(path.join(sp, 'p1.json'), JSON.stringify({
+    version: 2, chatId: 'c1', uid: 'u1',
+    events: [
+      { id: 'd1', title: '工作', summary: '他在找工作', createdAt: fresh, source: { kind: 'group' } },
+      { id: 'd2', title: '工作', summary: '他在找工作', createdAt: fresh, source: { kind: 'group' } },
+      { id: 'l1', title: '旧', summary: '旧事件', createdAt: legacy, source: { chatId: 'c1' } },
+      { id: 'n1', title: '新', summary: '没有来源的新事件', createdAt: fresh, source: { chatId: 'c1' } },
+    ],
+  }));
+  fsx.writeFileSync(path.join(sp, 'broken.json'), '{ not json');
+  fsx.writeFileSync(path.join(sp, 'p2.json'), JSON.stringify({
+    version: 2, chatId: 'c1', uid: 'u2', events: [],
+    preferences: Array.from({ length: 49 }, (_, i) => ({ id: 'p' + i, text: 'x', deleted: false })),
+  }));
+  const rep = inspect.scan({ dataDir: sroot });
+  check('体检：重复事件', rep.dups === 1, String(rep.dups));
+  check('体检：新数据缺来源', rep.noSource === 1 && rep.legacyNoSource === 1, rep.noSource + '/' + rep.legacyNoSource);
+  check('体检：坏卡', rep.broken === 1, String(rep.broken));
+  check('体检：超限卡', rep.overLimit === 1 && rep.ok === false, String(rep.overLimit));
+} catch (e) {
+  check('记忆体检', false, String(e && e.message).slice(0, 50));
+}
+
 console.log('\n通过 ' + pass + '/' + (pass + fail));
   process.exit(fail ? 1 : 0);
 })();

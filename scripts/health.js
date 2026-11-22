@@ -160,6 +160,27 @@ console.log('=== 6. 文档解析库（PDF）===');
   }
 }
 
+console.log('=== 7. 记忆体检 ===');
+{
+  // 只读扫描运行数据；老数据缺来源不算错（S2 之前没有这个字段）
+  const dataDir = path.join(ROOT, 'dist', 'whale-personal', 'data');
+  if (!fs.existsSync(path.join(dataDir, 'memory', 'chats'))) {
+    ok('没有运行数据，跳过');
+  } else {
+    const r = spawnSync(process.execPath, [path.join(__dirname, 'tools', 'memory-audit.js')], {
+      encoding: 'utf8',
+      env: { ...process.env, WHALE_DATA: dataDir },
+    });
+    if (r.status === 0) {
+      let rep = null;
+      try { rep = JSON.parse(r.stdout); } catch { rep = null; }
+      ok('记忆体检通过' + (rep ? `（卡片 ${rep.cards} / 事件 ${rep.events}）` : ''));
+    } else {
+      bad('记忆体检异常：' + String(r.stdout || r.stderr || '').slice(-400));
+    }
+  }
+}
+
 if (failures) {
   console.error(`\n自查失败：${failures} 项`);
   process.exit(1);
