@@ -370,6 +370,7 @@ async function describeVideo(url, { describeImage = null, count = 3, maxBytes = 
       return { ok: true, frames: frames.length, desc: seen.join('\n'), src };
     } catch (e) { lastErr = e; }
   }
+  scheduleIdleShutdown();
   return { ok: false, error: '视频地址下载失败（可能需要登录/防盗链）' + (lastErr ? '：' + lastErr.message : '') };
 }
 
