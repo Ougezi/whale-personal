@@ -410,12 +410,24 @@ async function imagesFromPage(url, { timeoutMs = 20000, minWidth = 400, limit = 
     await send('Page.enable');
     await send('Page.navigate', { url });
     await new Promise((r) => setTimeout(r, 5000));
-    // 图文作品常是懒加载：滚几屏把图片催出来，再等一等
-    for (let i = 0; i < 6; i += 1) {
+    // 图文作品常是懒加载：先竖着滚几屏，再按右方向键翻轮播，把后面的图都催出来
+    for (let i = 0; i < 4; i += 1) {
       await send('Runtime.evaluate', { expression: 'window.scrollBy(0, Math.round(window.innerHeight * 1.2))' });
-      await new Promise((r) => setTimeout(r, 800));
+      await new Promise((r) => setTimeout(r, 600));
     }
-    await new Promise((r) => setTimeout(r, 1500));
+    await send('Runtime.evaluate', { expression: 'window.scrollTo(0, 0)' });
+    await new Promise((r) => setTimeout(r, 600));
+    const seenLate = new Set();
+    for (let round = 0; round < 12; round += 1) {
+      const snap = await send('Runtime.evaluate', {
+        expression: 'Array.from(document.querySelectorAll("img")).map((i) => i.currentSrc || i.src || "").filter((u) => /^https?:/.test(u))',
+        returnByValue: true,
+      });
+      (snap && snap.result && snap.result.value || []).forEach((u) => seenLate.add(u));
+      await send('Input.dispatchKeyEvent', { type: 'keyDown', key: 'ArrowRight', code: 'ArrowRight', windowsVirtualKeyCode: 39 });
+      await send('Input.dispatchKeyEvent', { type: 'keyUp', key: 'ArrowRight', code: 'ArrowRight', windowsVirtualKeyCode: 39 });
+      await new Promise((r) => setTimeout(r, 500));
+    }
     const res = await send('Runtime.evaluate', {
       expression: `(() => {
         const out = [];
@@ -430,8 +442,17 @@ async function imagesFromPage(url, { timeoutMs = 20000, minWidth = 400, limit = 
       returnByValue: true,
     });
     const list = (res && res.result && res.result.value) || [];
-    list.sort((a, b) => b.w * b.h - a.w * a.h);
-    return list.slice(0, limit);
+    const seenPath = new Set();
+    const unique = [];
+    for (const item of list) {
+      let key = item.src;
+      try { key = new URL(item.src).pathname; } catch { /* 用原串 */ }
+      if (seenPath.has(key)) continue;
+      seenPath.add(key);
+      unique.push(item);
+    }
+    unique.sort((a, b) => b.w * b.h - a.w * a.h);
+    return unique.slice(0, limit);
   } finally {
     scheduleIdleShutdown();
     try { ws.close(); } catch { /* ignore */ }
