@@ -2176,7 +2176,9 @@ class Bot {
       this.logger && this.logger.warn('[douyin] 渲染失败：' + describeError(err));
     }
     try {
-      const imgs = await browser.imagesFromPage(url, { timeoutMs: 25000, limit: 3 });
+      const all = await browser.imagesFromPage(url, { timeoutMs: 25000, limit: 10 });
+      // 只要图文原图（竖版大图），跳过头像/横幅/图标
+      const imgs = all.filter((x) => x.w >= 600 && x.h >= 800).slice(0, 8);
       for (let i = 0; i < imgs.length; i += 1) {
         const img = imgs[i];
         try {

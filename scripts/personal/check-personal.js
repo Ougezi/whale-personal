@@ -60,6 +60,17 @@ check('抖音链接：渲染 + 抓图 + 转写', () => {
   return 'ok';
 });
 
+check('抖音图文：图片去重/轮播 + 只收竖版原图', () => {
+  const br = read('src/adapters/browser.js');
+  must(br.includes('seenPath'), 'browser.js 没有按 pathname 去重');
+  must(br.includes('ArrowRight'), 'browser.js 没有轮播翻页');
+  const chat = read('src/pipeline/chat.js');
+  must(chat.includes('x.w >= 600 && x.h >= 800'), 'chat.js 没过滤头像/横幅');
+  must(read('src/adapters/gateway.js').includes('ageSec <= 120'), 'bridgeStatus 容忍度不是 120s');
+  must(read('src/persona/prompt.js').includes('【发送回执】'), 'prompt 缺发送回执规则');
+  return 'ok';
+});
+
 check('自主上网反应只要一句（提示词与 maxTokens）', () => {
   const b = read('src/services/browse.js');
   must(/只(输出|回)[^。\n]{0,4}一句/.test(b), 'browse.js SYSTEM 里没有「只输出这一句」');
