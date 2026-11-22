@@ -93,6 +93,18 @@ check('抖音插件 0.4.0 已接入（sidecar + 桥接路由）', () => {
   return 'ok';
 });
 
+check('插件市场面板（/api/market + 启动器窗口）', () => {
+  const r = read('src/http/routes/market.js');
+  must(r.includes('/api/market/plugins'), '缺 /api/market/plugins');
+  must(r.includes('/api/douyin/run'), '缺 /api/douyin/run');
+  must(read('src/http/routes/index.js').includes("require('./market')"), 'market 路由没注册');
+  must(read('launcher/PluginMarketWindow.cs').includes('插件市场'), '启动器缺 PluginMarketWindow');
+  must(read('launcher/MainWindow.xaml').includes('OnMarket'), '主窗口缺插件市场按钮');
+  const side = require('node:fs').readFileSync('D:/dsh/profiles/desktop/whale-douyin/service.mjs', 'utf8');
+  must(side.includes('summarize('), 'sidecar 没接 summarize');
+  return 'ok';
+});
+
 check('自主上网反应只要一句（提示词与 maxTokens）', () => {
   const b = read('src/services/browse.js');
   must(/只(输出|回)[^。\n]{0,4}一句/.test(b), 'browse.js SYSTEM 里没有「只输出这一句」');
