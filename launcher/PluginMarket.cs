@@ -46,19 +46,19 @@ namespace WhaleLauncher
 
     internal sealed class PluginMarket
     {
-        internal const string CatalogUrl = "https://raw.githubusercontent.com/Banan1cee/whale-girl-plugins/main/index.json";
+        internal const string CatalogUrl = "https://raw.githubusercontent.com/Ougezi/whale-girl-plugins/main/index.json";
         internal const string DigestAction = "chat.summary";
-        private const string MarketApi = "https://api.github.com/repos/Banan1cee/whale-girl-plugins";
+        private const string MarketApi = "https://api.github.com/repos/Ougezi/whale-girl-plugins";
         private const string FavoritesUrl = "https://whalegirl-market-favorites.chrisgao0312.workers.dev/api/favorites";
 
         // 市场签名暂时隐藏：验签代码、内置公钥和签名工具都保留，恢复时把这里改成 true 即可。
         // 关闭时目录不再拉取 .sig、条目里的 Signature 只解析不校验，卡片也不显示签名状态，
         // 避免用户以为包已经验过；SHA-256、下载域名白名单和包内清单一致性照常检查。
         internal static readonly bool MarketSignatureEnabled = false;
-        private const string CatalogV2Url = "https://raw.githubusercontent.com/Banan1cee/whale-girl-plugins/main/index-v2.json";
-        private const string CatalogV3Url = "https://raw.githubusercontent.com/Banan1cee/whale-girl-plugins/main/index-v3.json";
-        private const string CatalogV4Url = "https://raw.githubusercontent.com/Banan1cee/whale-girl-plugins/main/index-v4.json";
-        private const string PersonaCatalogUrl = "https://raw.githubusercontent.com/Banan1cee/whale-girl-plugins/main/index-personas.json";
+        private const string CatalogV2Url = "https://raw.githubusercontent.com/Ougezi/whale-girl-plugins/main/index-v2.json";
+        private const string CatalogV3Url = "https://raw.githubusercontent.com/Ougezi/whale-girl-plugins/main/index-v3.json";
+        private const string CatalogV4Url = "https://raw.githubusercontent.com/Ougezi/whale-girl-plugins/main/index-v4.json";
+        private const string PersonaCatalogUrl = "https://raw.githubusercontent.com/Ougezi/whale-girl-plugins/main/index-personas.json";
         private const int PackageLimit = 16 * 1024 * 1024;
         private static readonly string[] NativeHooks = ["chat.received", "chat.pre_reply", "chat.prompt", "chat.generate", "chat.reply", "chat.before_send", "chat.dispatched", "chat.search", "chat.search_result", "app.start", "app.stop", "timer.tick", "tool.run"];
         private const int PluginTimeoutMs = 3000;
