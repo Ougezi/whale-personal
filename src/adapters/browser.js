@@ -374,4 +374,69 @@ async function describeVideo(url, { describeImage = null, count = 3, maxBytes = 
   return { ok: false, error: '视频地址下载失败（可能需要登录/防盗链）' + (lastErr ? '：' + lastErr.message : '') };
 }
 
-module.exports = { findBrowser, browserAvailable, renderPage, httpPage, openPage, shutdownBrowser, findFfmpeg, videoSource, describeVideo };
+
+/** 页面里的图片地址（按面积排序，去掉小图标）；抖音图文用它拿原图 */
+async function imagesFromPage(url, { timeoutMs = 20000, minWidth = 400, limit = 6 } = {}) {
+  const { port } = await launchBrowser({ timeoutMs });
+  const create = await fetch('http://127.0.0.1:' + port + '/json/new?' + encodeURIComponent(url), { method: 'PUT' });
+  if (!create.ok) throw new Error('打开页面失败：HTTP ' + create.status);
+  const target = await create.json();
+  const ws = new WebSocket(target.webSocketDebuggerUrl);
+  const pending = new Map();
+  let nextId = 1;
+  const send = (method, params = {}) => new Promise((resolve, reject) => {
+    const id = nextId++;
+    pending.set(id, { resolve, reject });
+    ws.send(JSON.stringify({ id, method, params }));
+    setTimeout(() => { if (pending.has(id)) { pending.delete(id); reject(new Error(method + ' 超时')); } }, timeoutMs);
+  });
+  try {
+    await new Promise((resolve, reject) => {
+      ws.addEventListener('open', resolve, { once: true });
+      ws.addEventListener('error', () => reject(new Error('调试通道连接失败')), { once: true });
+      setTimeout(() => reject(new Error('调试通道连接超时')), timeoutMs);
+    });
+    ws.addEventListener('message', (ev) => {
+      try {
+        const msg = JSON.parse(ev.data);
+        if (msg.id && pending.has(msg.id)) {
+          const pp = pending.get(msg.id);
+          pending.delete(msg.id);
+          if (msg.error) pp.reject(new Error(msg.error.message || 'CDP 错误'));
+          else pp.resolve(msg.result);
+        }
+      } catch { /* ignore */ }
+    });
+    await send('Page.enable');
+    await send('Page.navigate', { url });
+    await new Promise((r) => setTimeout(r, 5000));
+    // 图文作品常是懒加载：滚几屏把图片催出来，再等一等
+    for (let i = 0; i < 6; i += 1) {
+      await send('Runtime.evaluate', { expression: 'window.scrollBy(0, Math.round(window.innerHeight * 1.2))' });
+      await new Promise((r) => setTimeout(r, 800));
+    }
+    await new Promise((r) => setTimeout(r, 1500));
+    const res = await send('Runtime.evaluate', {
+      expression: `(() => {
+        const out = [];
+        document.querySelectorAll('img').forEach((img) => {
+          const src = img.currentSrc || img.src || '';
+          const w = Number(img.naturalWidth) || 0;
+          const h = Number(img.naturalHeight) || 0;
+          if (/^https?:/.test(src) && /douyinDefault|placeholder|avatar/i.test(src) === false && w >= MINW) out.push({ src, w, h });
+        });
+        return out;
+      })()`.replace('MINW', String(minWidth)),
+      returnByValue: true,
+    });
+    const list = (res && res.result && res.result.value) || [];
+    list.sort((a, b) => b.w * b.h - a.w * a.h);
+    return list.slice(0, limit);
+  } finally {
+    scheduleIdleShutdown();
+    try { ws.close(); } catch { /* ignore */ }
+    try { await fetch('http://127.0.0.1:' + port + '/json/close/' + target.id); } catch { /* ignore */ }
+  }
+}
+
+module.exports = { findBrowser, browserAvailable, renderPage, httpPage, openPage, imagesFromPage, shutdownBrowser, findFfmpeg, videoSource, describeVideo };

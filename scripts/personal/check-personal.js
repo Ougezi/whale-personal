@@ -46,6 +46,18 @@ check('学习：次数上限 200/100，增量 25~50 / 10~20', () => {
   return 'auto ' + a.gain + ' / owner ' + o.gain + '，200 次封顶';
 });
 
+check('抖音链接：渲染 + 抓图 + 转写', () => {
+  const chat = read('src/pipeline/chat.js');
+  must(chat.includes('readDouyinNote'), 'chat.js 没有 readDouyinNote');
+  must(/isDouyinLink\s*\?\s*60000/.test(chat), '抖音链接预算不是 60s');
+  const br = read('src/adapters/browser.js');
+  must(br.includes('imagesFromPage'), 'browser.js 没有 imagesFromPage');
+  must(br.includes('douyinDefault'), 'browser.js 没有过滤抖音占位图');
+  const prompt = read('src/persona/prompt.js');
+  must(prompt.includes('抓图文原图'), '提示词没说明抖音链接会抓图文');
+  return 'ok';
+});
+
 check('自主上网反应只要一句（提示词与 maxTokens）', () => {
   const b = read('src/services/browse.js');
   must(/只(输出|回)[^。\n]{0,4}一句/.test(b), 'browse.js SYSTEM 里没有「只输出这一句」');

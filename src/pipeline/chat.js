@@ -2129,11 +2129,62 @@ class Bot {
     }
   }
 
+  /** 抖音分享页：页面是 JS 壳，直连只能拿到落地页 → 渲染 + 抓图文原图 + 识图转写 */
+  async readDouyinNote(url) {
+    const parts = [];
+    let images = 0;
+    try {
+      const page = await browser.openPage(url, { prefer: 'browser', timeoutMs: 25000 });
+      const body = String((page && page.text) || '').trim();
+      if (body) parts.push('抖音页面：' + body.slice(0, 600));
+    } catch (err) {
+      this.logger && this.logger.warn('[douyin] 渲染失败：' + describeError(err));
+    }
+    try {
+      const imgs = await browser.imagesFromPage(url, { timeoutMs: 25000, limit: 3 });
+      for (let i = 0; i < imgs.length; i += 1) {
+        const img = imgs[i];
+        try {
+          const res = await fetch(img.src, {
+            headers: { Referer: 'https://www.iesdouyin.com/', 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) Chrome/157.0 Safari/537.36' },
+            signal: AbortSignal.timeout(15000),
+          });
+          if (!res.ok) continue;
+          const buf = Buffer.from(await res.arrayBuffer());
+          if (!buf.length || buf.length > 8 * 1024 * 1024) continue;
+          const mime = /png/i.test(img.src) ? 'image/png' : 'image/jpeg';
+          let text = '';
+          try {
+            text = await vision.describe(this.config, {
+              imageBase64: buf.toString('base64'),
+              mime,
+              prompt: '逐字转写这张图里的文字（如果是聊天记录，保留谁说了什么）；看不清就直说，不要编造。',
+            });
+          } catch (err) {
+            text = '';
+          }
+          if (text && String(text).trim()) {
+            images += 1;
+            parts.push('图片' + (i + 1) + '：' + String(text).slice(0, 800));
+          }
+        } catch (err) { this.logger && this.logger.warn('[douyin] 图片 ' + (i + 1) + ' 处理失败：' + describeError(err)); }
+      }
+    } catch (err) {
+      this.logger && this.logger.warn('[douyin] 抓图失败：' + describeError(err));
+    }
+    if (!parts.length) return null;
+    const head = images ? '【抖音图文·' + images + ' 张图】' : '【抖音页面】';
+    return { text: head + '\n' + parts.join('\n'), images };
+  }
+
   /** 读一个链接并记账；失败也返回一句说明，绝不把异常抛给主流程 */
   async readLink(url, key) {
     const controller = new AbortController();
+    const isDouyinLink = /douyin|iesdouyin/i.test(String(url));
     const isVideoLink = links.kindOf(url) === 'video';
-    const budget = isVideoLink
+    const budget = isDouyinLink
+      ? 60000
+      : isVideoLink
       ? Math.max(30000, Math.min(60000, Number(this.config.links?.timeoutMs) || 6000))
       : Math.max(1, Math.min(60000, Number(this.config.links?.timeoutMs) || 6000));
     let timer;
@@ -2146,6 +2197,14 @@ class Bot {
           controller.abort();
         }, budget); }),
       ]);
+      if (isDouyinLink) {
+        const note = await this.readDouyinNote(url);
+        if (note && note.text) {
+          this.logger && this.logger.info('[douyin] 读到 ' + note.images + ' 张图，正文 ' + note.text.length + ' 字');
+          this.store.appendEvent(key, { type: 'link', detail: 'douyin → ' + note.text.slice(0, 80), status: 'ok' });
+          return note.text;
+        }
+      }
       let text = links.formatForPrompt(info);
       // 抖音/快手有专用 sidecar（[[dy:…]]），别在这里重复抓；浏览器抽帧只服务其它站点
       const dyOnly = /douyin|iesdouyin|tiktok|kuaishou/i.test(String(url));
