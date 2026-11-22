@@ -850,7 +850,8 @@ class Bot {
     if (linkText && isMaster) {
       try {
         const ownerLearn = browseCore.writeBackFor('', { rng: this.rng, source: 'owner' });
-        mood.nudge(innerDir, { wants: ownerLearn.wants, now: nowMs, rng: this.rng });
+        const ownerDir = this.config.paths?.dataDir || path.join(process.cwd(), 'data');
+        mood.nudge(ownerDir, { wants: ownerLearn.wants, now: nowMs, rng: this.rng });
       } catch (err) {
         this.logger?.warn?.('主人分享：写回好奇失败（' + describeError(err) + '）');
       }
@@ -1893,6 +1894,8 @@ class Bot {
     if (silenceMark.minutes) this.applyModelSilence(decision, silenceMark.minutes);
     // 表情包标记 [[sticker:分类]]：发哪一类由模型决定。标记必须从正文里剥干净，
     // 没闭合的半截也要清掉，绝不能漏给用户看到（也不能因此吞掉正文）。
+    // [[open:URL]]：非流式路径已经在 _handleOnce 里执行过；流式路径不能漏给用户看到，这里统一剥掉
+    text = text.replace(/\[\[open[:：][^\]]*\]\]/gi, '').trim();
     const stickerMark = stripStickerMarks(text);
     if (stickerMark.category && decision) decision.stickerCategory = stickerMark.category;
     text = stickerMark.text;
@@ -2143,8 +2146,9 @@ class Bot {
         }, budget); }),
       ]);
       let text = links.formatForPrompt(info);
-      // 视频链接：页面只有标题/文案时，再试着抽几帧让视觉模型看画面（抖音等 blob/MSE 会失败，如实降级）
-      if (isVideoLink) {
+      // 抖音/快手有专用 sidecar（[[dy:…]]），别在这里重复抓；浏览器抽帧只服务其它站点
+      const dyOnly = /douyin|iesdouyin|tiktok|kuaishou/i.test(String(url));
+      if (isVideoLink && !dyOnly) {
         try {
           const video = await browser.describeVideo(url, {
             describeImage: async (b64) => vision.describe(this.config, {
