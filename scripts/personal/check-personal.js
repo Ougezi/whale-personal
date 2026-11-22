@@ -29,16 +29,21 @@ check('六欲上限 = 250（WANT_MAX 四处 clamp）', () => {
   return hits + ' 处';
 });
 
-check('学习增量：自主 ≤35 / 主人 ≤15（浮动）', () => {
-  const b = read('src/services/browse.js');
-  must(b.includes('learnCap'), 'browse.js 没有学习上限逻辑');
-  const mod = require(path.join(ROOT, 'src', 'services', 'browse.js'));
-  const auto = Array.from({ length: 50 }, () => mod.writeBackFor('', { rng: Math.random, source: 'auto' }).wants['意']);
-  const owner = Array.from({ length: 50 }, () => mod.writeBackFor('', { rng: Math.random, source: 'owner' }).wants['意']);
-  must(auto.every((v) => v >= 18 && v <= 35), '自主上网应在 18~35，实际 ' + Math.min(...auto) + '~' + Math.max(...auto));
-  must(owner.every((v) => v >= 8 && v <= 15), '主人分享应在 8~15，实际 ' + Math.min(...owner) + '~' + Math.max(...owner));
-  must(new Set(auto).size > 1 && new Set(owner).size > 1, '增量没有浮动（还是固定值）');
-  return Math.min(...auto) + '~' + Math.max(...auto) + ' / ' + Math.min(...owner) + '~' + Math.max(...owner);
+check('学习：次数上限 200/100，增量 25~50 / 10~20', () => {
+  const mood = require(path.join(ROOT, 'src', 'core', 'mood.js'));
+  must(JSON.stringify(mood.LEARN_CAP) === JSON.stringify({ auto: 200, owner: 100 }), 'LEARN_CAP 不是 200/100');
+  must(JSON.stringify(mood.LEARN_GAIN) === JSON.stringify({ auto: [25, 50], owner: [10, 20] }), 'LEARN_GAIN 不是 25~50 / 10~20');
+  const fs2 = require('node:fs');
+  const os2 = require('node:os');
+  const dir = fs2.mkdtempSync(path.join(os2.tmpdir(), 'cp-learn-'));
+  const a = mood.bumpLearn(dir, 'auto', { now: Date.now(), rng: Math.random });
+  must(a.ok && a.gain >= 25 && a.gain <= 50, '自主学习每次应 +25~50，实际 ' + a.gain);
+  const o = mood.bumpLearn(dir, 'owner', { now: Date.now(), rng: Math.random });
+  must(o.ok && o.gain >= 10 && o.gain <= 20, '主人分享每次应 +10~20，实际 ' + o.gain);
+  for (let k = 0; k < 199; k += 1) mood.bumpLearn(dir, 'auto', { now: Date.now(), rng: 0.5 });
+  const cappedAuto = mood.bumpLearn(dir, 'auto', { now: Date.now(), rng: 0.5 });
+  must(cappedAuto.capped === true && cappedAuto.ok === false, '自主 200 次后应到上限，实际 ' + JSON.stringify(cappedAuto));
+  return 'auto ' + a.gain + ' / owner ' + o.gain + '，200 次封顶';
 });
 
 check('自主上网反应只要一句（提示词与 maxTokens）', () => {
