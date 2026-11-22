@@ -4,6 +4,17 @@ const browser = require('../../adapters/browser');
 const { errorMessage } = require('../../infra/errors');
 const { json, readBody } = require('../util');
 const { safeEqual } = require('../security');
+const fs = require('node:fs');
+const path = require('node:path');
+
+/** 每次抓取的统计：url / 方式 / 字数 / 耗时，追加到 data/fetch-stats.jsonl */
+function recordStats(runtime, entry) {
+  try {
+    const dir = (runtime.config.paths && runtime.config.paths.dataDir) || path.join(process.cwd(), 'data');
+    fs.mkdirSync(dir, { recursive: true });
+    fs.appendFileSync(path.join(dir, 'fetch-stats.jsonl'), JSON.stringify(entry) + '\n', 'utf8');
+  } catch { /* 统计写不进去不影响抓取 */ }
+}
 
 function authorized(runtime, req, body) {
   const token = String(((runtime.config.gateway || {}).wechat || {}).inboundToken || '').trim();
@@ -29,7 +40,11 @@ module.exports = function register(router) {
     const prefer = body && body.mode === 'browser' ? 'browser' : 'auto';
     try {
       const page = await browser.openPage(url, { prefer, timeoutMs: 15000 });
-      runtime.logger.info(`[fetch] ${page.method} ${page.ok ? 'ok' : 'fail'} ${url.slice(0, 120)} chars=${(page.text || '').length}`);
+      recordStats(runtime, {
+        at: new Date().toISOString(), url: url.slice(0, 500), method: page.method,
+        ok: Boolean(page.ok), chars: (page.text || '').length, ms: page.ms || 0, title: (page.title || '').slice(0, 120),
+      });
+      runtime.logger.info('[fetch] ' + page.method + ' ' + (page.ok ? 'ok' : 'fail') + ' ' + url.slice(0, 120) + ' chars=' + (page.text || '').length + ' ms=' + (page.ms || 0));
       return json(res, 200, {
         ok: Boolean(page.ok),
         url: page.url || url,
@@ -37,6 +52,7 @@ module.exports = function register(router) {
         title: page.title || '',
         text: page.text || '',
         error: page.error || '',
+        ms: page.ms || 0,
       });
     } catch (err) {
       return json(res, 500, { ok: false, error: errorMessage(err) });

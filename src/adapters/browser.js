@@ -18,6 +18,10 @@ const path = require('node:path');
 
 const links = require('./links');
 
+// 持久 profile：保留 Cookie / 登录态（下次打开同一站点还是登录状态）。
+// 想换目录可以设环境变量 WHALE_BROWSER_PROFILE。
+const PROFILE_DIR = process.env.WHALE_BROWSER_PROFILE || path.join(process.cwd(), 'data', 'browser-profile');
+
 const BROWSERS = [
   'C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe',
   'C:\\Program Files (x86)\\Microsoft\\Edge\\Application\\msedge.exe',
@@ -68,7 +72,8 @@ async function launchBrowser({ timeoutMs = 12000 } = {}) {
   const exe = findBrowser();
   if (!exe) throw new Error('本机没有可用的 Chrome/Edge');
   const port = await freePort();
-  const profile = path.join(os.tmpdir(), 'whale-cdp-' + Date.now().toString(36) + Math.random().toString(16).slice(2, 6));
+  const profile = PROFILE_DIR;
+  try { fs.mkdirSync(profile, { recursive: true }); } catch { /* 目录建不出来就让浏览器自己报错 */ }
   const child = spawn(exe, [
     '--headless=new',
     '--disable-gpu',
@@ -101,7 +106,7 @@ function shutdownBrowser() {
   shared = null;
   if (idleTimer) { clearTimeout(idleTimer); idleTimer = null; }
   try { child.kill(); } catch { /* ignore */ }
-  setTimeout(() => { try { fs.rmSync(profile, { recursive: true, force: true }); } catch { /* ignore */ } }, 1500);
+  // 持久 profile 不清：下次还带着登录态
 }
 
 /** 在浏览器里打开 url，返回 title / innerText */
@@ -181,7 +186,15 @@ async function httpPage(url, { timeoutMs = 12000, maxChars = 6000 } = {}) {
 }
 
 /** 打开一个页面：先 HTTP，正文太短再上浏览器；prefer='browser' 直接渲染 */
-async function openPage(url, { timeoutMs = 12000, prefer = 'auto', maxChars = 6000 } = {}) {
+async function openPage(url, opts = {}) {
+  const startedAt = Date.now();
+  const page = await openPageInner(url, opts);
+  page.ms = Date.now() - startedAt;
+  page.profile = PROFILE_DIR;
+  return page;
+}
+
+async function openPageInner(url, { timeoutMs = 12000, prefer = 'auto', maxChars = 6000 } = {}) {
   const target = String(url || '').trim();
   if (!/^https?:\/\//i.test(target)) return { ok: false, url: target, method: 'none', error: '只支持 http/https 地址' };
   if (links.isPrivateHost(target)) return { ok: false, url: target, method: 'none', error: '内网/本机地址不允许抓取' };

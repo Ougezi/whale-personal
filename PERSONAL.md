@@ -55,6 +55,17 @@ dist/           本地便携版产物（不入库）
   实测：造一张写着「鲸鲸图片识别测试 / OCR fallback works 123」的图，无 Key 和坏地址两种情况下都正确读出。
 - 依赖：系统里要有 OCR 语言包（中文系统自带）；没有时返回空，仍会把原错误抛给调用方。
 
+## 4.5.0：主动开页 + 持久登录态 + 抓取统计
+
+- **[[open:URL]] 工具循环**：她可以在回复末尾写 `[[open:https://…]]`（每轮最多一个）；内核抓那一页正文，
+  再把正文交给她重新回答一次（标记会被剥掉）。实测：让她写标记打开 example.com →
+  日志 `[open] https://example.com ok chars=911 ms=880`，回复变成「打开了，这页是标准示例域名…」
+- **持久浏览器 profile**：headless 浏览器改用 `<便携目录>/data/browser-profile`，Cookie/登录态保留；
+  可用环境变量 `WHALE_BROWSER_PROFILE` 换目录。实测目录已生成，重复抓取复用同一 profile。
+- **抓取统计**：每次 `/api/fetch` 追加一行到 `data/fetch-stats.jsonl`
+  （`at/url/method/ok/chars/ms/title`），响应里也带 `ms`；日志加 `ms=…`。
+  实测：example.com 911 字 / 2361ms，baidu 245 字 / 1560ms。
+
 ## 浏览器与网页抓取（4.4.0）
 
 - `src/adapters/browser.js`：先 HTTP 直连（`links.describeLink`，快），正文 <160 字或失败时

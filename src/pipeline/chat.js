@@ -2280,6 +2280,30 @@ class Bot {
     }
     if (signal?.aborted) return { action: 'ignore', reason: 'cancelled' };
     text = String(text == null ? '' : text).trim();
+    // [[open:URL]]：她自己要求先看某个网页 → 抓一次正文，再让她基于正文正式回答（每轮最多一次）
+    const openMatch = String(text).match(/\[\[open[:：]\s*(https?:\/\/[^\]\s]+)\]\]/i);
+    if (openMatch && !decision.mock && !(signal && signal.aborted)) {
+      const openTarget = openMatch[1];
+      text = String(text).replace(/\[\[open[:：][^\]]*\]\]/gi, '').trim();
+      try {
+        const page = await browser.openPage(openTarget, { timeoutMs: 12000 });
+        if (page && page.ok && page.text) {
+          const pageTurns = [...decision.turns, {
+            role: 'user',
+            content: '【你刚打开 ' + openTarget + ' 的正文】\n' + String(page.text).slice(0, 2000)
+              + '\n\n（基于这页内容，重新回答我上一条消息；只输出最终回复，不要再写 [[open:…]]。）',
+          }];
+          const second = await this.llm.complete({ system: decision.system, turns: pageTurns, signal, purpose: 'chat' });
+          if (second && String(second).trim()) text = String(second).trim();
+          this.logger && this.logger.info('[open] ' + openTarget + ' ok chars=' + page.text.length + ' ms=' + (page.ms || 0));
+        } else {
+          this.logger && this.logger.warn('[open] ' + openTarget + ' fail ' + ((page && page.error) || ''));
+          if (!text) text = '刚想打开 ' + openTarget + '，没打开（' + ((page && page.error) || '未知原因') + '）。';
+        }
+      } catch (err) {
+        this.logger && this.logger.warn('[open] 失败：' + describeError(err));
+      }
+    }
     this.recordUsage(decision, this.usageSince(usageMark));
     try {
       text = await this.transformPluginReply(decision, text);
