@@ -543,6 +543,70 @@ try {
   check('会话归一化', false, String(e && e.message).slice(0, 40));
 }
 
+// 事件双时态（S1，2026-11-23）
+try {
+  const mk = () => pc.normalizeCard({ version: 2, chatId: 'wechat:u:tt', uid: 'u9', events: [] }, { chatId: 'wechat:u:tt' });
+  const c1 = mk();
+  const e1 = pc.addEvent(c1, { id: 'va', date: '2026-11-20', title: '换工作', summary: '他说想换工作', importance: 0.6, confidence: 0.8 }, { chatId: 'wechat:u:tt', now: 1000 });
+  check('新事件 validTo 为空', e1 && e1.validTo === null && e1.validFrom === 1000, JSON.stringify({ vf: e1 && e1.validFrom, vt: e1 && e1.validTo }));
+  check('旧卡旧事件读入 validFrom=createdAt',
+    pc.normalizeEvent({ summary: '旧事件', createdAt: 500 }, 'c', 999).validFrom === 500, '');
+  const c2 = mk();
+  pc.addEvent(c2, { id: 'old1', date: '2026-11-01', title: '旧', summary: '旧事件摘要', importance: 0.5, confidence: 0.7 }, { chatId: 'wechat:u:tt', now: 100 });
+  pc.addEvent(c2, { id: 'new1', date: '2026-11-02', title: '新', summary: '完全不同的新事', supersedes: 'old1' }, { chatId: 'wechat:u:tt', now: 200 });
+  const oldEv = c2.events.find((e) => e.id === 'old1');
+  check('显式 supersedes 让旧事件失效', oldEv && oldEv.validTo === 200 && oldEv.supersededBy === 'new1', JSON.stringify(oldEv));
+  check('失效事件不进 activeEvents', pc.activeEvents(c2).every((e) => e.id !== 'old1'), '');
+  const c3 = mk();
+  pc.addEvent(c3, { id: 'same1', date: '2026-11-01', title: '工作', summary: '他在找工作', importance: 0.5, confidence: 0.7 }, { chatId: 'wechat:u:tt', now: 100 });
+  pc.addEvent(c3, { id: 'same2', date: '2026-11-03', title: '工作', summary: '他在找工作', importance: 0.5, confidence: 0.7 }, { chatId: 'wechat:u:tt', now: 300 });
+  const dupEv = c3.events.find((e) => e.id === 'same1');
+  check('同标题近重复自动失效', dupEv && dupEv.validTo === 300 && dupEv.supersededBy === 'same2', JSON.stringify(dupEv));
+} catch (e) {
+  check('事件双时态', false, String(e && e.message).slice(0, 50));
+}
+
+// 来源 → 置信度（S2，2026-11-23）
+try {
+  const fmt = require(path.join(ROOT, 'src', 'memory', 'format.js'));
+  check('来源置信度定值', pc.sourceConfidence('owner') === 0.95 && pc.sourceConfidence('group') === 0.8
+    && pc.sourceConfidence('self') === 0.5 && pc.sourceConfidence('web') === 0.4, '');
+  const evOwner = pc.normalizeEvent({ summary: '主人说的', source: { kind: 'owner' } }, 'c', 1);
+  check('没给置信度时按来源定值', evOwner.confidence === 0.95 && evOwner.source.kind === 'owner', String(evOwner.confidence));
+  const evExplicit = pc.normalizeEvent({ summary: 'x', confidence: 0.3, source: { kind: 'owner' } }, 'c', 1);
+  check('显式置信度优先', evExplicit.confidence === 0.3, String(evExplicit.confidence));
+  const evOld = pc.normalizeEvent({ summary: '旧事件' }, 'c', 1);
+  check('无来源按默认 0.6', evOld.confidence === 0.6 && evOld.source.kind === null, String(evOld.confidence));
+  const lineGuess = fmt.indexLine(pc.normalizeEvent({ id: 'g', date: '2026-11-01', title: 't', summary: 's', confidence: 0.3, source: { kind: 'self' } }, 'c', 1));
+  check('低置信度标推测', lineGuess.includes('（推测）'), lineGuess);
+  const lineOwner = fmt.indexLine(pc.normalizeEvent({ id: 'o', date: '2026-11-01', title: 't', summary: 's', confidence: 0.95, source: { kind: 'owner' } }, 'c', 1));
+  check('主人亲口标 TA 说过', lineOwner.includes('（TA 说过）'), lineOwner);
+} catch (e) {
+  check('来源置信度', false, String(e && e.message).slice(0, 50));
+}
+
+// 审计 + 读取预算（S3/S4，2026-11-23）
+try {
+  const fsx = require('node:fs');
+  const osx = require('node:os');
+  const audit = require(path.join(ROOT, 'src', 'memory', 'audit.js'));
+  const fmt2 = require(path.join(ROOT, 'src', 'memory', 'format.js'));
+  const { withTimeout } = require(path.join(ROOT, 'src', 'infra', 'async.js'));
+  const adir = fsx.mkdtempSync(path.join(osx.tmpdir(), 'audit-'));
+  audit.append(adir, { kind: 'event', id: 'a1', action: 'add' });
+  audit.append(adir, { kind: 'preference', id: 'a2', action: 'add' });
+  audit.append(adir, { kind: 'event', id: 'a3', action: 'supersede' });
+  check('审计读写', audit.recent(adir, 10).length === 3 && audit.recent(adir, 10)[2].id === 'a3', String(audit.recent(adir, 10).length));
+  check('审计条数限制', audit.recent(adir, 2).length === 2, '');
+  check('截断助手', fmt2.capBlockText('一二三四五六七八', 4) === '一二三四…', fmt2.capBlockText('一二三四五六七八', 4));
+  const fast = await withTimeout(Promise.resolve('ok'), 100, 'fallback');
+  check('超时工具：正常返回', fast === 'ok', String(fast));
+  const slow = await withTimeout(new Promise((r) => setTimeout(() => r('late'), 300)), 30, 'fallback');
+  check('超时工具：超时回退', slow === 'fallback', String(slow));
+} catch (e) {
+  check('审计读写', false, String(e && e.message).slice(0, 50));
+}
+
 console.log('\n通过 ' + pass + '/' + (pass + fail));
   process.exit(fail ? 1 : 0);
 })();

@@ -25,6 +25,18 @@ function memoryDirOf(runtime) {
 }
 
 module.exports = function register(router) {
+  // 记忆审计（S3）：只读，仅本机
+  router.get('/api/memory/audit', (runtime, req, res) => {
+    if (!isLoopbackRequest(req)) return json(res, 403, { ok: false, error: '仅允许本机调用' });
+    let limit = 50;
+    try {
+      const u = new URL(req.url, 'http://localhost');
+      limit = Number(u.searchParams.get('limit')) || 50;
+    } catch { /* 参数坏了用默认 */ }
+    const audit = require('../../memory/audit');
+    return json(res, 200, { ok: true, items: audit.recent(runtime.config.paths.dataDir, limit) });
+  });
+
   // 记忆重载：外部脚本改了磁盘记忆后不用重启内核（2026-11 架构审查）
   router.post('/api/memory/reload', (runtime, req, res) => {
     if (!isLoopbackRequest(req)) return json(res, 403, { ok: false, error: '仅允许本机调用' });

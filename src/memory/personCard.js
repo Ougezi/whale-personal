@@ -9,6 +9,12 @@
  */
 const { LIMITS, DAY_MS } = require('./constants');
 const { shortId } = require('./hash');
+// 来源 → 置信度（S2，2026-11-23）：谁说的决定多可信
+const SOURCE_CONFIDENCE = Object.freeze({ owner: 0.95, group: 0.8, self: 0.5, web: 0.4 });
+const DEFAULT_CONFIDENCE = 0.6;
+function sourceConfidence(kind) {
+  return SOURCE_CONFIDENCE[String(kind || '').toLowerCase()] || DEFAULT_CONFIDENCE;
+}
 
 class MemoryIsolationError extends Error {
   constructor(message) {
@@ -179,14 +185,20 @@ function normalizeEvent(raw, chatId, now) {
     keywords: (Array.isArray(raw.keywords) ? raw.keywords : []).map((k) => text(k, 16)).filter(Boolean).slice(0, 10),
     participants: (Array.isArray(raw.participants) ? raw.participants : []).map((p) => text(p, 100)).filter(Boolean).slice(0, 20),
     importance: clampNum(raw.importance, 0, 1, 0.4),
-    confidence: clampNum(raw.confidence, 0, 1, 0.6),
+    confidence: clampNum(raw.confidence, 0, 1, source.kind ? sourceConfidence(source.kind) : DEFAULT_CONFIDENCE),
     // 结局：false = 还没解决（提醒她别重复追问）；true = 已了结；undefined = 不知道
     resolved: raw.resolved === true ? true : (raw.resolved === false ? false : undefined),
     source: {
       chatId: String(chatId),
+      kind: text(source.kind, 12) || null,
       messageIds: (Array.isArray(source.messageIds) ? source.messageIds : []).map((m) => text(m, 120)).filter(Boolean).slice(0, 40),
     },
     createdAt: Number(raw.createdAt) || now,
+    // 双时态（2026-11-23）：validFrom=这件事什么时候成立，validTo=什么时候失效（null=仍有效）
+    validFrom: Number(raw.validFrom) || Number(raw.createdAt) || now,
+    validTo: raw.validTo == null ? null : (Number(raw.validTo) || null),
+    supersededBy: text(raw.supersededBy, 60) || null,
+    sourceEventId: text(raw.sourceEventId, 60) || null,
     // 事件也要能被下架：activeEvents 会过滤 deleted，但这里以前没保存这个标记，
     // 结果一存盘就复活（memory 修复时踩到）。偏好/线索都保留，唯独事件丢了。
     deleted: Boolean(raw.deleted),
@@ -234,7 +246,19 @@ function activePreferences(card) {
 }
 
 function activeEvents(card) {
-  return active(card && card.events);
+  // 只认「仍有效」的事件：有 validTo 的已失效，保留在卡里供审计
+  return active(card && card.events).filter((e) => !e.validTo);
+}
+
+/** 让一条旧事件失效（不删）：validTo=at，指向新事件 */
+function supersedeEvent(card, oldId, newId, at = Date.now()) {
+  if (!card || !Array.isArray(card.events)) return false;
+  const old = card.events.find((e) => e && e.id === oldId && !e.deleted);
+  if (!old || old.validTo) return false;
+  old.validTo = Number(at) || Date.now();
+  old.supersededBy = newId || null;
+  card.updatedAt = old.validTo;
+  return true;
 }
 
 function openThreads(card) {
@@ -377,7 +401,7 @@ function addEvent(card, event, { chatId, now = Date.now() } = {}) {
   card.events = Array.isArray(card.events) ? card.events : [];
   const normalized = normalizeEvent({
     ...event,
-    source: { chatId: card.chatId, messageIds: (event && event.source && event.source.messageIds) || [] },
+    source: { chatId: card.chatId, kind: (event && event.source && event.source.kind) || null, messageIds: (event && event.source && event.source.messageIds) || [] },
   }, card.chatId, at);
   if (!normalized) return null;
 
@@ -393,6 +417,15 @@ function addEvent(card, event, { chatId, now = Date.now() } = {}) {
     return dup;
   }
   card.events.push(normalized);
+  // 显式指定被取代的旧事件
+  if (event && event.supersedes) supersedeEvent(card, String(event.supersedes), normalized.id, at);
+  // 同标题且几乎同文的旧事件（≥0.85）：视为同一件事的新版本，旧版本失效
+  for (const old of card.events) {
+    if (!old || old.id === normalized.id || old.deleted || old.validTo) continue;
+    if (norm(old.title) !== norm(normalized.title)) continue;
+    if (similarity(old.summary || '', normalized.summary || '') < 0.85) continue;
+    supersedeEvent(card, old.id, normalized.id, at);
+  }
   // 事件按“重要度 × 新鲜度”淘汰，别只看时间
   evictOverflow(card.events, LIMITS.maxEventsPerPerson, at, (e) => {
     const age = Math.max(0, at - Date.parse(`${e.date}T00:00:00`)) / DAY_MS;
@@ -499,10 +532,12 @@ module.exports = {
   addPreference,
   addTrait,
   addEvent,
+  supersedeEvent,
   addThread,
   closeThread,
   forget,
   similarity,
+  sourceConfidence,
   normalizeText: norm,
   dateString,
 };

@@ -11,10 +11,12 @@ const fs = require('node:fs');
 const path = require('node:path');
 const { ChatStore } = require('./chatStore');
 const personCard = require('./personCard');
+const audit = require('./audit');
 const episode = require('./episode');
 const compression = require('./compression');
 const retrieval = require('./retrieval');
 const vectorIndex = require('./vectorIndex');
+const { withTimeout } = require('../infra/async');
 const format = require('./format');
 const extractor = require('./extractor');
 const migrate = require('./migrate');
@@ -225,6 +227,14 @@ class Store {
     return entry;
   }
 
+  /** 审计旁路：失败不影响主流程（S3） */
+  _audit(entry) {
+    try {
+      const dir = this.config && this.config.paths && this.config.paths.dataDir;
+      if (dir) audit.append(dir, entry);
+    } catch { /* 审计失败不阻塞 */ }
+  }
+
   _onUserMessage(chat, entry) {
     if (!entry.uid || !entry.text) return;
     try {
@@ -232,11 +242,15 @@ class Store {
       const card = this.chatStore.getCard(chat, entry.uid) || this.chatStore.ensurePerson(chat, entry.uid, entry.name);
       const { facts } = extractor.extractSelfFacts(entry.text, { msgId: entry.id, now: entry.ts });
       if (facts.length) {
-        extractor.applyFacts(card, facts, { chatId: chat.chatId, now: entry.ts });
+        const writtenPrefs = extractor.applyFacts(card, facts, { chatId: chat.chatId, now: entry.ts });
+        for (const w of writtenPrefs || []) {
+          this._audit({ kind: 'preference', id: w.id, action: 'add', text: w.text,
+            confidence: w.confidence, source: w.source && (w.source.messageId || w.source) });
+        }
         // 人生事件：即时补一条事件卡
         for (const fact of facts) {
           if (!String(fact.key || '').startsWith('life:')) continue;
-          personCard.addEvent(card, {
+          const _ev = personCard.addEvent(card, {
             id: `evt_${entry.id}`,
             date: personCard.dateString(entry.ts),
             title: trimText(entry.text, 20),
@@ -245,8 +259,10 @@ class Store {
             participants: [entry.uid],
             importance: 0.65,
             confidence: 0.8,
-            source: { chatId: chat.chatId, messageIds: [entry.id] },
+            source: { chatId: chat.chatId, kind: entry.isMaster ? 'owner' : 'group', messageIds: [entry.id] },
           }, { chatId: chat.chatId, now: entry.ts });
+          if (_ev) this._audit({ kind: 'event', id: _ev.id, action: 'add',
+            confidence: _ev.confidence, sourceKind: _ev.source && _ev.source.kind });
         }
         this.chatStore.saveCard(chat, card);
       }
@@ -400,14 +416,25 @@ class Store {
     let eventVectors = null;
     if (vectorSearch) {
       try {
-        const activeEvents = require('./personCard').activeEvents(card);
-        const texts = activeEvents.map((e) => retrieval.eventDoc(e));
-        eventVectors = await vectorIndex.getVectors(texts, { logger: this.logger });
-        const qText = [query, ...recentUser.slice(-2),
-          chat.meta.episode ? chat.meta.episode.activeTopic : ''].filter(Boolean).join(' ');
-        queryVec = eventVectors ? await vectorIndex.getQueryVector(qText, { logger: this.logger }) : null;
-        if (this.logger && eventVectors) {
-          this.logger.info('向量检索：事件 ' + eventVectors.filter(Boolean).length + ' 条已编码');
+        const _load = async () => {
+          const activeEvents = require('./personCard').activeEvents(card);
+          const texts = activeEvents.map((e) => retrieval.eventDoc(e));
+          const ev = await vectorIndex.getVectors(texts, { logger: this.logger });
+          const qText = [query, ...recentUser.slice(-2),
+            chat.meta.episode ? chat.meta.episode.activeTopic : ''].filter(Boolean).join(' ');
+          const qv = ev ? await vectorIndex.getQueryVector(qText, { logger: this.logger }) : null;
+          return { ev, qv };
+        };
+        // S4：800ms 超时就降级 BM25，不让向量拖住整轮
+        const _res = await withTimeout(_load(), 800, null);
+        if (_res === null) {
+          if (this.logger) this.logger.warn('向量检索超时（800ms），降级为 BM25');
+        } else {
+          eventVectors = _res.ev;
+          queryVec = _res.qv;
+          if (this.logger && eventVectors) {
+            this.logger.info('向量检索：事件 ' + eventVectors.filter(Boolean).length + ' 条已编码');
+          }
         }
       } catch (err) {
         queryVec = null;
@@ -418,7 +445,8 @@ class Store {
     const _q = String(query || '');
     const _kBase = Number(plan.caps.events) || LIMITS.retrievalTopK;
     const _rich = _q.length >= 40 || /为什么|怎么办|你觉得|记得|是不是|要不要|分析/.test(_q);
-    const _k = Math.max(3, Math.min(8, _kBase + (_rich ? 2 : 0) - (_q.length <= 8 ? 2 : 0)));
+    // S4：单轮事件最多 6 条，防止记忆挤爆上下文
+    const _k = Math.max(3, Math.min(6, _kBase + (_rich ? 2 : 0) - (_q.length <= 8 ? 2 : 0)));
     const events = retrieval.selectEvents(card, {
       query,
       recentTexts: recentUser,
@@ -454,7 +482,10 @@ class Store {
     if (isGroup && chat.meta && chat.meta.episode && chat.meta.episode.activeTopic) {
       _extra.push(`【群里刚才在聊】${String(chat.meta.episode.activeTopic).slice(0, 60)}——接着聊，别重复问。`);
     }
-    const blockFinal = _extra.length ? `${block}\n${_extra.join('\n')}` : block;
+    const blockRaw = _extra.length ? `${block}\n${_extra.join('\n')}` : block;
+    // S4：记忆块字符硬上限 = 记忆预算 token 数 ×2，超了截断（摘要/卡都在这个块里）
+    const _capChars = Math.max(400, (Number(plan.memory) || LIMITS.memoryTokens) * 2);
+    const blockFinal = format.capBlockText(blockRaw, _capChars);
     // 「这条消息提到了谁」：只做内部状态，不进任何界面；名字对不上人就整块不输出。
     const relationCtx = this._buildRelationsBlock(chat, { uid, mentionedNames, relationsEnabled });
     return {
@@ -583,7 +614,7 @@ class Store {
     if (!textValue) return activePreferenceTexts(card);
     const kind = ['fact', 'preference', 'promise', 'recent', 'taboo'].includes(raw.kind) ? raw.kind : (meta.kind || 'fact');
     const lastMsg = chat.messages[chat.messages.length - 1];
-    personCard.addPreference(card, {
+    const _noteItem = personCard.addPreference(card, {
       text: textValue,
       // key 透传：同一槽位的新值会取代旧值（桥接写"搜图能力"这类事实靠它）
       key: trimText(raw.key, 60),
@@ -593,6 +624,7 @@ class Store {
       explicit: meta.explicit !== false,
     }, { chatId: chat.chatId, now: this._now() });
     if (kind === 'promise') personCard.addThread(card, { text: textValue }, { chatId: chat.chatId, now: this._now() });
+    if (_noteItem) this._audit({ kind: 'preference', id: _noteItem.id, action: 'add', text: _noteItem.text, confidence: _noteItem.confidence });
     this.chatStore.saveCard(chat, card);
     return activePreferenceTexts(card);
   }
@@ -601,13 +633,14 @@ class Store {
     const chat = this.chatStore.ensureChat(key);
     const card = this.chatStore.ensurePerson(chat, uid);
     const lastMsg = chat.messages[chat.messages.length - 1];
-    personCard.addPreference(card, {
+    const _manualItem = personCard.addPreference(card, {
       text: trimText(textValue, 80),
       kind: 'fact',
       confidence: 1,
       source: lastMsg && lastMsg.id,
       explicit: true,
     }, { chatId: chat.chatId, now: this._now() });
+    if (_manualItem) this._audit({ kind: 'preference', id: _manualItem.id, action: 'add', text: _manualItem.text, confidence: 1 });
     this.chatStore.saveCard(chat, card);
     return activePreferenceTexts(card);
   }
@@ -616,6 +649,7 @@ class Store {
     const chat = this.chatStore.ensureChat(key);
     const card = this.chatStore.ensurePerson(chat, uid);
     const removed = personCard.forget(card, needle, this._now());
+    this._audit({ kind: 'forget', action: 'remove', text: needle, count: removed });
     this.chatStore.saveCard(chat, card);
     return { removed, notes: activePreferenceTexts(card) };
   }

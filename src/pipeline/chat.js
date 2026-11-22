@@ -512,6 +512,8 @@ class Bot {
           inferredTargetNames: msg.inferredTargetNames || [],
           replyToName: msg.replyToName,
           replyToUserId: msg.replyToUserId,
+          isMaster,
+          isGroup,
         });
       } catch (err) {
         if (this.logger) this.logger.error('写入用户消息失败（继续回复）：' + describeError(err));
