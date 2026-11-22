@@ -60,6 +60,16 @@ powershell -ExecutionPolicy Bypass -File scripts/personal/migrate-data.ps1 `
 3. 建一个 `vX.Y.Z` Release，把 **`release-manifest.json`** 挂成资产（文件名必须一致）；
 4. 想推更新就把 manifest 的 `latest` 指到新版本。
 
+### 仓库可见性与网络（重要）
+
+- 启动器的更新检查是**匿名 HTTP**，私有仓库的 Release 资产匿名拉不到（404）。所以本仓库已设为
+  **public**（AGPL 分叉本来就该公开源码）。想改回去：
+  `gh api -X PATCH repos/Ougezi/whale-personal -f private=true`，但那样启动器就检查不到更新了。
+- 这台机器上 `github.com/.../releases/download/`、`raw.githubusercontent.com` 和几个镜像**全部超时**
+  （`api.github.com` 正常、`git push` 间歇成功）。也就是说：**代码和清单都对了，但这台机器的网络
+  拉不到清单**，启动器会静默跳过更新检查。换一个能访问 GitHub 下载域名的网络就正常；
+  或者以后把清单也放到国内可达的地方（改 `UpdateManifest.Sources` 即可）。
+
 ## 还没剥离干净的地方（诚实清单）
 
 - **插件市场目录**仍指向官方 `Banan1cee/whale-girl-plugins`（`launcher/PluginMarket.cs` 的
