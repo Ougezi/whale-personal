@@ -10,7 +10,7 @@
  * （实测各种 headless 组合都是 0 字节），但 remote debugging 可用，所以用 /json/new + WebSocket。
  */
 
-const { spawn } = require('node:child_process');
+const { spawn, execFile } = require('node:child_process');
 const fs = require('node:fs');
 const net = require('node:net');
 const os = require('node:os');
@@ -67,12 +67,13 @@ function scheduleIdleShutdown() {
   if (idleTimer.unref) idleTimer.unref();
 }
 
-async function launchBrowser({ timeoutMs = 12000 } = {}) {
+async function launchBrowser({ timeoutMs = 12000, allowTempProfile = true } = {}) {
   if (shared && shared.child && !shared.child.killed) return shared;
+  const profileDir = PROFILE_DIR;
   const exe = findBrowser();
   if (!exe) throw new Error('本机没有可用的 Chrome/Edge');
   const port = await freePort();
-  const profile = PROFILE_DIR;
+  const profile = profileDir;
   try { fs.mkdirSync(profile, { recursive: true }); } catch { /* 目录建不出来就让浏览器自己报错 */ }
   const child = spawn(exe, [
     '--headless=new',
@@ -97,6 +98,21 @@ async function launchBrowser({ timeoutMs = 12000 } = {}) {
     await sleep(200);
   }
   shutdownBrowser();
+  // profile 可能被另一个 Chrome 占着（比如你自己开着登录窗口）：退回临时 profile，别让抓取整个失败
+  if (allowTempProfile && profileDir === PROFILE_DIR) {
+    const temp = path.join(os.tmpdir(), 'whale-cdp-tmp-' + Date.now().toString(36));
+    try {
+      const port2 = await freePort();
+      const child2 = spawn(findBrowser(), ['--headless=new','--disable-gpu','--no-sandbox','--no-first-run','--user-data-dir=' + temp,'--remote-debugging-port=' + port2,'about:blank'], { stdio: 'ignore', windowsHide: true });
+      shared = { child: child2, port: port2, profile: temp, startedAt: Date.now() };
+      const deadline2 = Date.now() + timeoutMs;
+      while (Date.now() < deadline2) {
+        try { const r2 = await fetch('http://127.0.0.1:' + port2 + '/json/version'); if (r2.ok) return shared; } catch { /* 还在起 */ }
+        await sleep(200);
+      }
+      shutdownBrowser();
+    } catch { /* 落回下面统一报错 */ }
+  }
   throw new Error('浏览器启动超时');
 }
 
@@ -217,4 +233,144 @@ async function openPageInner(url, { timeoutMs = 12000, prefer = 'auto', maxChars
   }
 }
 
-module.exports = { findBrowser, browserAvailable, renderPage, httpPage, openPage, shutdownBrowser };
+
+
+// ---- 视频：从页面里找视频地址，抓几帧交给视觉模型 ----
+
+function findFfmpeg() {
+  const candidates = [
+    process.env.WHALE_FFMPEG || '',
+    path.join(process.env.LOCALAPPDATA || '', 'Programs', 'ffmpeg', 'bin', 'ffmpeg.exe'),
+    'C:\\ffmpeg\\bin\\ffmpeg.exe',
+    'ffmpeg',
+  ].filter(Boolean);
+  for (const exe of candidates) {
+    try { if (exe === 'ffmpeg' || fs.existsSync(exe)) return exe; } catch { /* ignore */ }
+  }
+  return '';
+}
+
+function ffmpegFrames(file, ffmpeg, { count = 3, timeoutMs = 20000 } = {}) {
+  return new Promise((resolve, reject) => {
+    const outDir = path.join(os.tmpdir(), 'whale-frames-' + Date.now().toString(36));
+    fs.mkdirSync(outDir, { recursive: true });
+    const pattern = path.join(outDir, 'f%02d.jpg');
+    // 取前几秒的几帧（-vf fps 均匀抽帧），比按时间点 seek 更不容易在黑屏/片头
+    const args = ['-y', '-i', file, '-vf', 'fps=1/2', '-frames:v', String(count), '-q:v', '3', pattern];
+    execFile(ffmpeg, args, { timeout: timeoutMs, maxBuffer: 4 * 1024 * 1024 }, (err) => {
+      try {
+        if (err) return reject(err);
+        const files = fs.readdirSync(outDir).filter((f) => f.endsWith('.jpg')).sort();
+        const frames = files.map((f) => fs.readFileSync(path.join(outDir, f)).toString('base64'));
+        fs.rmSync(outDir, { recursive: true, force: true });
+        if (!frames.length) return reject(new Error('没抽到帧'));
+        resolve(frames);
+      } catch (e) { reject(e); }
+    });
+  });
+}
+
+/** 在页面里找 http(s) 视频地址（video.currentSrc / og:video / source） */
+async function videoSource(url, { timeoutMs = 20000 } = {}) {
+  const { port } = await launchBrowser({ timeoutMs });
+  const create = await fetch('http://127.0.0.1:' + port + '/json/new?' + encodeURIComponent(url), { method: 'PUT' });
+  if (!create.ok) throw new Error('打开页面失败：HTTP ' + create.status);
+  const target = await create.json();
+  const ws = new WebSocket(target.webSocketDebuggerUrl);
+  const pending = new Map();
+  let nextId = 1;
+  const send = (method, params = {}) => new Promise((resolve, reject) => {
+    const id = nextId++;
+    pending.set(id, { resolve, reject });
+    ws.send(JSON.stringify({ id, method, params }));
+    setTimeout(() => { if (pending.has(id)) { pending.delete(id); reject(new Error(method + ' 超时')); } }, timeoutMs);
+  });
+  try {
+    await new Promise((resolve, reject) => {
+      ws.addEventListener('open', resolve, { once: true });
+      ws.addEventListener('error', () => reject(new Error('调试通道连接失败')), { once: true });
+      setTimeout(() => reject(new Error('调试通道连接超时')), timeoutMs);
+    });
+    ws.addEventListener('message', (ev) => {
+      try {
+        const msg = JSON.parse(ev.data);
+        if (msg.id && pending.has(msg.id)) {
+          const p2 = pending.get(msg.id);
+          pending.delete(msg.id);
+          if (msg.error) p2.reject(new Error(msg.error.message || 'CDP 错误'));
+          else p2.resolve(msg.result);
+        }
+      } catch { /* ignore */ }
+    });
+    await send('Page.enable');
+    await send('Page.navigate', { url });
+    await new Promise((r) => setTimeout(r, 4000));
+    const res = await send('Runtime.evaluate', {
+      expression: `(() => {
+        const out = [];
+        document.querySelectorAll('video').forEach((v) => out.push(v.currentSrc || v.src || ''));
+        document.querySelectorAll('source').forEach((x) => out.push(x.src || ''));
+        document.querySelectorAll('meta').forEach((m) => {
+          const prop = m.getAttribute('property') || m.getAttribute('name') || '';
+          if (/og:video|twitter:player:stream/i.test(prop)) out.push(m.content || '');
+        });
+        return out.filter((u) => /^https?:/.test(u));
+      })()`,
+      returnByValue: true,
+    });
+    if (res && res.exceptionDetails) throw new Error('页面求值失败：' + JSON.stringify(res.exceptionDetails).slice(0, 160));
+    const list = (res && res.result && res.result.value) || [];
+    // 有些站点（抖音分享页）把播放地址藏在页面 JSON 里，DOM 查不到就扫一遍 HTML
+    try {
+      const htmlRes = await send('Runtime.evaluate', { expression: 'document.documentElement.innerHTML.slice(0, 2000000)', returnByValue: true });
+      const html = String((htmlRes && htmlRes.result && htmlRes.result.value) || '');
+      const urls = html.match(/https?:[^"'\\\s]+/g) || [];
+      for (const u of urls) {
+        if (/play_addr|playwm|\/video\/tos\/|\.mp4/i.test(u) && !list.includes(u)) list.push(u.replace(/\\u002F/g, '/'));
+      }
+    } catch { /* HTML 扫不到就算了 */ }
+    return list;
+  } finally {
+    try { ws.close(); } catch { /* ignore */ }
+    try { await fetch('http://127.0.0.1:' + port + '/json/close/' + target.id); } catch { /* ignore */ }
+  }
+}
+
+/** 抓到视频就抽帧，交给调用方的 describeImage 变成文字 */
+async function describeVideo(url, { describeImage = null, count = 3, maxBytes = 40 * 1024 * 1024, timeoutMs = 25000 } = {}) {
+  const ffmpeg = findFfmpeg();
+  if (!ffmpeg) return { ok: false, error: '本机没有 ffmpeg' };
+  let candidates = [];
+  try { candidates = await videoSource(url, { timeoutMs }); } catch (err) { return { ok: false, error: '找视频地址失败：' + ((err && err.message) || err) }; }
+  if (!candidates.length) return { ok: false, error: '页面里没有可直接下载的视频地址（抖音常见 blob/MSE，需要登录或专用接口）' };
+  const headers = { 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/157.0 Safari/537.36', Referer: url };
+  let lastErr = null;
+  for (const src of candidates.slice(0, 3)) {
+    try {
+      const res = await fetch(src, { headers, signal: AbortSignal.timeout(timeoutMs) });
+      if (!res.ok) continue;
+      const len = Number(res.headers.get('content-length') || 0);
+      if (len > maxBytes) continue;
+      const buf = Buffer.from(await res.arrayBuffer());
+      const ctype = String(res.headers.get('content-type') || '');
+      const isVideoPayload = /^video\//i.test(ctype) || (buf.length > 12 && buf.slice(4, 8).toString('ascii') === 'ftyp');
+      if (!isVideoPayload) { lastErr = new Error('拿到的不是视频文件（' + (ctype || '未知类型') + '）'); continue; }
+      if (!buf.length || buf.length > maxBytes) continue;
+      const file = path.join(os.tmpdir(), 'whale-video-' + Date.now() + '.mp4');
+      fs.writeFileSync(file, buf);
+      let frames = [];
+      try { frames = await ffmpegFrames(file, ffmpeg, { count }); } finally { try { fs.unlinkSync(file); } catch { /* ignore */ } }
+      if (!frames.length) continue;
+      const seen = [];
+      for (const b64 of frames) {
+        if (!describeImage) continue;
+        try { const d = await describeImage(b64); if (d) seen.push(String(d).slice(0, 300)); } catch { /* 单帧失败不影响其它帧 */ }
+      }
+      scheduleIdleShutdown();
+      return { ok: true, frames: frames.length, desc: seen.join('\n'), src };
+    } catch (e) { lastErr = e; }
+  }
+  return { ok: false, error: '视频地址下载失败（可能需要登录/防盗链）' + (lastErr ? '：' + lastErr.message : '') };
+}
+
+module.exports = { findBrowser, browserAvailable, renderPage, httpPage, openPage, shutdownBrowser, findFfmpeg, videoSource, describeVideo };
