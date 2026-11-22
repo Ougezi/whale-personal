@@ -88,7 +88,17 @@ namespace WhaleLauncher
                 if (App.StartRuntimeOnLaunch && !_sup.NodeRunning && !_sup.UpdateBlocked)
                     _ = _sup.StartAllAsync();
                 // 调试/验收：--market 直接打开插件市场（也方便截图）
-                if (Environment.GetCommandLineArgs().Any(a => string.Equals(a, "--market", StringComparison.OrdinalIgnoreCase)))
+                var args0 = Environment.GetCommandLineArgs();
+                if (args0.Any(a => string.Equals(a, "--market-detail", StringComparison.OrdinalIgnoreCase)))
+                {
+                    Dispatcher.BeginInvoke(new Action(() =>
+                    {
+                        var w = new PluginMarketWindow(this);
+                        w.Loaded += (_, __) => w.OpenById("douyin-watch");
+                        w.ShowDialog();
+                    }), System.Windows.Threading.DispatcherPriority.Background);
+                }
+                else if (args0.Any(a => string.Equals(a, "--market", StringComparison.OrdinalIgnoreCase)))
                     Dispatcher.BeginInvoke(new Action(() => OnMarket(null, null)), System.Windows.Threading.DispatcherPriority.Background);
             };
             Closing += OnClosingDuringUpdate;
