@@ -30,11 +30,12 @@ New-Item -ItemType Directory -Force -Path $outDir | Out-Null
 if (-not $SkipLauncher) {
     Write-Host "  [1/4] 发布启动器（.NET 10）" -ForegroundColor Yellow
     $env:DOTNET_CLI_TELEMETRY_OPTOUT = "1"
+    if (Test-Path (Join-Path $repo "launcher\publish")) { Remove-Item (Join-Path $repo "launcher\publish") -Recurse -Force }
     & $Dotnet publish (Join-Path $repo "launcher\WhaleLauncher.csproj") -c Release -r win-x64 --self-contained false `
-        -p:PublishSingleFile=false "-p:Version=$Version" "-p:FileVersion=$Version.0" `
-        "-p:AssemblyVersion=$Version.0" "-p:ProductVersion=$Version" -o (Join-Path $repo "publish") --nologo
+        -p:PublishSingleFile=true "-p:Version=$Version" "-p:FileVersion=$Version.0" `
+        "-p:AssemblyVersion=$Version.0" "-p:ProductVersion=$Version" -o (Join-Path $repo "launcher\publish") --nologo
     if ($LASTEXITCODE -ne 0) { throw "启动器发布失败" }
-    Copy-Item (Join-Path $repo "publish\*") $outDir -Force
+    Copy-Item (Join-Path $repo "launcher\publish\*") $outDir -Force
 } else {
     Write-Host "  [1/4] 跳过启动器发布（-SkipLauncher）" -ForegroundColor Yellow
     $pub = Join-Path $repo "launcher\publish"

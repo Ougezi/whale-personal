@@ -84,9 +84,6 @@ Type: filesandordirs; Name: "{app}\runtime\vb-cable"
 ; comtypes\tools、pywin\tools 这类**任意层级**的 tools 目录整片吃掉
 ; （4.0 的 CI 烟测就是这么发现 comtypes.tools 缺文件的）。
 Source: "..\launcher\publish\WhaleLauncher.exe"; DestDir: "{app}"; Flags: ignoreversion
-Source: "..\launcher\publish\*.dll"; DestDir: "{app}"; Flags: ignoreversion
-Source: "..\launcher\publish\WhaleLauncher.deps.json"; DestDir: "{app}"; Flags: ignoreversion
-Source: "..\launcher\publish\WhaleLauncher.runtimeconfig.json"; DestDir: "{app}"; Flags: ignoreversion
 Source: "..\server.js"; DestDir: "{app}"; Flags: ignoreversion
 Source: "..\package.json"; DestDir: "{app}"; Flags: ignoreversion
 Source: "..\config\config.example.json"; DestDir: "{app}\config"; Flags: ignoreversion

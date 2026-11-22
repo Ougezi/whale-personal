@@ -21,7 +21,7 @@
 
 本项目说「UI / 界面 / 设置项 / 加个开关 / 加个按钮 / 改个文案」，**默认指启动器 EXE**。
 
-- 默认改 `launcher/`（WPF：`launcher/Views/*.xaml` + `*.xaml.cs`），成品是 `launcher/publish/` 下的启动器（文件夹发布，EXE 与依赖 DLL 一起分发；根目录不再放单文件 EXE）。
+- 默认改 `launcher/`（WPF：`launcher/Views/*.xaml` + `*.xaml.cs`），成品是 `launcher/publish/WhaleLauncher.exe`（单文件发布；根目录不再放 EXE）。
 - 内核**不再提供网页界面**（4.0.2 删除了 `web/` 与 `src/http/static.js`；浏览器打开 `127.0.0.1:8787` 只会拿到 404 JSON）。
   启动器与桥接只走 HTTP API（`/api/*`），这些接口一个都不能删。
 - 不要顺手往仓库里加 `web/` 或静态文件服务；确实要恢复网页界面，等任务书明确写。
