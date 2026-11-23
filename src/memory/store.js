@@ -450,9 +450,14 @@ class Store {
     const at = Number(now) || this._now();
     const factor = Number(tokenScale);
     const relationsOn = relationsEnabled === undefined ? this.limits.relationsEnabled : relationsEnabled === true;
+    // 预算自适应：长会话 8k → 10k/12k；用户手动调过 dialogueBudget 时按比例放大
+    const adaptiveOn = !(this.config && this.config.memory && this.config.memory.adaptiveBudget === false);
+    const effectiveBudget = budgetPlan.adaptiveBudget(this.limits.dialogueBudget, chat.messages.length, adaptiveOn);
     const plan = Number.isFinite(factor) && factor > 0 && factor !== 1
-      ? budgetPlan.planBudget(this.limits.dialogueBudget / factor, { relations: relationsOn })
-      : this.plan;
+      ? budgetPlan.planBudget(effectiveBudget / factor, { relations: relationsOn })
+      : (effectiveBudget !== this.limits.dialogueBudget
+        ? budgetPlan.planBudget(effectiveBudget, { relations: relationsOn })
+        : this.plan);
     let card = this.chatStore.getCard(chat, uid);
     if (!card) card = this.chatStore.ensurePerson(chat, uid, name);
     const last = chat.messages[chat.messages.length - 1];

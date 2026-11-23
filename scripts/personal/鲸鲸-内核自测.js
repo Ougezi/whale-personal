@@ -1050,6 +1050,18 @@ try {
   check('关键事实 pin', false, String(e && e.message).slice(0, 50));
 }
 
+// 第三期：预算自适应（2026-11-24）
+try {
+  const bp = require(path.join(ROOT, 'src', 'memory', 'budgetPlan.js'));
+  check('预算自适应：短会话不变', bp.adaptiveBudget(8000, 100) === 8000, String(bp.adaptiveBudget(8000, 100)));
+  check('预算自适应：150 条', bp.adaptiveBudget(8000, 150) === 10000, String(bp.adaptiveBudget(8000, 150)));
+  check('预算自适应：300 条', bp.adaptiveBudget(8000, 300) === 12000, String(bp.adaptiveBudget(8000, 300)));
+  check('预算自适应：可关闭', bp.adaptiveBudget(8000, 300, false) === 8000, '');
+  check('预算自适应：记忆块变大', bp.planBudget(12000).memory > bp.planBudget(8000).memory, '');
+} catch (e) {
+  check('预算自适应', false, String(e && e.message).slice(0, 40));
+}
+
 console.log('\n通过 ' + pass + '/' + (pass + fail));
   process.exit(fail ? 1 : 0);
 })();

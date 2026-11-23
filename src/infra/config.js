@@ -328,6 +328,8 @@ const DEFAULT_CONFIG = {
   memory: {
     // 对话预算（不含 system prompt）= memory 900 + summary 900 + recent 3,200 + reserve 500
     dialogueBudget: 8000,
+    // 长会话自适应：≥150 条 → 10,000；≥300 条 → 12,000（关掉填 false）
+    adaptiveBudget: true,
   },
   // 微信桥接：account = 固定用哪个微信号（微信双开时必填）。启动器「微信桥接」页点账号卡会直接写这里，
   // 一般不用手改；留空 = 按「最近活跃」自动选（双开时可能选到大号）。
