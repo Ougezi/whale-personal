@@ -23,6 +23,7 @@ const concerns = require('../core/concerns');
 const empathy = require('../core/empathy');
 const antiRepeat = require('../core/antiRepeat');
 const skills = require('../core/skills');
+const nickname = require('../core/nickname');
 const sessionMod = require('./session');
 const marks = require('./marks');
 const persona = require('../persona');
@@ -498,6 +499,9 @@ class Bot {
       } catch { /* ignore */ }
     }
 
+    // 身份判定必须在写库之前：appendMessage 要用 isMaster 标来源（2026-11-24 修 TDZ）
+    const masterHit = matchMaster(this.config, msg);
+    const isMaster = masterHit.isMaster;
     const hasText = Boolean(clean.text);
     let appended = null;
     if (hasText && !msg.recycled) {
@@ -548,8 +552,6 @@ class Bot {
     // 规则只写在 src/core/master.js，启动器的提示词预览用的是同一个函数，不会出现
     //「预览说认了、微信里却当陌生人」这种两边打架的情况。
     const masterCfg = (this.config.persona && this.config.persona.master) || {};
-    const masterHit = matchMaster(this.config, msg);
-    const isMaster = masterHit.isMaster;
     // 每条微信私聊都留一行判定，出问题直接看日志，不用猜
     if (msg.platform === 'wechat' && msg.chatType === 'private' && this.logger) {
       this.logger.info(
@@ -1014,12 +1016,15 @@ class Bot {
     } catch { /* 不强求 */ }
     // R4：把情绪挂到 decision 上，发不发图由 mood.expressionFor 决定
     try { if (decision && moodState) decision.moodState = moodState; } catch { /* 不影响回复 */ }
+    // 改称呼：主人说「以后叫你 X / 不叫你 X」时明确告诉她该怎么做，别反问
+    let nickLine = '';
+    try { nickLine = nickname.hint(String(clean && clean.text || '')); } catch { /* 改称呼提示失败不影响回复 */ }
     let skillLine = '';
     try {
       const _sdir = (this.config && this.config.paths && this.config.paths.dataDir) || path.join(process.cwd(), 'data');
       if (isMaster) skillLine = skills.block({ dataDir: _sdir, text: String(clean && clean.text || '') });
     } catch { /* 技能提示失败不影响回复 */ }
-    const innerLine = [moodLine, thoughtLine, notesLine, empathyLine, concernLine, skillLine].filter(Boolean).join('\n');
+    const innerLine = [moodLine, thoughtLine, notesLine, empathyLine, concernLine, nickLine, skillLine].filter(Boolean).join('\n');
 
     const promptParts = persona.buildPromptParts({
       config: this.config,

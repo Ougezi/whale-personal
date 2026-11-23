@@ -60,7 +60,23 @@ module.exports = function register(router) {
   // 生成那句关心的话（带最近聊天上下文，避免每次同一句）
   router.get('/api/care', async (runtime, req, res, info) => {
     try {
-      const out = await careForChat(runtime, info.url.searchParams.get('chat') || '');
+      const chat = info.url.searchParams.get('chat') || '';
+      const out = await careForChat(runtime, chat);
+      // care 主动消息也要入库：否则下一轮记忆里没有这条，她不知道是自己先开口（断片）
+      try {
+        if (out && out.text && chat) {
+          const isGroup = /@chatroom$/i.test(chat);
+          const key = (isGroup ? 'wechat:g:' : 'wechat:u:') + chat;
+          runtime.store.appendMessage(key, {
+            role: 'assistant',
+            name: (runtime.config.persona && runtime.config.persona.name) || '鲸鲸',
+            text: String(out.text),
+            ts: Date.now(),
+          });
+        }
+      } catch (err) {
+        runtime.logger?.warn?.('主动消息入库失败（不影响发送）：' + errorMessage(err));
+      }
       runtime.logger?.debug?.(`[care] generate mock=${Boolean(out.mock)} fallback=${Boolean(out.fallback)} len=${String(out.text || '').length}`);
       return json(res, 200, out);
     } catch (err) {

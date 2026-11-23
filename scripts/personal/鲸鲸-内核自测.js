@@ -920,6 +920,17 @@ try {
   check('复核完善回归', false, String(e && e.message).slice(0, 60));
 }
 
+// 改称呼识别（2026-11-24 断片修复）
+try {
+  const nick = require(path.join(ROOT, 'src', 'core', 'nickname.js'));
+  check('改称呼：接受新名字', nick.hint('以后叫你哦鲸鲸').includes('哦鲸鲸'), nick.hint('以后叫你哦鲸鲸'));
+  check('改称呼：以后就叫', nick.hint('以后就叫你鲸鲸吧').includes('鲸鲸'), '');
+  check('改称呼：不叫旧名', nick.hint('以后不叫你大肥鱼了').includes('不想再叫'), '');
+  check('改称呼：普通消息不触发', nick.hint('今天吃什么') === '', '');
+} catch (e) {
+  check('改称呼识别', false, String(e && e.message).slice(0, 40));
+}
+
 console.log('\n通过 ' + pass + '/' + (pass + fail));
   process.exit(fail ? 1 : 0);
 })();

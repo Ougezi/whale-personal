@@ -160,6 +160,24 @@ console.log('=== 6. 文档解析库（PDF）===');
   }
 }
 
+console.log('=== 8. 写库变量顺序 ===');
+{
+  // 2026-11-24 踩过：appendMessage 里用了还没声明的 isMaster，导致用户消息全部写不进记忆
+  const chatFile = path.join(ROOT, 'src', 'pipeline', 'chat.js');
+  const src = fs.readFileSync(chatFile, 'utf8');
+  const appendAt = src.indexOf('this.store.appendMessage(key, {');
+  const masterAt = src.indexOf('const isMaster = masterHit.isMaster;');
+  if (appendAt >= 0 && masterAt >= 0 && appendAt < masterAt) {
+    bad('appendMessage 早于 isMaster 声明（会 TDZ 丢用户消息）');
+  } else {
+    ok('写库前的变量声明顺序正常');
+  }
+  const careFile = path.join(ROOT, 'src', 'http', 'routes', 'care.js');
+  const careSrc = fs.readFileSync(careFile, 'utf8');
+  if (careSrc.includes('care 主动消息也要入库')) ok('主动搭话会入记忆');
+  else bad('主动搭话没有入记忆（会断片）');
+}
+
 console.log('=== 7. 记忆体检 ===');
 {
   // 只读扫描运行数据；老数据缺来源不算错（S2 之前没有这个字段）
