@@ -13,7 +13,13 @@ const ARCHIVE_DAYS = 30;
 const CONFLICT_SIM = 0.85;
 const KW_MIN = 3;
 
-function dayKey(now) { return new Date(now).toISOString().slice(0, 10); }
+function dayKey(now) {
+  // 必须用本地日期：toISOString 是 UTC，北京时间 0-8 点会被算成前一天，
+  // 导致「4 点后跑」实际拖到 8 点（2026-11-24 实测）。
+  const d = new Date(now);
+  const p = (n) => String(n).padStart(2, '0');
+  return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}`;
+}
 function reportFile(dataDir) { return path.join(dataDir, 'memory', 'sleep-report.json'); }
 function archiveFile(dataDir) { return path.join(dataDir, 'memory', 'archive.md'); }
 function insightsFile(dataDir) { return path.join(dataDir, 'inner', 'insights.md'); }
@@ -186,4 +192,4 @@ function buildInsights(dataDir, now) {
   return lines.length;
 }
 
-module.exports = { run, maybeRun, auditChats, ARCHIVE_DAYS };
+module.exports = { run, maybeRun, auditChats, dayKey, ARCHIVE_DAYS };

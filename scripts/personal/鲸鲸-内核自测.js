@@ -1087,6 +1087,17 @@ try {
   check('备份覆盖新文件', false, String(e && e.message).slice(0, 60));
 }
 
+// 睡眠日期必须按本地时区（2026-11-24 实测 bug）
+try {
+  const ms = require(path.join(ROOT, 'src', 'services', 'memorySleep.js'));
+  const localNight = new Date(2026, 10, 24, 0, 30).getTime();
+  check('睡眠日期用本地时区', ms.dayKey(localNight) === '2026-11-24', ms.dayKey(localNight));
+  const localMorning = new Date(2026, 10, 24, 7, 46).getTime();
+  check('睡眠日期上午仍是当天', ms.dayKey(localMorning) === '2026-11-24', ms.dayKey(localMorning));
+} catch (e) {
+  check('睡眠日期用本地时区', false, String(e && e.message).slice(0, 40));
+}
+
 console.log('\n通过 ' + pass + '/' + (pass + fail));
   process.exit(fail ? 1 : 0);
 })();
