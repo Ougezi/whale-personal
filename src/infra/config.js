@@ -133,6 +133,15 @@ const PROVIDERS = {
 
 const DEFAULT_CONFIG = {
   provider: 'deepseek',
+  // 复杂问题路由（默认关）：开启后，长文/代码/推理走另一个模型，闲聊仍用默认模型
+  llm: {
+    route: {
+      enabled: false,
+      model: 'deepseek-v4-pro',
+      minChars: 200,
+      keywords: ['代码', '分析', '为什么', '方案', '计划', '推理', '翻译', '对比'],
+    },
+  },
   server: { host: '127.0.0.1', port: 8787 },
   deepseek: {
     provider: 'deepseek',

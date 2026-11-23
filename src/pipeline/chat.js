@@ -125,12 +125,15 @@ const mood = require('../core/mood');
 const thoughts = require('../core/thoughts');
 const thoughtGen = require('../services/thoughtGen');
 const browseCore = require('../services/browse');
+const pins = require('../core/pins');
+const route = require('../core/route');
 
 class Bot {
-  constructor({ config, store, llm, logger, trace = null, now = () => new Date(), rng = Math.random, mockChunkDelayMs = 12, linkReader = null, calibration = null, moments = null, version = VERSION }) {
+  constructor({ config, store, llm, llmComplex = null, logger, trace = null, now = () => new Date(), rng = Math.random, mockChunkDelayMs = 12, linkReader = null, calibration = null, moments = null, version = VERSION }) {
     this.config = config;
     this.store = store;
     this.llm = llm;
+    this.llmComplex = llmComplex;
     this.logger = logger;
     // 程序版本：环境块里要报给模型（问「你是什么版本」时不能瞎说）
     this.version = version;
@@ -1029,11 +1032,18 @@ class Bot {
     } catch { /* 技能提示失败不影响回复 */ }
     let corefLine = '';
     try { corefLine = coref.hint(String(clean && clean.text || '')); } catch { /* 指代提示失败不影响回复 */ }
+    let pinLine = '';
+    try {
+      const _pdir = (this.config && this.config.paths && this.config.paths.dataDir) || path.join(process.cwd(), 'data');
+      const _items = pins.detect(String(clean && clean.text || ''));
+      if (isMaster && _items.length) pins.add(_pdir, key, _items, nowMs);
+      pinLine = pins.block({ dataDir: _pdir, chatId: key, limit: 3 });
+    } catch { /* pin 失败不影响回复 */ }
     let intentLine = '';
     try {
       if (isMaster && !isGroup) intentLine = intent.hint(String(clean && clean.text || ''));
     } catch { /* 意图提示失败不影响回复 */ }
-    const innerLine = [moodLine, thoughtLine, notesLine, empathyLine, concernLine, nickLine, corefLine, intentLine, skillLine].filter(Boolean).join('\n');
+    const innerLine = [moodLine, thoughtLine, notesLine, empathyLine, concernLine, nickLine, corefLine, intentLine, pinLine, skillLine].filter(Boolean).join('\n');
 
     const promptParts = persona.buildPromptParts({
       config: this.config,
@@ -1197,6 +1207,18 @@ class Bot {
     const beforeSend = await this.messagePlugins.run('chat.before_send', this.pluginContext(decision, { text: output.text }));
     this.checkReplyLength(String(beforeSend.text || '').length);
     return beforeSend.text;
+  }
+
+  /** 第三期：复杂问题路由（默认关；只有配置开且有第二客户端才切） */
+  replyClient(decision) {
+    try {
+      const cfg = (this.config && this.config.llm && this.config.llm.route) || {};
+      if (!this.llmComplex || this.llmComplex.isMock) return this.llm;
+      const msg = decision && decision.msg;
+      if (msg && (msg.image || msg.hasImage || msg.isImage)) return this.llm; // 图只走支持视觉的默认模型
+      const text = String((msg && (msg.cleanText || msg.text)) || '');
+      return route.isComplex(text, cfg) ? this.llmComplex : this.llm;
+    } catch { return this.llm; }
   }
 
   checkReplyLength(length) {
@@ -1693,12 +1715,13 @@ class Bot {
     let retried = false;
     let sent = false;
     // 本轮从哪个 usage 水位开始：流式重试会再调一次模型，结束时按水位累加
+    const replyClient = this.replyClient(decision);
     const usageMark = Number(this.llm && this.llm.usageSeq) || 0;
     // 流式请求可能还没吐字就报 context_length；此时可以安全地换半窗重试。
     // 已经吐过字就不能重试，否则用户会看到两段拼接的回复。
     while (true) {
       try {
-        for await (const piece of this.llm.stream({ system: decision.system, turns: decision.turns, signal, purpose: 'chat' })) {
+        for await (const piece of replyClient.stream({ system: decision.system, turns: decision.turns, signal, purpose: 'chat' })) {
           sent = true;
           yield piece;
         }
@@ -2333,6 +2356,7 @@ class Bot {
     let text = '';
     // 本轮从哪个 usage 水位开始：复读重写 / 半窗 / 降级重试都会再调一次模型，
     // 结束时按水位累加，只记最后一次会把前几次的钱漏掉。
+    const replyClient = this.replyClient(decision);
     const usageMark = Number(this.llm && this.llm.usageSeq) || 0;
     try {
       if (decision.canned) {
@@ -2340,7 +2364,7 @@ class Bot {
       } else if (decision.mock) {
         text = decision.text;
       } else {
-        text = await this.llm.complete({ system: decision.system, turns: decision.turns, signal, purpose: 'chat' });
+        text = await replyClient.complete({ system: decision.system, turns: decision.turns, signal, purpose: 'chat' });
         if (signal?.aborted) return { action: 'ignore', reason: 'cancelled' };
         this.checkReplyLength(String(text || '').length);
         // 模型有时候只会把别人说过的话复读一遍，或者重复自己上一句，这种重写一次
@@ -2354,7 +2378,7 @@ class Bot {
           const why = repeatsSelf ? '在重复你自己刚才说过的话' : '在复读别人的话';
           this.logger && this.logger.warn('回复' + why + '，重写一次：' + textMeta(text));
           try {
-            const retry = await this.llm.complete({
+            const retry = await replyClient.complete({
               system: decision.system + '\n\n【重写要求】你刚才的回答' + why + '，不合格。现在重写：换一个说法，给出新的信息或明确态度；不能出现对方原句，也不能重复你上面说过的话。',
               turns: decision.turns,
               signal,
@@ -2380,7 +2404,7 @@ class Bot {
       // 上下文超长：砍掉一半 turns 只重试一次，保留当前消息；不要退化成只发当前一句。
       if (isContextLengthError(err) && this.shrinkTurnsForContext(decision)) {
         try {
-          retried = await this.llm.complete({ system: decision.system, turns: decision.turns, signal, purpose: 'chat' });
+          retried = await replyClient.complete({ system: decision.system, turns: decision.turns, signal, purpose: 'chat' });
           this.logger && this.logger.warn('上下文超长，半窗重试成功');
         } catch (err2) {
           this.logger && this.logger.error('半窗重试仍失败：' + describeError(err2));
@@ -2396,7 +2420,7 @@ class Bot {
         const switched = this.llm.switchFallback();
         if (switched) {
           try {
-            retried = await this.llm.complete({ system: decision.system, turns: decision.turns, signal, purpose: 'chat' });
+            retried = await replyClient.complete({ system: decision.system, turns: decision.turns, signal, purpose: 'chat' });
             this.logger && this.logger.warn(`已切到备用服务商 ${switched.label} 并重试成功`);
           } catch (err2) {
             this.logger && this.logger.error('备用服务商也失败了：' + describeError(err2));
@@ -2407,7 +2431,7 @@ class Bot {
         try {
           const sys = sanitizeForModel(decision.system || '');
           const cur = sanitizeForModel((decision.msg && (decision.msg.cleanText || decision.msg.text)) || '');
-          retried = await this.llm.complete({ system: sys, turns: cur ? [{ role: 'user', content: cur }] : [], signal, purpose: 'chat' });
+          retried = await replyClient.complete({ system: sys, turns: cur ? [{ role: 'user', content: cur }] : [], signal, purpose: 'chat' });
           this.logger && this.logger.warn('内容审核拦截，已丢掉历史用精简上下文重试成功');
         } catch (err2) {
           this.logger && this.logger.error('精简重试仍失败：' + describeError(err2));
@@ -2435,7 +2459,7 @@ class Bot {
             content: '【你刚打开 ' + openTarget + ' 的正文】\n' + String(page.text).slice(0, 2000)
               + '\n\n（基于这页内容，重新回答我上一条消息；只输出最终回复，不要再写 [[open:…]]。）',
           }];
-          const second = await this.llm.complete({ system: decision.system, turns: pageTurns, signal, purpose: 'chat' });
+          const second = await replyClient.complete({ system: decision.system, turns: pageTurns, signal, purpose: 'chat' });
           if (second && String(second).trim()) text = String(second).trim();
           this.logger && this.logger.info('[open] ' + openTarget + ' ok chars=' + page.text.length + ' ms=' + (page.ms || 0));
         } else {

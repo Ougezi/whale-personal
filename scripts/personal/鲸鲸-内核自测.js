@@ -1030,6 +1030,26 @@ try {
   check('意图分类', false, String(e && e.message).slice(0, 40));
 }
 
+// 第三期：pin + 复杂路由（2026-11-24）
+try {
+  const fsx = require('node:fs');
+  const osx = require('node:os');
+  const pins = require(path.join(ROOT, 'src', 'core', 'pins.js'));
+  const pdir = fsx.mkdtempSync(path.join(osx.tmpdir(), 'pins-'));
+  const items = pins.detect('说好了每周三一起看电影，雷点是不准提香菜');
+  check('pin 识别', items.some((x) => x.kind === '约定') && items.some((x) => x.kind === '雷点'), JSON.stringify(items));
+  pins.add(pdir, 'wechat:u:m1', items, 1);
+  pins.add(pdir, 'wechat:u:m1', items, 2);
+  check('pin 去重', pins.list(pdir, 'wechat:u:m1', 10).length === 2, '');
+  check('pin 注入', pins.block({ dataDir: pdir, chatId: 'wechat:u:m1' }).includes('约定'), '');
+  const route3 = require(path.join(ROOT, 'src', 'core', 'route.js'));
+  check('路由：关闭不动', route3.isComplex('写一段代码', { enabled: false, keywords: ['代码'] }) === false, '');
+  check('路由：关键词命中', route3.isComplex('帮我写一段代码', { enabled: true, keywords: ['代码'] }) === true, '');
+  check('路由：长文命中', route3.isComplex('x'.repeat(201), { enabled: true, minChars: 200 }) === true, '');
+} catch (e) {
+  check('关键事实 pin', false, String(e && e.message).slice(0, 50));
+}
+
 console.log('\n通过 ' + pass + '/' + (pass + fail));
   process.exit(fail ? 1 : 0);
 })();

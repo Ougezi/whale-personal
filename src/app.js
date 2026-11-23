@@ -162,7 +162,20 @@ function createRuntime({ root = path.resolve(__dirname, '..'), env = process.env
     raw: Boolean(config.log && config.log.traceRaw !== false),
   });
   runtime.trace = trace;
-  runtime.bot = new Bot({ config, store, llm: runtime.llm, logger: child('pipeline'), trace, version: VERSION });
+  // 复杂问题路由：只建客户端，配置没开就不发请求（默认关，不增加成本）
+  let llmComplex = null;
+  try {
+    const routeCfg = config.llm && config.llm.route;
+    if (routeCfg && routeCfg.enabled) {
+      const cloned = JSON.parse(JSON.stringify(config));
+      cloned.deepseek = { ...(cloned.deepseek || {}), model: routeCfg.model || (cloned.deepseek || {}).model };
+      llmComplex = new DeepSeekClient({ config: cloned, logger: child('llm-complex') });
+      logger.info('模型路由已开启：复杂问题用 ' + llmComplex.model);
+    }
+  } catch (err) {
+    logger.warn('模型路由初始化失败（不影响聊天）：' + describeError(err));
+  }
+  runtime.bot = new Bot({ config, store, llm: runtime.llm, llmComplex, logger: child('pipeline'), trace, version: VERSION });
   // 主人问起日记时，聊天模型通过 [[diary:日期]] 标记读取；不给它直接塞全文。
   runtime.bot.diary = runtime.diary;
   // 自主上网：隔几小时自己刷一条热榜，用自己的话说一句，再写回情绪与念头。
