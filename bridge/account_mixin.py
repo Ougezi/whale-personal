@@ -217,7 +217,10 @@ class AccountMixin:
                     break
         if not owners:
             return None
-        return owners == {G.os.path.normcase(G.os.path.normpath(account_dir))}
+        # 以前要求 owners 恰好等于一个目录；WeChat 同进程/辅助进程同时持有多个账号
+        # 的 db_storage 时会误判成「不是本账号」。只要包含本账号就算匹配。
+        want = G.os.path.normcase(G.os.path.normpath(account_dir))
+        return want in owners
 
     def _logged_in_account_dirs(self):
         """本机真的登录着的微信账号目录（按进程打开的 db_storage 反查）。
@@ -505,6 +508,20 @@ class AccountMixin:
             if not quiet:
                 G.log('账号窗口：只有一个微信主窗（hwnd=%s），直接用它' % h)
             return True
+        # UIA 暂时读不出会话树时，别让「确认账号」和「物化 UIA」互相等死：
+        # 本机只登录了所选账号、且只有一个候选窗口，就按账号目录确认。
+        try:
+            logged = self._logged_in_account_dirs()
+        except Exception:
+            logged = set()
+        if logged and len(cands) == 1:
+            norm = lambda x: G.os.path.normcase(G.os.path.normpath(str(x)))
+            if {norm(x) for x in logged} == {norm(self.db.account)}:
+                h, _c, _rows = cands[0]
+                self.ACCOUNT.update(hwnd=h, verified=True, why='账号目录已登录（UIA 暂不可读，降级确认）')
+                self.rebind_uia(h)
+                G.log('账号窗口：本机只登录了 %s，按账号目录锁定 hwnd=%s（UIA 恢复后自动补会话树）' % (G.safe_id(self.db.account), h))
+                return True
         want = self._account_recent_names()
         G.log('账号窗口：本机有 %d 个微信主窗，按账号 %s 的最近会话认窗口：%s' % (len(cands), G.safe_id(self.db.account), ' / '.join(G.safe_name(x) for x in want[:6]) or '（空）'))
         for h, _c, rows in cands:

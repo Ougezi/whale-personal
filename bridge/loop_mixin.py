@@ -335,6 +335,7 @@ class LoopMixin:
         gate_logged = False
         hb_misses = 0
         background_uia_paused = False
+        pause_until = 0.0
         while True:
             try:
                 resting = False
@@ -349,6 +350,17 @@ class LoopMixin:
                     uia_now = self.UIA_CACHE.get('u') is not None
                 elif not resting:
                     try:
+                        # 窗口在、但账号还没确认：先物化 UIA（会话树是确认账号的证据）。
+                        # 以前这里直接跳过，导致「确认要 UIA / UIA 要确认」互相等死。
+                        try:
+                            if self.wechat_window_alive() and not self.selected_window_ready():
+                                _now = G.time.time()
+                                if _now - float(getattr(self, '_last_account_probe', 0) or 0) >= 60:
+                                    self._last_account_probe = _now
+                                    self.ensure_uia_ready(force=True, wake=False)
+                                    self.pick_account_window(force=True, quiet=True)
+                        except Exception as _probe_err:
+                            G.log('账号窗口自愈失败（继续按原流程）：', repr(_probe_err))
                         if not self.selected_window_ready() or not self.wechat_window_alive():
                             with self.gui_lock:
                                 self.gui = None
@@ -382,9 +394,17 @@ class LoopMixin:
                     except Exception:
                         misses += 1
                         uia_now = self.UIA_CACHE.get('u') is not None
-                    if background_uia_paused or misses >= 3:
+                    _now2 = G.time.time()
+                    if misses >= 3 and (not pause_until or _now2 >= pause_until):
+                        pause_until = _now2 + 60
+                        G.log_warn('[!] UIA 后台检查连续失败 %d 次，60 秒后自动重试（不再需要重启桥接）' % misses)
+                    if pause_until and _now2 < pause_until:
                         background_uia_paused = True
-                        G.log_warn('[!] UIA 后台检查连续失败，已暂停后台预热和重建，避免反复触碰微信；实际发送仍按原流程检查，重连桥接后恢复后台检查')
+                    else:
+                        background_uia_paused = False
+                        if pause_until:
+                            pause_until = 0.0
+                            misses = 0
                 payload = {'platform': 'wechat', 'uia': uia_now, 'rest': resting, 'listener': self.listener_alive(), 'ffmpeg': self.ffmpeg_available(), 'account': self.db.account, 'account_wxid': self.db.wxid, 'account_nick': self._self_nick, 'account_ok': bool(self.ACCOUNT.get('verified')), 'account_why': str(self.ACCOUNT.get('why') or ''), 'account_guard': bool(G.ACCOUNT_GUARD), 'window': self.wechat_window_state()}
                 headers = {'x-whale-bridge': '1'}
                 if self.token:
