@@ -172,12 +172,17 @@ console.log('=== 8. 写库变量顺序 ===');
   // 2026-11-24 踩过：appendMessage 里用了还没声明的 isMaster，导致用户消息全部写不进记忆
   const chatFile = path.join(ROOT, 'src', 'pipeline', 'chat.js');
   const src = fs.readFileSync(chatFile, 'utf8');
-  const appendAt = src.indexOf('this.store.appendMessage(key, {');
-  const masterAt = src.indexOf('const isMaster = masterHit.isMaster;');
-  if (appendAt >= 0 && masterAt >= 0 && appendAt < masterAt) {
-    bad('appendMessage 早于 isMaster 声明（会 TDZ 丢用户消息）');
+  const storeFile = path.join(ROOT, 'src', 'memory', 'store.js');
+  const storeSrc = fs.readFileSync(storeFile, 'utf8');
+  const usesRecordUser = src.includes('this.store.recordUser(key, msg, clean.text');
+  const usesRecordAssistant = src.includes('this.store.recordAssistant(');
+  const hasApis = storeSrc.includes('recordUser(key') && storeSrc.includes('recordAssistant(key');
+  if (!usesRecordUser || !usesRecordAssistant || !hasApis) {
+    bad('用户/回复没有走统一写入口（recordUser/recordAssistant）');
+  } else if (src.includes('this.store.appendMessage(key, {')) {
+    bad('chat.js 仍在直接 appendMessage（可能再次出现 TDZ 丢消息）');
   } else {
-    ok('写库前的变量声明顺序正常');
+    ok('写入口统一，且没有直接 appendMessage');
   }
   const careFile = path.join(ROOT, 'src', 'http', 'routes', 'care.js');
   const careSrc = fs.readFileSync(careFile, 'utf8');

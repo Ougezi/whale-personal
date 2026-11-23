@@ -28,9 +28,11 @@ function save(dataDir, data) {
 function detect(text) {
   const s = String(text == null ? '' : text);
   const out = [];
-  const promise = /(说好|约好|以后每[天周月]|每周[一二三四五六日天]|每天|每月|每年)[^，,。；;]{1,40}/.exec(s);
+  // 约定必须带「承诺词 + 20 字内出现动作」：避免「每天都很累」被误收
+  const promise = /(说好|约好|答应(?:你|过)|以后每[天周月]|从(?:今天|明天|下周)起|每周[一二三四五六日天]|每天|每月|每年)[^，,。；;]{0,20}(一起|要|会|去|给|陪|练|学|吃|看|做|提醒)[^，,。；;]{0,30}/.exec(s);
   if (promise) out.push({ kind: '约定', text: promise[0].trim().slice(0, 60) });
-  const taboo = /(雷点|忌讳|别提|不准提|不要提|别问|不要问)[^，,。；;]{0,40}/.exec(s);
+  // 雷点只认明确说法；「别提多开心了」「别问我为什么」不算
+  const taboo = /(雷点|忌讳|不准提|不许提|不要提)[^，,。；;]{0,40}/.exec(s);
   if (taboo) out.push({ kind: '雷点', text: taboo[0].trim().slice(0, 60) });
   return out;
 }

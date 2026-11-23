@@ -475,7 +475,10 @@ class Store {
       this.chatStore.saveMeta(chat);
     }
     // 第二期：不等 token 爆，超过 30 条 / 2 小时先压一次
-    const timed = compression.timedCompress(chat, { now: at, currentSeq: protectSeq, summaryTokens: plan.summary });
+    // 本轮刚因 token 超限压过，就不要再时间压缩一次（会把上下文压没）
+    const timed = compressed.chunks
+      ? { chunks: 0 }
+      : compression.timedCompress(chat, { now: at, currentSeq: protectSeq, summaryTokens: plan.summary });
     if (timed.chunks) {
       this.chatStore.saveSummary(chat);
       this.chatStore.saveMeta(chat);

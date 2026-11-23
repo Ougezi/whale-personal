@@ -2075,7 +2075,8 @@ class Bot {
         error,
       });
     } catch (err) {
-      this.logger && this.logger.error('写入回复失败（照常发送）：' + describeError(err));
+      if (this.store && typeof this.store.noteWriteFailure === 'function') this.store.noteWriteFailure('assistant', err);
+      else this.logger && this.logger.error('写入回复失败（照常发送）：' + describeError(err));
     }
     // 每轮一个 checkpoint：重启后能知道停在哪、episode 有没有关
     try {

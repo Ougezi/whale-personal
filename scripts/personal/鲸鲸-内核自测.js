@@ -1008,7 +1008,7 @@ try {
   const chatA = mkChat(35);
   const nowT = new Date(2026, 10, 24, 2, 0).getTime();
   const r1 = comp2.timedCompress(chatA, { now: nowT, minNew: 30, intervalMs: 2 * 3600000 });
-  check('定期摘要：触发', r1.chunks === 1 && chatA.summary.coveredThroughSeq === 31, JSON.stringify(r1));
+  check('定期摘要：触发', r1.chunks === 1 && chatA.summary.coveredThroughSeq === 15, JSON.stringify(r1));
   const r2 = comp2.timedCompress(chatA, { now: nowT + 60000, minNew: 30, intervalMs: 2 * 3600000 });
   check('定期摘要：间隔内不重复', r2.chunks === 0, '');
   const chatB = mkChat(10);
@@ -1042,6 +1042,7 @@ try {
   pins.add(pdir, 'wechat:u:m1', items, 2);
   check('pin 去重', pins.list(pdir, 'wechat:u:m1', 10).length === 2, '');
   check('pin 注入', pins.block({ dataDir: pdir, chatId: 'wechat:u:m1' }).includes('约定'), '');
+  check('pin 不误收日常', pins.detect('每天都很累').length === 0 && pins.detect('别问我为什么').length === 0, JSON.stringify(pins.detect('每天都很累')));
   const route3 = require(path.join(ROOT, 'src', 'core', 'route.js'));
   check('路由：关闭不动', route3.isComplex('写一段代码', { enabled: false, keywords: ['代码'] }) === false, '');
   check('路由：关键词命中', route3.isComplex('帮我写一段代码', { enabled: true, keywords: ['代码'] }) === true, '');
@@ -1060,6 +1061,30 @@ try {
   check('预算自适应：记忆块变大', bp.planBudget(12000).memory > bp.planBudget(8000).memory, '');
 } catch (e) {
   check('预算自适应', false, String(e && e.message).slice(0, 40));
+}
+
+// 备份覆盖与恢复（2026-11-24 复核）
+try {
+  const fsx = require('node:fs');
+  const osx = require('node:os');
+  const backup = require(path.join(ROOT, 'src', 'memory', 'backup.js'));
+  const rootA = fsx.mkdtempSync(path.join(osx.tmpdir(), 'bakA-'));
+  const dataA = path.join(rootA, 'data');
+  fsx.mkdirSync(path.join(dataA, 'memory'), { recursive: true });
+  fsx.writeFileSync(path.join(dataA, 'pins.json'), JSON.stringify({ c1: [{ kind: '约定', text: '每周三看电影' }] }));
+  fsx.writeFileSync(path.join(dataA, 'nicknames.json'), JSON.stringify({ c1: { name: '哦鲸鲸' } }));
+  fsx.writeFileSync(path.join(dataA, 'concerns.json'), JSON.stringify({ items: [] }));
+  fsx.writeFileSync(path.join(dataA, 'skills.md'), '- [11-24] 改配置前先备份\n');
+  const bundle = backup.collect(rootA);
+  check('备份覆盖新文件', Boolean(bundle.files.pins && bundle.files.nicknames && bundle.files.concerns && bundle.files.skills), Object.keys(bundle.files).join(','));
+  const rootB = fsx.mkdtempSync(path.join(osx.tmpdir(), 'bakB-'));
+  fsx.mkdirSync(path.join(rootB, 'data'), { recursive: true });
+  backup.restoreFrom(rootB, bundle);
+  const restored = fsx.readFileSync(path.join(rootB, 'data', 'pins.json'), 'utf8');
+  const restoredSkill = fsx.readFileSync(path.join(rootB, 'data', 'skills.md'), 'utf8');
+  check('恢复新文件', restored.includes('每周三看电影') && restoredSkill.includes('先备份'), '');
+} catch (e) {
+  check('备份覆盖新文件', false, String(e && e.message).slice(0, 60));
 }
 
 console.log('\n通过 ' + pass + '/' + (pass + fail));

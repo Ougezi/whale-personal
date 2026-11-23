@@ -252,7 +252,7 @@ function compressSync(chat, { currentSeq = 0, now = Date.now(), hardTrigger, rec
  * @returns {Promise<{before:number, after:number, compressed:number, chunks:number, failed?:boolean}>}
  */
 /** 时间/条数触发的定期摘要：不等 token 爆，先把旧消息压成摘要 */
-function timedCompress(chat, { now = Date.now(), currentSeq = 0, minNew = 30, intervalMs = 2 * 60 * 60 * 1000, keepRecent = 4, summaryTokens = LIMITS.summaryTokens } = {}) {
+function timedCompress(chat, { now = Date.now(), currentSeq = 0, minNew = 30, intervalMs = 2 * 60 * 60 * 1000, keepRecent = 20, summaryTokens = LIMITS.summaryTokens } = {}) {
   const covered = Number(chat.summary && chat.summary.coveredThroughSeq) || 0;
   const pendingMsgs = (chat.messages || []).filter((m) => m.seq > covered && m.seq !== currentSeq);
   if (pendingMsgs.length < minNew) return { chunks: 0 };

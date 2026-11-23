@@ -25,6 +25,11 @@ const FILES = [
   { key: 'settings', name: 'settings.json' },
   { key: 'careState', name: 'care-state.json' },
   { key: 'shareState', name: 'share-state.json' },
+  // 2026-11-24：这些也是"记忆"，以前没进备份，恢复后会丢
+  { key: 'concerns', name: 'concerns.json' },
+  { key: 'nicknames', name: 'nicknames.json' },
+  { key: 'pins', name: 'pins.json' },
+  { key: 'skills', name: 'skills.md', text: true },
 ];
 
 function stampMs(date = new Date()) {
@@ -122,6 +127,13 @@ function collect(root, { withSecrets = false } = {}) {
   }
   for (const item of FILES) {
     if (item.key === 'memory' || item.key === 'personas') continue;
+    if (item.text) {
+      try {
+        const body = fs.readFileSync(path.join(dir, item.name), 'utf8');
+        if (body) bundle.files[item.key] = body;
+      } catch { /* 没有这个文件 */ }
+      continue;
+    }
     const value = readJson(path.join(dir, item.name));
     if (value === null) continue;
     bundle.files[item.key] = item.key === 'settings' && !withSecrets ? scrubSecrets(value) : value;
@@ -230,7 +242,7 @@ function validateBundle(bundle) {
   }
   const files = bundle.files;
   if (!object(files)) throw new Error('备份里的 files 必须是对象');
-  for (const key of ['memory', 'personas', 'store', 'settings', 'persona', 'careState', 'shareState', 'inner', 'diary']) {
+  for (const key of ['memory', 'personas', 'store', 'settings', 'persona', 'careState', 'shareState', 'inner', 'diary', 'concerns', 'nicknames', 'pins']) {
     if (Object.hasOwn(files, key) && !object(files[key])) throw new Error('备份里的 ' + key + ' 结构不对，已取消恢复');
   }
   // 感受/教训/日记是纯文本目录：键必须是安全相对路径
@@ -242,7 +254,9 @@ function validateBundle(bundle) {
       if (typeof files[key][rel] !== 'string') throw new Error('备份里的 ' + key + ' 内容必须是文本，已取消恢复');
     }
   }
-  if (!files.memory && !files.store) throw new Error('备份里没有可恢复的记忆');
+  if (!files.memory && !files.store && !files.concerns && !files.nicknames && !files.pins && !files.skills) {
+    throw new Error('备份里没有可恢复的记忆');
+  }
   if (files.store && (!object(files.store.sessions) || Object.values(files.store.sessions).some(session => !object(session)))) throw new Error('备份里的 store sessions 结构不对，已取消恢复');
   for (const body of Object.values(files.memory || {})) {
     if (typeof body !== 'string') throw new Error('备份里的记忆文件内容必须是文本，已取消恢复');
@@ -300,7 +314,7 @@ function restoreFrom(root, bundle) {
       if (value.provider && value.provider !== current.provider && value.apiKey === undefined) merged.apiKey = (merged.keys || {})[value.provider] || '';
       value = merged;
     }
-    preparedFiles[item.name] = JSON.stringify(value, null, 2);
+    preparedFiles[item.name] = item.text ? String(value) : JSON.stringify(value, null, 2);
     restored.push(item.name);
   }
   // 感受/教训/日记也走事务：和 memory/personas 同一个 preparedDirs 提交点
