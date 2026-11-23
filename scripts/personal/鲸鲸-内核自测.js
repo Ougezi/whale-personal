@@ -971,6 +971,32 @@ try {
   check('第一期记忆可靠性', false, String(e && e.message).slice(0, 60));
 }
 
+// 第二期：最近 user 保底 + 改称呼持久化（2026-11-24）
+try {
+  const fsx = require('node:fs');
+  const osx = require('node:os');
+  const comp = require(path.join(ROOT, 'src', 'memory', 'compression.js'));
+  const msgs = [];
+  let seq = 0;
+  for (let u = 1; u <= 4; u += 1) {
+    seq += 1; msgs.push({ seq, role: 'user', text: '用户问题' + u, ts: 1, uid: 'u1', name: 'n' });
+    for (let a = 0; a < 4; a += 1) { seq += 1; msgs.push({ seq, role: 'assistant', text: '她的回复' + seq, ts: 2 }); }
+  }
+  const fakeChat = { messages: msgs, summary: { coveredThroughSeq: 0 } };
+  const recent = comp.recentForPrompt(fakeChat, { currentSeq: 0, maxTokens: 5, maxCount: 40, minUser: 4 });
+  const userCount = recent.messages.filter((m) => m.role === 'user').length;
+  check('最近用户消息保底', userCount === 4, 'user=' + userCount + ' tokens=' + recent.tokens);
+  const nick2 = require(path.join(ROOT, 'src', 'core', 'nickname.js'));
+  const ndir = fsx.mkdtempSync(path.join(osx.tmpdir(), 'nick-'));
+  nick2.remember(ndir, 'wechat:u:m1', '以后叫你哦鲸鲸', 1);
+  check('改称呼持久化', nick2.current(ndir, 'wechat:u:m1') === '哦鲸鲸', nick2.current(ndir, 'wechat:u:m1'));
+  nick2.remember(ndir, 'wechat:u:m1', '以后不叫你大肥鱼了', 2);
+  check('不叫旧名不覆盖', nick2.current(ndir, 'wechat:u:m1') === '哦鲸鲸', '');
+  check('改称呼提取', nick2.extract('以后就叫你鲸鲸吧').name === '鲸鲸', JSON.stringify(nick2.extract('以后就叫你鲸鲸吧')));
+} catch (e) {
+  check('最近用户消息保底', false, String(e && e.message).slice(0, 60));
+}
+
 console.log('\n通过 ' + pass + '/' + (pass + fail));
   process.exit(fail ? 1 : 0);
 })();

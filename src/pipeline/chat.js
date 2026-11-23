@@ -1012,7 +1012,14 @@ class Bot {
     try { if (decision && moodState) decision.moodState = moodState; } catch { /* 不影响回复 */ }
     // 改称呼：主人说「以后叫你 X / 不叫你 X」时明确告诉她该怎么做，别反问
     let nickLine = '';
-    try { nickLine = nickname.hint(String(clean && clean.text || '')); } catch { /* 改称呼提示失败不影响回复 */ }
+    try {
+      const _nickText = String(clean && clean.text || '');
+      const _dir = (this.config && this.config.paths && this.config.paths.dataDir) || path.join(process.cwd(), 'data');
+      if (isMaster && nickname.extract(_nickText)) nickname.remember(_dir, key, _nickText, nowMs);
+      nickLine = nickname.hint(_nickText);
+      const _saved = nickname.current(_dir, key);
+      if (_saved) nickLine += (nickLine ? '\n' : '') + `【称呼】主人现在叫你「${_saved}」，不要再自称旧名字。`;
+    } catch { /* 改称呼失败不影响回复 */ }
     let skillLine = '';
     try {
       const _sdir = (this.config && this.config.paths && this.config.paths.dataDir) || path.join(process.cwd(), 'data');

@@ -50,7 +50,7 @@ function recentTokens(chat, opts = {}) {
  * 取最近原文（含当前消息），按 token 预算从新往旧装。
  * @returns {{messages:Array, tokens:number}}
  */
-function recentForPrompt(chat, { currentSeq = 0, maxTokens = LIMITS.recentMaxTokens, maxCount = LIMITS.recentMessages } = {}) {
+function recentForPrompt(chat, { currentSeq = 0, maxTokens = LIMITS.recentMaxTokens, maxCount = LIMITS.recentMessages, minUser = 4 } = {}) {
   const covered = Number(chat.summary && chat.summary.coveredThroughSeq) || 0;
   const all = chat.messages.filter((m) => m.seq > covered);
   const window = all.slice(-Math.max(1, maxCount));
@@ -68,6 +68,31 @@ function recentForPrompt(chat, { currentSeq = 0, maxTokens = LIMITS.recentMaxTok
   if (current && !picked.some((m) => m.seq === currentSeq)) {
     picked.push(clampPromptMessage(current));
     total += messageBudgetTokens(current);
+  }
+  // 第二期：最近用户消息保底。多气泡会把 user 挤出窗口，
+  // 至少保留最近 minUser 条 user；不够就先裁最旧的 assistant 腾预算。
+  const usersInPicked = picked.filter((m) => m.role === 'user' && m.seq !== currentSeq).length;
+  if (usersInPicked < minUser) {
+    const need = minUser - usersInPicked;
+    const extra = all
+      .filter((m) => m.role === 'user' && m.seq !== currentSeq && !picked.some((p) => p.seq === m.seq))
+      .slice(-need)
+      .map(clampPromptMessage);
+    if (extra.length) {
+      let needTokens = extra.reduce((sum, m) => sum + messageBudgetTokens(m), 0);
+      while (needTokens > 0) {
+        const idx = picked.findIndex((m) => m.role === 'assistant' && m.seq !== currentSeq);
+        if (idx < 0) break;
+        needTokens -= messageBudgetTokens(picked[idx]);
+        total -= messageBudgetTokens(picked[idx]);
+        picked.splice(idx, 1);
+      }
+      for (const m of extra) {
+        picked.push(m);
+        total += messageBudgetTokens(m);
+      }
+      picked.sort((a, b) => Number(a.seq || 0) - Number(b.seq || 0));
+    }
   }
   return { messages: picked, tokens: total };
 }
