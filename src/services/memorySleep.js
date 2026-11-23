@@ -118,12 +118,41 @@ function run({ dataDir, now = Date.now(), logger = null, store = null } = {}) {
   report.promoted = innerNotes.promotePending({ kind: 'lessons', days: 7, now, dir: dataDir });
   // 4) 洞察
   report.insights = buildInsights(dataDir, now);
+  // 5) 每日对账
+  report.chatHealth = auditChats(dataDir);
+  for (const s of report.chatHealth.stale) {
+    try { audit.append(dataDir, { kind: 'chat', action: 'stale', chat: s.chat, assistantsAfterLastUser: s.assistantsAfterLastUser }); } catch { /* 对账告警失败不影响 */ }
+  }
   writeAtomic(reportFile(dataDir), JSON.stringify(report, null, 1));
   // 卡是直接改磁盘的：不刷新内存缓存，下一条消息 saveCard 会把睡眠结果覆盖回去
   if (store && typeof store.refreshCards === 'function') {
     try { report.refreshed = store.refreshCards(); } catch { report.refreshed = 0; }
   }
   return report;
+}
+
+/** 每日对账：最后一条 user 之后连跟太多 assistant，说明用户消息又没写进去 */
+function auditChats(dataDir) {
+  const base = path.join(dataDir, 'memory', 'chats');
+  let dirs = [];
+  try { dirs = fs.readdirSync(base, { withFileTypes: true }); } catch { return { chats: 0, stale: [] }; }
+  const stale = [];
+  for (const d of dirs) {
+    if (!d.isDirectory()) continue;
+    let lines = [];
+    try { lines = fs.readFileSync(path.join(base, d.name, 'messages.jsonl'), 'utf8').split('\n').filter(Boolean); } catch { continue; }
+    let lastUser = -1;
+    for (let i = lines.length - 1; i >= 0; i -= 1) {
+      try { if (JSON.parse(lines[i]).role === 'user') { lastUser = i; break; } } catch { /* 坏行跳过 */ }
+    }
+    if (lastUser < 0) continue;
+    let after = 0;
+    for (let i = lastUser + 1; i < lines.length; i += 1) {
+      try { if (JSON.parse(lines[i]).role === 'assistant') after += 1; } catch { /* 坏行跳过 */ }
+    }
+    if (after > 6) stale.push({ chat: d.name, assistantsAfterLastUser: after });
+  }
+  return { chats: dirs.length, stale };
 }
 
 function buildInsights(dataDir, now) {
@@ -157,4 +186,4 @@ function buildInsights(dataDir, now) {
   return lines.length;
 }
 
-module.exports = { run, maybeRun, ARCHIVE_DAYS };
+module.exports = { run, maybeRun, auditChats, ARCHIVE_DAYS };

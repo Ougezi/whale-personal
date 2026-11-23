@@ -160,6 +160,13 @@ console.log('=== 6. 文档解析库（PDF）===');
   }
 }
 
+console.log('=== 9. 记忆写入探针 ===');
+{
+  const r = spawnSync(process.execPath, [path.join(__dirname, 'tools', 'memory-probe.js'), '--json'], { encoding: 'utf8' });
+  if (r.status === 0) ok('recordUser/recordAssistant 落盘正常');
+  else bad('记忆写入探针失败：' + String(r.stdout || r.stderr || '').slice(-300));
+}
+
 console.log('=== 8. 写库变量顺序 ===');
 {
   // 2026-11-24 踩过：appendMessage 里用了还没声明的 isMaster，导致用户消息全部写不进记忆

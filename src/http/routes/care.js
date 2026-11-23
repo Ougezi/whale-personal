@@ -67,8 +67,7 @@ module.exports = function register(router) {
         if (out && out.text && chat) {
           const isGroup = /@chatroom$/i.test(chat);
           const key = (isGroup ? 'wechat:g:' : 'wechat:u:') + chat;
-          runtime.store.appendMessage(key, {
-            role: 'assistant',
+          runtime.store.recordAssistant(key, {
             name: (runtime.config.persona && runtime.config.persona.name) || '鲸鲸',
             text: String(out.text),
             ts: Date.now(),
@@ -99,7 +98,7 @@ module.exports = function register(router) {
     try {
       runtime.store.ensureSession(key, { platform: 'wechat', chatType: body.group === true ? 'group' : 'private' });
       if (msgId && runtime.store.isDuplicate(key, msgId)) return json(res, 200, { ok: true, duplicate: true });
-      runtime.store.appendMessage(key, { role: 'assistant', name: runtime.config.persona.name, text, ts: Date.now(), ...(msgId ? { msgId } : {}) });
+      runtime.store.recordAssistant(key, { name: runtime.config.persona.name, text, ts: Date.now(), ...(msgId ? { msgId } : {}) });
       return json(res, 200, { ok: true });
     } catch (err) {
       runtime.logger.warn('主动搭话记录失败：' + describeError(err));

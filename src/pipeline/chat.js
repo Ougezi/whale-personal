@@ -508,23 +508,17 @@ class Bot {
       // 落库失败不能拖死这一轮：记忆/原文是加分项，回复本身要继续。
       // 以前这里没兜底，磁盘满 / 文件被占用时整条消息直接变成「不回话」。
       try {
-        appended = this.store.appendMessage(key, {
-          role: 'user',
-          name: msg.senderName,
-          uid: msg.senderId,
-          text: clean.text,
-          ts: nowMs,
-          msgId: msg.msgId,
+        appended = this.store.recordUser(key, msg, clean.text, {
           addressedToBot: msg.addressedToBot,
           mentionedNames,
           inferredTargetNames: msg.inferredTargetNames || [],
           replyToName: msg.replyToName,
           replyToUserId: msg.replyToUserId,
-          isMaster,
-          isGroup,
         });
       } catch (err) {
-        if (this.logger) this.logger.error('写入用户消息失败（继续回复）：' + describeError(err));
+        msg.writeFailed = true;
+        if (this.store && typeof this.store.noteWriteFailure === 'function') this.store.noteWriteFailure('user', err);
+        else if (this.logger) this.logger.error('写入用户消息失败（继续回复）：' + describeError(err));
       }
     }
     // 保留原有旁听记录，但在提醒、命令和固定回复之前拦住会话。
@@ -1879,6 +1873,13 @@ class Bot {
     if (error) decision.error = true;
     const modernPersona = decision?.msg?.newPersonaBehavior ?? usesNewPersona(this.config);
     text = stripInternalTimestamps(text);
+    // 连续写库失败第 3 次：明确告诉她/主人，不再静默（第一期 P0）
+    try {
+      if (decision && decision.msg && decision.msg.writeFailed
+        && this.store && this.store.writeFailures && this.store.writeFailures.consecutive === 3) {
+        text = String(text || '') + '\n（我这边记忆写不进去，先这样回你）';
+      }
+    } catch { /* 提示失败不影响回复 */ }
     // 内心记录：先处理「读回」[[feel:read]]，再收走「写」标记 [[feel:…]]（2026-11-22）
     text = this.expandInnerRead(decision, text);
     text = this.consumeInnerMarks(decision, text);
@@ -2028,8 +2029,7 @@ class Bot {
     if (!text) return [];
     const persist = () => {
     try {
-      this.store.appendMessage(decision.key, {
-        role: 'assistant',
+      this.store.recordAssistant(decision.key, {
         name: this.config.persona.name,
         replyToUserId: msg.senderId,
         text: storeText,

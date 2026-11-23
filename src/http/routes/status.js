@@ -17,8 +17,10 @@ module.exports = function register(router) {
       const p = require('node:path').join(runtime.config.root, 'data', 'bridge-errors.json');
       bridgeErrors = JSON.parse(require('node:fs').readFileSync(p, 'utf8'));
     } catch { /* 桥接还没写过计数就报空 */ }
+    let writeFailures = null;
+    try { writeFailures = runtime.store ? runtime.store.writeFailures : null; } catch { /* 老 store 没有 */ }
     return json(res, 200, { ok: true, uptimeSec: Math.round(process.uptime()),
-      errors, bridgeErrors, memory });
+      errors, bridgeErrors, memory, writeFailures });
   });
 
   router.get('/api/status', (runtime, req, res) => json(res, 200, statusPayload(runtime)));

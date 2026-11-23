@@ -931,6 +931,46 @@ try {
   check('改称呼识别', false, String(e && e.message).slice(0, 40));
 }
 
+// 第一期记忆可靠性（2026-11-24）
+try {
+  const fsx = require('node:fs');
+  const osx = require('node:os');
+  const { Store } = require(path.join(ROOT, 'src', 'memory', 'store.js'));
+  const base = fsx.mkdtempSync(path.join(osx.tmpdir(), 'p1-'));
+  const mk = () => new Store({
+    file: path.join(base, 'store.json'), dir: path.join(base, 'memory'),
+    config: { paths: { dataDir: base }, persona: { master: { wxids: ['m1'], names: ['主人'] } } },
+    logger: null,
+  });
+  const st = mk();
+  const masterMsg = { platform: 'wechat', chatType: 'private', chatId: 'm1', senderId: 'm1', senderName: '主人' };
+  const otherMsg = { platform: 'wechat', chatType: 'private', chatId: 'u9', senderId: 'u9', senderName: '别人' };
+  st.recordUser('wechat:u:m1', masterMsg, '我住在武汉');
+  st.recordUser('wechat:u:u9', otherMsg, '我喜欢橘子');
+  const m1rows = st.messages('wechat:u:m1', 5);
+  const u9rows = st.messages('wechat:u:u9', 5);
+  check('统一写入口：主人标记', m1rows[0] && m1rows[0].isMaster === true, String(m1rows[0] && m1rows[0].isMaster));
+  check('统一写入口：非主人标记', u9rows[0] && u9rows[0].isMaster === false, String(u9rows[0] && u9rows[0].isMaster));
+  st.noteWriteFailure('user', new Error('disk full'));
+  st.noteWriteFailure('user', new Error('disk full'));
+  check('写失败计数', st.writeFailures.total === 2 && st.writeFailures.consecutive === 2, JSON.stringify(st.writeFailures));
+  st.recordUser('wechat:u:m1', masterMsg, '我住在武汉');
+  check('写成功后清零', st.writeFailures.consecutive === 0 && st.writeFailures.total === 2, JSON.stringify(st.writeFailures));
+  const sleep3 = require(path.join(ROOT, 'src', 'services', 'memorySleep.js'));
+  const sroot = fsx.mkdtempSync(path.join(osx.tmpdir(), 'p1s-'));
+  const chatDir = path.join(sroot, 'memory', 'chats', 'abc');
+  fsx.mkdirSync(chatDir, { recursive: true });
+  const lines = [JSON.stringify({ seq: 1, role: 'user', text: '你好' })];
+  for (let i = 2; i <= 9; i += 1) lines.push(JSON.stringify({ seq: i, role: 'assistant', text: '回' + i }));
+  fsx.writeFileSync(path.join(chatDir, 'messages.jsonl'), lines.join('\n'));
+  const health3 = sleep3.auditChats(sroot);
+  check('每日对账：发现断片', health3.stale.length === 1 && health3.stale[0].assistantsAfterLastUser === 8, JSON.stringify(health3.stale));
+  const ex3 = require(path.join(ROOT, 'src', 'memory', 'extractor.js'));
+  check('前缀抽取：对了', ex3.extractSelfFacts('对了，我住在武汉').facts.length === 1, '');
+} catch (e) {
+  check('第一期记忆可靠性', false, String(e && e.message).slice(0, 60));
+}
+
 console.log('\n通过 ' + pass + '/' + (pass + fail));
   process.exit(fail ? 1 : 0);
 })();

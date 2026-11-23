@@ -77,6 +77,8 @@ class Store {
     this.nowFn = typeof now === 'function' ? now : () => now;
     this.llm = llm;
     this.config = config;
+    // 写库失败要能被外部看到（以前 catch 吞掉，用户消息丢了没人知道）
+    this.writeFailures = { total: 0, consecutive: 0, lastAt: 0, lastError: '' };
     this.limits = {
       maxSessions: Number(limits.maxSessions) || 200,
       maxMessages: Number(limits.maxMessages) || LIMITS.maxMessagesPerChat,
@@ -195,6 +197,42 @@ class Store {
 
   /* ------------------------------ 消息 ------------------------------ */
 
+  /** 统一写用户消息：isMaster/isGroup 由 store 自己算，调用点不用再拼（2026-11-24） */
+  recordUser(key, msg = {}, text, extra = {}) {
+    let isMaster = false;
+    try {
+      const { matchMaster } = require('../core/master');
+      isMaster = matchMaster(this.config || {}, msg).isMaster;
+    } catch { isMaster = false; }
+    const chatId = String(msg.chatId || (key || '').split(':').pop() || '');
+    const isGroup = msg.chatType === 'group' || /@chatroom$/i.test(chatId) || /^wechat:g:/.test(String(key || ''));
+    return this.appendMessage(key, {
+      ...extra,
+      role: 'user',
+      name: msg.senderName,
+      uid: msg.senderId,
+      text,
+      ts: Number(extra.ts) || this._now(),
+      msgId: msg.msgId,
+      isMaster,
+      isGroup,
+    });
+  }
+
+  /** 统一写她的回复（主动搭话也走这里，别再只发不记） */
+  recordAssistant(key, message = {}) {
+    return this.appendMessage(key, { ...message, role: 'assistant' });
+  }
+
+  noteWriteFailure(scope, err) {
+    const f = this.writeFailures || (this.writeFailures = { total: 0, consecutive: 0, lastAt: 0, lastError: '' });
+    f.total += 1;
+    f.consecutive += 1;
+    f.lastAt = Date.now();
+    f.lastError = String((err && err.message) || err || '').slice(0, 160);
+    if (this.logger) this.logger.error(`记忆写库失败（${scope}）：${f.lastError}（累计 ${f.total}）`);
+  }
+
   appendMessage(key, message = {}) {
     const chat = this.chatStore.ensureChat(key);
     const at = Number(message.ts) || this._now();
@@ -218,6 +256,7 @@ class Store {
     });
     // 消息和去重 id 一起落盘：崩溃后重启不会把同一条再回一遍
     if (entry.msgId) this.markSeen(key, entry.msgId);
+    if (role === 'user' && this.writeFailures) this.writeFailures.consecutive = 0;
     episode.touchEpisode(chat, entry, { now: at });
     if (role === 'user') {
       this._onUserMessage(chat, entry);
