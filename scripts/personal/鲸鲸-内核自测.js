@@ -1019,6 +1019,17 @@ try {
   check('定期摘要', false, String(e && e.message).slice(0, 50));
 }
 
+// 第三期：意图分类（2026-11-24）
+try {
+  const it = require(path.join(ROOT, 'src', 'core', 'intent.js'));
+  check('意图：派活', it.classify('帮我查一下明天天气') === 'delegate', it.classify('帮我查一下明天天气'));
+  check('意图：提醒', it.classify('明天记得提醒我交表') === 'remind', it.classify('明天记得提醒我交表'));
+  check('意图：提问', it.classify('你为什么这么晚睡？') === 'question', it.classify('你为什么这么晚睡？'));
+  check('意图：闲聊', it.classify('今天天气不错') === 'chat' && it.hint('今天天气不错') === '', '');
+} catch (e) {
+  check('意图分类', false, String(e && e.message).slice(0, 40));
+}
+
 console.log('\n通过 ' + pass + '/' + (pass + fail));
   process.exit(fail ? 1 : 0);
 })();
