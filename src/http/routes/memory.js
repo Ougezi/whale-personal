@@ -87,6 +87,50 @@ module.exports = function register(router) {
     })();
   });
 
+
+  /**
+   * POST /api/memory/ingest  { chat, uid, name?, text, ts?, msgId?, chatType? }
+   *
+   * 桥接失联/重启期间跳过的消息，至少写进记忆原文（不触发回复）。
+   * 只允许本机；会话必须已存在（不凭空建会话）。
+   */
+  router.post('/api/memory/ingest', (runtime, req, res) => {
+    if (!isLoopbackRequest(req)) return json(res, 403, { ok: false, error: '记忆写入只允许在本机操作' });
+    return (async () => {
+      try {
+        const body = await readBody(req);
+        const chat = String((body && body.chat) || '').trim();
+        const uid = String((body && body.uid) || '').trim();
+        const text = String((body && body.text) || '').trim();
+        if (!chat || !uid || !text) return json(res, 400, { ok: false, error: 'chat / uid / text 都不能为空' });
+        const chats = runtime.store.chatStore.chats;
+        if (!chats || typeof chats.get !== 'function' || !chats.get(chat)) {
+          return json(res, 404, { ok: false, error: '会话不存在，拒绝写入（避免凭空建会话）' });
+        }
+        // 同一条消息已经进过记忆就不要重复写
+        const msgId = String((body && body.msgId) || '');
+        if (msgId) {
+          const recent = runtime.store.messages(chat, 80) || [];
+          if (recent.some((m) => String(m.msgId || '') === msgId)) {
+            return json(res, 200, { ok: true, skipped: 'duplicate' });
+          }
+        }
+        const ts = Number(body.ts) || Date.now();
+        const entry = runtime.store.recordUser(chat, {
+          platform: 'wechat',
+          chatType: body.chatType === 'group' ? 'group' : 'private',
+          chatId: chat.split(':').pop(),
+          senderId: uid,
+          senderName: String(body.name || ''),
+          msgId,
+        }, text.slice(0, 4000), { ts });
+        return json(res, 200, { ok: true, seq: entry && entry.seq });
+      } catch (err) {
+        return json(res, 500, { ok: false, error: errorMessage(err) });
+      }
+    })();
+  });
+
   function registerList(route, field, groupsOnly) {
   router.get(route, (runtime, req, res) => {
     if (!isLoopbackRequest(req)) return json(res, 403, { ok: false, error: '记忆管理只允许在本机操作' });

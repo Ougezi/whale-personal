@@ -2308,6 +2308,32 @@ class ReceiverMixin:
                 out.append('好，记下了。')     # 整句只有标记：给一句应答，别把 [[...]] 发出去
         return out if out else ['嗯。']
 
+
+    def _remember_skipped(self, msg):
+        """桥接失联/重启期间被跳过的消息：至少写进记忆原文，不触发回复。"""
+        try:
+            username = str(msg.get('username') or '').strip()
+            if not username:
+                return
+            text = str(msg.get('content') or '').strip()
+            typ = str(msg.get('type') or '消息')
+            if text.startswith('<?xml') or text.startswith('<msg'):
+                text = '[%s]' % typ
+            if not text:
+                return
+            chat_type = 'group' if username.endswith('@chatroom') else 'private'
+            chat = ('wechat:g:' if chat_type == 'group' else 'wechat:u:') + username
+            base = self.bot_url.rsplit('/webhook', 1)[0]
+            uid = str(msg.get('sender_username') or username)
+            ts = int(float(msg.get('create_time') or 0) * 1000) or None
+            msg_id = '%s:%s' % (msg.get('shard') or '', msg.get('local_id') or '')
+            G.LOCAL_HTTP.post(base + '/api/memory/ingest', json={
+                'chat': chat, 'uid': uid, 'name': str(msg.get('sender_name') or ''),
+                'text': text[:4000], 'ts': ts, 'msgId': msg_id, 'chatType': chat_type,
+            }, headers={'x-whale-bridge': '1'}, timeout=6)
+        except Exception as e:
+            G.log_throttled('ingest-skip-fail', '失联消息补记失败（忽略）：' + repr(e), ttl=120)
+
     def _recover_delegation_once(self):
         """重启后第一次收消息时跑一次：把上次打断的委托告诉主人，别让它悄悄消失。"""
         if getattr(self, '_deleg_recovered', False):
@@ -2348,9 +2374,11 @@ class ReceiverMixin:
                     % (msg.get('shard') or '', msg.get('local_id'), int(create_time)),
                     ttl=60,
                 )
+                self._remember_skipped(msg)
                 return
             if create_time and G.time.time() - create_time > G.STALE_AFTER:
                 G.log('跳过过期消息（%.0fs 前）：%s' % (G.time.time() - create_time, G.safe_text(msg.get('content') or '')))
+                self._remember_skipped(msg)
                 return
             chat = username or 'unknown'
             pushed = self.batches.push(chat, msg)

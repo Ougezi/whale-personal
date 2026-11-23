@@ -138,7 +138,7 @@ async function closeEpisode({ chat, chatStore, llm = null, logger = null, now = 
           b: rel.b,
           text: rel.text,
           confidence: rel.confidence,
-          source: { chatId: chat.chatId, messageIds },
+          source: { chatId: chat.chatId, messageIds, kind: /@chatroom$/i.test(chat.chatId) ? 'group' : 'owner' },
         }, { chatId: chat.chatId, now });
         if (edge) writtenRelations += 1;
       } catch (err) {
@@ -185,7 +185,7 @@ async function closeEpisode({ chat, chatStore, llm = null, logger = null, now = 
           confidence: ev.confidence,
           valence: ev.valence,
           resolved: ev.resolved,
-          source: { chatId: chat.chatId, messageIds },
+          source: { chatId: chat.chatId, messageIds, kind: /@chatroom$/i.test(chat.chatId) ? 'group' : 'owner' },
         }, { chatId: chat.chatId, now });
         if (ev.threadText) personCard.addThread(card, { text: ev.threadText }, { chatId: chat.chatId, now });
         writtenEvents += 1;
