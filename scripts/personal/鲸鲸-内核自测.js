@@ -997,6 +997,28 @@ try {
   check('最近用户消息保底', false, String(e && e.message).slice(0, 60));
 }
 
+// 第二期：定期摘要 + 指代提示（2026-11-24）
+try {
+  const comp2 = require(path.join(ROOT, 'src', 'memory', 'compression.js'));
+  const mkChat = (n) => {
+    const messages = [];
+    for (let i = 1; i <= n; i += 1) messages.push({ seq: i, role: i % 2 ? 'user' : 'assistant', text: '消息' + i, ts: i, uid: 'u1', name: 'n' });
+    return { messages, meta: {}, summary: { segments: [], coveredThroughSeq: 0 } };
+  };
+  const chatA = mkChat(35);
+  const nowT = new Date(2026, 10, 24, 2, 0).getTime();
+  const r1 = comp2.timedCompress(chatA, { now: nowT, minNew: 30, intervalMs: 2 * 3600000 });
+  check('定期摘要：触发', r1.chunks === 1 && chatA.summary.coveredThroughSeq === 31, JSON.stringify(r1));
+  const r2 = comp2.timedCompress(chatA, { now: nowT + 60000, minNew: 30, intervalMs: 2 * 3600000 });
+  check('定期摘要：间隔内不重复', r2.chunks === 0, '');
+  const chatB = mkChat(10);
+  check('定期摘要：条数不足不动', comp2.timedCompress(chatB, { now: nowT }).chunks === 0, '');
+  const coref2 = require(path.join(ROOT, 'src', 'core', 'coref.js'));
+  check('指代提示', coref2.hint('刚才那个事怎么样了').includes('指代') && coref2.hint('今天吃什么') === '', '');
+} catch (e) {
+  check('定期摘要', false, String(e && e.message).slice(0, 50));
+}
+
 console.log('\n通过 ' + pass + '/' + (pass + fail));
   process.exit(fail ? 1 : 0);
 })();

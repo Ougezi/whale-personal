@@ -24,6 +24,7 @@ const empathy = require('../core/empathy');
 const antiRepeat = require('../core/antiRepeat');
 const skills = require('../core/skills');
 const nickname = require('../core/nickname');
+const coref = require('../core/coref');
 const sessionMod = require('./session');
 const marks = require('./marks');
 const persona = require('../persona');
@@ -1025,7 +1026,9 @@ class Bot {
       const _sdir = (this.config && this.config.paths && this.config.paths.dataDir) || path.join(process.cwd(), 'data');
       if (isMaster) skillLine = skills.block({ dataDir: _sdir, text: String(clean && clean.text || '') });
     } catch { /* 技能提示失败不影响回复 */ }
-    const innerLine = [moodLine, thoughtLine, notesLine, empathyLine, concernLine, nickLine, skillLine].filter(Boolean).join('\n');
+    let corefLine = '';
+    try { corefLine = coref.hint(String(clean && clean.text || '')); } catch { /* 指代提示失败不影响回复 */ }
+    const innerLine = [moodLine, thoughtLine, notesLine, empathyLine, concernLine, nickLine, corefLine, skillLine].filter(Boolean).join('\n');
 
     const promptParts = persona.buildPromptParts({
       config: this.config,

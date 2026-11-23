@@ -469,6 +469,12 @@ class Store {
       this.chatStore.saveSummary(chat);
       this.chatStore.saveMeta(chat);
     }
+    // 第二期：不等 token 爆，超过 30 条 / 2 小时先压一次
+    const timed = compression.timedCompress(chat, { now: at, currentSeq: protectSeq, summaryTokens: plan.summary });
+    if (timed.chunks) {
+      this.chatStore.saveSummary(chat);
+      this.chatStore.saveMeta(chat);
+    }
     // 用户配置的「上下文条数」是真正的条数上限；token 预算仍由 plan.recent 兜底。
     // 以前这里只读 plan.recentCount，配置项只在记忆读取失败的兜底里生效。
     const configuredCount = Number(isGroup ? groupHistoryTurns : historyTurns);

@@ -251,6 +251,22 @@ function compressSync(chat, { currentSeq = 0, now = Date.now(), hardTrigger, rec
  * 异步压缩：可以调用模型生成高质量摘要。模型失败 → 什么都不改（原文保留、coverage 不前进）。
  * @returns {Promise<{before:number, after:number, compressed:number, chunks:number, failed?:boolean}>}
  */
+/** 时间/条数触发的定期摘要：不等 token 爆，先把旧消息压成摘要 */
+function timedCompress(chat, { now = Date.now(), currentSeq = 0, minNew = 30, intervalMs = 2 * 60 * 60 * 1000, keepRecent = 4, summaryTokens = LIMITS.summaryTokens } = {}) {
+  const covered = Number(chat.summary && chat.summary.coveredThroughSeq) || 0;
+  const pendingMsgs = (chat.messages || []).filter((m) => m.seq > covered && m.seq !== currentSeq);
+  if (pendingMsgs.length < minNew) return { chunks: 0 };
+  const lastAt = Number(chat.meta && chat.meta.lastTimedSummaryAt) || 0;
+  if (lastAt && now - lastAt < intervalMs) return { chunks: 0 };
+  const keep = Math.max(0, keepRecent);
+  const chunk = pendingMsgs.slice(0, Math.max(1, pendingMsgs.length - keep));
+  if (!chunk.length) return { chunks: 0 };
+  const text = extractor.extractiveSummary(chunk, 220);
+  if (!applySegment(chat, { text, fromSeq: chunk[0].seq, toSeq: chunk[chunk.length - 1].seq, now, summaryTokens })) return { chunks: 0 };
+  chat.meta.lastTimedSummaryAt = now;
+  return { chunks: 1, messages: chunk.length, fromSeq: chunk[0].seq, toSeq: chunk[chunk.length - 1].seq };
+}
+
 async function compressAsync(chat, { currentSeq = 0, now = Date.now(), llm = null, logger = null, requireLlm = false, hardTrigger, recentLow, compressChunk, summaryTokens } = {}) {
   const bar = thresholds({ hardTrigger, recentLow, compressChunk });
   const before = recentTokens(chat, { currentSeq });
@@ -340,6 +356,7 @@ module.exports = {
   trimSummary,
   compressSync,
   compressAsync,
+  timedCompress,
   prepareSoft,
   resetSummary,
   recomputeSummary,
