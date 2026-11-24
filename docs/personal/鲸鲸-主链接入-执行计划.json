@@ -166,16 +166,21 @@
    "min_cases": 5,
    "source_review": [],
    "files": [
+    "scripts/personal/鲸鲸-主链E2E自测.js",
+    "scripts/personal/鲸鲸-主链E2E自测.py",
     "docs/personal/鲸鲸-主链接入-验收.md"
    ],
    "actions": [
     "E2E；回滚；签收"
    ],
-   "tests": [],
+   "tests": [
+    "node scripts/personal/鲸鲸-主链E2E自测.js",
+    "python scripts/personal/鲸鲸-主链E2E自测.py"
+   ],
    "acceptance": [
-    "真实链路通",
-    "可停/回滚",
-    "证据"
+    "构建产物链路通",
+    "真实微信 E2E 待运行环境",
+    "可停/回滚"
    ]
   }
  ]
