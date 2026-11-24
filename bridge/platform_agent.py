@@ -11,10 +11,12 @@ try:
     from .platform_broker import PlatformBroker
     from .platform_github import GitHubAdapter
     from .platform_bilibili import BilibiliAdapter
+    from .shadow import Shadow
 except Exception:
     from platform_broker import PlatformBroker
     from platform_github import GitHubAdapter
     from platform_bilibili import BilibiliAdapter
+    from shadow import Shadow
 
 MARKER_RE = re.compile(r'\[\[(gh|bili):\s*(.+?)(?:\]\]|$)', re.S)
 _warned = False
@@ -25,7 +27,11 @@ def enabled():
 
 
 def broker():
-    return PlatformBroker({'github': GitHubAdapter(), 'bilibili': BilibiliAdapter()})
+    root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    data = os.environ.get('WHALE_PLATFORM_DATA_DIR') or os.path.join(root, 'data')
+    sh = Shadow() if str(os.environ.get('WHALE_PLATFORM_SHADOW') or '') == '1' else None
+    return PlatformBroker({'github': GitHubAdapter(), 'bilibili': BilibiliAdapter()},
+                          shadow=sh, receipt_path=os.path.join(data, 'platform-receipts.jsonl'))
 
 
 def extract(text):
@@ -48,4 +54,6 @@ def run(spec, timeout=None):
     if not enabled():
         return False, '平台调用未开启（设置 WHALE_PLATFORM_CALLS=1 后重启桥接）'
     out = broker().dispatch_spec(spec)
+    if out.get('shadow'):
+        return False, '已记录 shadow，未执行（这不是查询结果，别当成事实）'
     return bool(out.get('ok')), str(out.get('text') or ('平台返回失败：' + str(out.get('code') or 'unknown')))

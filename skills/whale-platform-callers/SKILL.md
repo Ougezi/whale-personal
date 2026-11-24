@@ -3,10 +3,11 @@ name: whale-platform-callers
 description: 鲸鲸真实平台调用方 runbook：GitHub/抖音/B站只读 adapter、PlatformBroker、24 案例、标记入口与 9 个桥接契约落点。Use when the owner says 真实调用方 / 平台调用 / GitHub 查询 / B站查询 / 抖音只读 / 24 案例 / 接 command_bus 等.
 ---
 
-# 鲸鲸 · 真实平台调用方（P0）
+# 鲸鲸 · 真实平台调用方（P0/P1）
 
 > 目标：不是再写 9 个类，而是让 GitHub / 抖音 / B站有**真实调用链**，再把 9 个契约挂到该挂的位置。
 > 默认：只读、默认关、无标记不联网。
+> P1：shadow 只记录不执行、receipt 落盘、B站 WBI 搜索。
 
 ---
 
@@ -28,8 +29,8 @@ python skills\whale-platform-callers\scripts\run_all.py --live --douyin
 运行内容：
 
 ```text
-1. 24 条离线契约自测
-2. 24 条 live 平台案例（GitHub/B站）
+1. 26 条离线契约自测（含 shadow/receipt）
+2. 24 条 live 平台案例（GitHub/B站；B站 WBI）
 3. 可选抖音 sidecar status
 4. 写 data/integration/evidence/I-36-live.json
 5. 返回 0/1
@@ -89,6 +90,20 @@ $env:WHALE_PLATFORM_CALLS = '1'
 
 然后**重启桥接进程**，新环境变量才会生效。  
 不设置时，即使回复里出现 `[[gh:...]]`，也不会执行，标记会原样保留。
+
+### 2.1.1 P1 shadow / receipt
+
+```powershell
+$env:WHALE_PLATFORM_CALLS = '1'
+$env:WHALE_PLATFORM_SHADOW = '1'
+```
+
+- shadow 只写 `Shadow.record()`，**不执行 adapter**；
+- 结果会明确写“已记录 shadow，未执行”，不能当事实回复；
+- receipt 写到 `data/platform-receipts.jsonl`；
+- 关掉 `WHALE_PLATFORM_SHADOW` 后才是真执行。
+
+B站搜索走 WBI 签名；仍 412 就按失败处理，不重试刷接口。
 
 ### 2.2 只读白名单
 
@@ -206,7 +221,7 @@ execute(op, args) -> dict
 |---|---|---|
 | `command_bus` | 未接 | 出站回复/写动作 outbox；不是平台读总线 |
 | `verify` | **已接** | Broker 每个成功结果都必须有 readback/tests |
-| `shadow` | 未接 | 新平台写操作上线前 |
+| `shadow` | **已接（opt-in）** | `WHALE_PLATFORM_SHADOW=1` 只记录，不执行 |
 | `rollout` | 未接 | adapter 版本 10/50/100 |
 | `redteam` | 未接 | 平台注入/路径/凭据测试 |
 | `birth_config` | 未接 | 启动/设置页三技能开关 |
@@ -266,7 +281,7 @@ DY-08 timeout/no-output 映射
 ## 7. 验收
 
 ```text
-离线自测 24/24
+离线自测 26/26
 live 24/24（含预期错误码）
 无标记 0 网络
 只读 0 写
@@ -299,8 +314,8 @@ not-found
 
 ```text
 risk-control
-→ 这是 B站风控，不是代码 bug
-→ 保留失败，不重试刷接口
+→ 先走 WBI 签名；仍 412 就保留失败
+→ 不重试刷接口
 ```
 
 ### B站 429
@@ -356,24 +371,26 @@ live status 标记 skipped
 
 ## 11. 下一步
 
-P0 通过后：
+P0/P1 通过后：
 
 ```text
-P1  Broker -> shadow / receipt 全链
 P2  平台写操作 + approval（默认关）
 P3  rollout / genome / sandbox / redteam / birth_config
 ```
 
 ---
 
-## 12. 执行记录（2026-11-25）
+## 12. 执行记录（2026-11-25 P1）
 
 ```text
-离线自测        24/24
+离线自测        26/26
 live 24 案例    24/24
 GitHub          7 个成功 + GH-09 预期 404
 B站             view/comments/user 成功；search 412、无效 BV 预期
 抖音            status 成功；like/collect 预期 approval-required
+shadow          只记录不执行
+receipt         data/platform-receipts.jsonl
+B站 WBI         search 成功
 run_all         P0 PASS
 证据            data/integration/evidence/I-36-live.json
 ```

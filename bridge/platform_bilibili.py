@@ -7,6 +7,7 @@
 import hashlib
 import json
 import re
+import time
 import urllib.error
 import urllib.parse
 import urllib.request
@@ -14,6 +15,7 @@ import urllib.request
 API = 'https://api.bilibili.com'
 UA = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0 Safari/537.36'
 BV_RE = re.compile(r'^BV[0-9A-Za-z]{10}$')
+MIXIN_KEY_ENC_TAB = [46,47,18,2,53,8,23,32,15,50,10,31,58,3,45,35,27,43,5,49,33,9,42,19,29,28,14,39,12,38,41,13,37,48,7,16,24,55,40,61,26,17,0,1,60,51,30,4,22,25,54,21,56,59,6,63,57,62,11,36,20,34,44,52]
 
 
 class BilibiliError(Exception):
@@ -53,9 +55,11 @@ class BilibiliAdapter:
 
     def __init__(self, fetch=None):
         self.fetch = fetch or _request
+        self._wbi_raw = ''
+        self._wbi_at = 0
 
     def available(self):
-        return {'ok': True, 'api': API, 'login': False}
+        return {'ok': True, 'api': API, 'login': False, 'wbi': bool(self._wbi_raw)}
 
     def capabilities(self):
         return [
@@ -77,6 +81,26 @@ class BilibiliAdapter:
             return {'ok': False, 'code': mapped, 'text': 'B站接口返回 %s' % mapped, 'evidence': {}}
         return {'ok': True, 'data': data, 'raw': raw, 'source': API + path}
 
+    def _wbi_signed(self, path, params):
+        now = int(time.time())
+        if not self._wbi_raw or now - self._wbi_at > 600:
+            status, raw, _ = self.fetch(API + '/x/web-interface/nav')
+            data = _json(raw)
+            img = (((data.get('data') or {}).get('wbi_img') or {}).get('img_url') or '')
+            sub = (((data.get('data') or {}).get('wbi_img') or {}).get('sub_url') or '')
+            img_key = img.rsplit('/', 1)[-1].split('.')[0]
+            sub_key = sub.rsplit('/', 1)[-1].split('.')[0]
+            if not img_key or not sub_key:
+                raise BilibiliError('no wbi keys')
+            self._wbi_raw = img_key + sub_key
+            self._wbi_at = now
+        raw = ''.join(self._wbi_raw[i] for i in MIXIN_KEY_ENC_TAB)[:32]
+        p = dict(params)
+        p['wts'] = now
+        query = urllib.parse.urlencode(sorted(p.items()))
+        p['w_rid'] = hashlib.md5((query + raw).encode('utf-8')).hexdigest()
+        return path + '?' + urllib.parse.urlencode(sorted(p.items()))
+
     def execute(self, op, args=None):
         args = args or {}
         if op == 'view':
@@ -95,8 +119,13 @@ class BilibiliAdapter:
             if not kw:
                 return {'ok': False, 'code': 'bad-query', 'text': '搜索词为空', 'evidence': {}}
             n = min(20, max(1, int(args.get('limit') or 5)))
-            got = self._get('/x/web-interface/search/type?search_type=video&keyword=%s&page=1&page_size=%d' % (
-                urllib.parse.quote(kw), n))
+            path = '/x/web-interface/wbi/search/type'
+            params = {'search_type': 'video', 'keyword': kw, 'page': 1, 'page_size': n}
+            try:
+                path = self._wbi_signed(path, params)
+            except Exception:
+                path = '/x/web-interface/search/type?' + urllib.parse.urlencode(params)
+            got = self._get(path)
             if not got.get('ok'):
                 return got
             items = ((got['data'].get('data') or {}).get('result') or [])[:n]

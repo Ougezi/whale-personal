@@ -4,6 +4,7 @@ import base64
 import json
 import os
 import sys
+import tempfile
 
 ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 sys.path.insert(0, os.path.join(ROOT, 'bridge'))
@@ -13,6 +14,7 @@ import platform_broker
 import platform_bilibili
 import platform_github
 from platform_douyin import DouyinAdapter
+from shadow import Shadow
 
 PASS = 0
 FAIL = 0
@@ -50,6 +52,10 @@ def gh_fetch(url):
 
 
 def bili_fetch(url):
+    if '/nav' in url:
+        return 200, json.dumps({'code': -101, 'data': {'wbi_img': {'img_url': 'https://i0.hdslb.com/bfs/wbi/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa.png', 'sub_url': 'https://i0.hdslb.com/bfs/wbi/bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb.png'}}}), ''
+    if '/wbi/search/type' in url:
+        return 200, json.dumps({'code': 0, 'data': {'result': [{'title': '<em>t</em>'}]}}), ''
     if '/view?' in url:
         return 200, json.dumps({'code': 0, 'data': {'bvid': 'BV1xx411c7mD', 'aid': 1, 'title': 't', 'owner': {'name': 'u'}, 'stat': {'view': 1}, 'desc': 'd'}}), ''
     if '/search/type' in url:
@@ -110,6 +116,17 @@ def main():
     os.environ.pop('WHALE_PLATFORM_CALLS', None)
     check('Douyin write deny', lambda: (_ for _ in ()).throw(AssertionError('bad')) if DouyinAdapter().execute('like', {}, approved=False).get('code') != 'approval-required' else None)
     check('unknown platform', lambda: (_ for _ in ()).throw(AssertionError('bad')) if v.dispatch('nope', 'repo', {}).get('code') != 'unknown-platform' else None)
+    # P1 shadow / receipt
+    fs = FakeAdapter(risk='R1')
+    sh = Shadow()
+    sb = platform_broker.PlatformBroker({'x': fs}, shadow=sh)
+    sr = sb.dispatch('x', 'x', {})
+    check('shadow no execute', lambda: (_ for _ in ()).throw(AssertionError('bad')) if fs.calls or not sr.get('shadow') else None)
+    tmp = tempfile.mkdtemp(prefix='whale-p1-')
+    rp = os.path.join(tmp, 'receipts.jsonl')
+    rb2 = platform_broker.PlatformBroker({'x': fs}, receipt_path=rp)
+    rr = rb2.dispatch('x', 'x', {}, action_id='a1')
+    check('receipt written', lambda: (_ for _ in ()).throw(AssertionError('bad')) if not os.path.exists(rp) or not json.loads(open(rp, encoding='utf-8').readline()).get('actionId') == 'a1' else None)
     print('\n通过 %d/%d' % (PASS, PASS + FAIL))
     return 0 if FAIL == 0 else 1
 

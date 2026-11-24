@@ -134,8 +134,10 @@
   {
    "id": "shadow",
    "path": "bridge/shadow.py",
-   "status": "not-wired",
-   "note": "只记录不执行，未接真实流量"
+   "status": "wired",
+   "integration": "PlatformBroker -> Shadow（opt-in，只记录不执行）",
+   "flag": "WHALE_PLATFORM_SHADOW=1",
+   "note": "P1 shadow 不执行"
   },
   {
    "id": "rollout",

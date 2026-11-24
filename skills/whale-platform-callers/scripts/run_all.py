@@ -75,7 +75,7 @@ def main():
     report['ok'] = bool(ev.get('ok')) and ev.get('total') == 24 and ev.get('passed') == 24
     _write(report)
     print('evidence:', OUT)
-    print('P0:', 'PASS' if report['ok'] else 'FAILED')
+    print('P1:', 'PASS' if report['ok'] else 'FAILED')
     return 0 if report['ok'] else 1
 
 

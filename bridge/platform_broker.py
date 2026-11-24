@@ -1,16 +1,19 @@
 # -*- coding: utf-8 -*-
-"""P0 · 平台统一调用方。
+"""P0/P1 · 平台统一调用方。
 
-消息里的 [[gh:...]] / [[bili:...]] 进入这里；先能力检查、风险检查、adapter、
-verify、receipt。只读优先；R2/R3 没有 approved 一律拒绝。
+消息里的 [[gh:...]] / [[bili:...]] 进入这里；能力检查、风险检查、shadow、
+adapter、verify、receipt。只读优先；R2/R3 没有 approved 一律拒绝。
 """
 import json
+import os
 import time
 
 try:
     from .verify import Verifier
+    from .shadow import Shadow
 except Exception:
     from verify import Verifier
+    from shadow import Shadow
 
 
 class BrokerError(Exception):
@@ -18,10 +21,13 @@ class BrokerError(Exception):
 
 
 class PlatformBroker:
-    def __init__(self, adapters=None, verifier=None, audit=None):
+    def __init__(self, adapters=None, verifier=None, audit=None, shadow=None, receipt_path=None):
         self.adapters = dict(adapters or {})
         self.verifier = verifier if verifier is not None else Verifier(audit=audit)
         self.audit = audit
+        # P1：传 Shadow 时只记录，不执行（真正的 shadow）
+        self.shadow = shadow
+        self.receipt_path = receipt_path
 
     def available(self):
         out = {}
@@ -47,7 +53,17 @@ class PlatformBroker:
                 return c
         return None
 
-    def dispatch(self, platform, op, args=None, *, approved=False, action_id=None):
+    def _receipt(self, row):
+        if not self.receipt_path:
+            return
+        try:
+            os.makedirs(os.path.dirname(self.receipt_path), exist_ok=True)
+            with open(self.receipt_path, 'a', encoding='utf-8') as f:
+                f.write(json.dumps(row, ensure_ascii=False) + '\n')
+        except Exception:
+            pass
+
+    def dispatch(self, platform, op, args=None, *, approved=False, action_id=None, chat=''):
         platform = str(platform or '').strip()
         op = str(op or '').strip()
         if platform not in self.adapters:
@@ -59,6 +75,15 @@ class PlatformBroker:
         risk = str(cap.get('risk') or 'R1')
         if risk in ('R2', 'R3') and not approved:
             return {'ok': False, 'code': 'approval-required', 'text': '%s.%s 需要 %s 审批' % (platform, op, risk)}
+        if self.shadow is not None:
+            try:
+                self.shadow.record(chat=chat, text=json.dumps(args or {}, ensure_ascii=False)[:500],
+                                   action='%s.%s' % (platform, op), risk=risk,
+                                   shouldExecute=True, reason='platform-shadow')
+            except Exception:
+                pass
+            return {'ok': True, 'shadow': True, 'text': '已记录 shadow，未执行：%s.%s' % (platform, op),
+                    'platform': platform, 'op': op, 'risk': risk}
         try:
             out = adapter.execute(op, args or {}, approved=approved) if platform == 'douyin' else adapter.execute(op, args or {})
         except Exception as e:
@@ -67,6 +92,7 @@ class PlatformBroker:
         out['platform'] = platform
         out['op'] = op
         out['risk'] = risk
+        out['chat'] = str(chat or '')[:120]
         if out.get('ok'):
             aid = str(action_id or 'platform:%s:%s:%d' % (platform, op, int(time.time() * 1000)))
             try:
@@ -80,6 +106,11 @@ class PlatformBroker:
                 out['ok'] = False
                 out['code'] = 'verify-error'
                 out['text'] = '证据校验异常：' + str(e)[:160]
+        if out.get('receipt'):
+            self._receipt({'at': int(time.time() * 1000), 'actionId': out['receipt'].get('actionId'),
+                           'platform': platform, 'op': op, 'state': out['receipt'].get('state'),
+                           'reason': out['receipt'].get('reason') or '',
+                           'readback': (out.get('evidence') or {}).get('readback') or ''})
         if callable(self.audit):
             try:
                 self.audit({'platform': platform, 'op': op, 'ok': bool(out.get('ok')),
@@ -88,7 +119,7 @@ class PlatformBroker:
                 pass
         return out
 
-    def dispatch_spec(self, spec):
+    def dispatch_spec(self, spec, chat=''):
         """gh:repo:owner/name / bili:view:BV... → dispatch。"""
         s = str(spec or '').strip()
         if ':' not in s:
@@ -102,7 +133,7 @@ class PlatformBroker:
         args = _args_for(platform, op, tail)
         if args is None:
             return {'ok': False, 'code': 'bad-spec', 'text': '标记参数不对'}
-        return self.dispatch(platform, op, args)
+        return self.dispatch(platform, op, args, chat=chat)
 
 
 def _args_for(platform, op, tail):
