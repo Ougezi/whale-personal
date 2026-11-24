@@ -84,6 +84,10 @@ namespace WhaleLauncher
         private ContactDirectory _contacts;
         /// <summary>联系人缓存 / 搜索的统一入口，各页面共用，避免重复请求和搜索规则漂移。</summary>
         public ContactDirectory Contacts => _contacts ??= new ContactDirectory(this);
+        /// <summary>内核是否可用：自己管着的进程，或已经在外面跑的健康的同端口实例。</summary>
+        public async Task<bool> NodeReachableAsync()
+            => NodeRunning || await ReadHealthyNodePidAsync(Port) > 0;
+
         private async Task<string> ConfigurationServiceUrlAsync()
         {
             var port = Port;

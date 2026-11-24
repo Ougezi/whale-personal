@@ -99,7 +99,7 @@ namespace WhaleLauncher.Views
         public async Task ReloadAsync(bool force = false)
         {
             if (_loading) return;
-            if (!_sup.NodeRunning)
+            if (!_sup.NodeRunning && !await _sup.NodeReachableAsync())
             {
                 ShowState("内核没起，连不上服务器。已勾选的条目不会丢，启动内核后再刷新。", true);
                 return;
