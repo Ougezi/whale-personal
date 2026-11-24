@@ -1487,7 +1487,7 @@
    "id": "I-41",
    "phase": "I",
    "title": "抖音评论接口",
-   "goal": "DouyinAdapter 增加 comment R2 接口；sidecar 页面适配器未验收，明确 not-implemented，不假发。",
+   "goal": "DouyinAdapter 增加 comment R2 接口 + sidecar 页面适配器；登录/授权/回读；真实发送需目标。",
    "case_ids": [
     "EV-003",
     "EV-004",
@@ -1511,13 +1511,14 @@
     "未实现明确返回"
    ],
    "tests": [
-    "鲸鲸-真实调用方自测.py 34/34"
+    "鲸鲸-真实调用方自测.py 35/35"
    ],
    "acceptance": [
     "comment 需审批",
+    "页面适配器存在",
     "未批准拒绝",
-    "已批准返回 not-implemented",
-    "不真实发评论"
+    "不回读成功不记成功",
+    "未真实发送"
    ]
   }
  ]

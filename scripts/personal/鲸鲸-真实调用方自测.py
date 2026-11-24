@@ -13,6 +13,7 @@ import platform_agent
 import platform_broker
 import platform_bilibili
 import platform_github
+import platform_douyin
 from platform_douyin import DouyinAdapter
 from shadow import Shadow
 
@@ -112,7 +113,15 @@ def main():
     check('marker on', lambda: (_ for _ in ()).throw(AssertionError('bad')) if spec != 'gh:repo:o/r' or 'gh:' in clean else None)
     os.environ.pop('WHALE_PLATFORM_CALLS', None)
     check('Douyin comment needs approval', lambda: (_ for _ in ()).throw(AssertionError('bad')) if DouyinAdapter().execute('comment', {}, approved=False).get('code') != 'approval-required' else None)
-    check('Douyin comment not-implemented', lambda: (_ for _ in ()).throw(AssertionError('bad')) if DouyinAdapter().execute('comment', {}, approved=True).get('code') != 'not-implemented' else None)
+    _orig_call = platform_douyin.douyin_agent._call
+    platform_douyin.douyin_agent._call = lambda op, args, timeout=None: {'ok': False, 'code': 'ops-disabled', 'text': 'sidecar disabled'}
+    _ext = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))), '..', '..', 'plugins', 'dsh-douyin-watch', 'lib', 'surfaces', 'ext.js')
+    _ext = os.path.normpath(_ext)
+    if os.path.exists(_ext):
+        _src = open(_ext, encoding='utf-8').read()
+        check('Douyin comment adapter source', lambda: (_ for _ in ()).throw(AssertionError('bad')) if 'ops_comment' not in _src or 'runComment' not in _src else None)
+    check('Douyin comment forwards', lambda: (_ for _ in ()).throw(AssertionError('bad')) if DouyinAdapter().execute('comment', {}, approved=True).get('code') != 'ops-disabled' else None)
+    platform_douyin.douyin_agent._call = _orig_call
 
     check('Douyin write deny', lambda: (_ for _ in ()).throw(AssertionError('bad')) if DouyinAdapter().execute('like', {}, approved=False).get('code') != 'approval-required' else None)
     check('unknown platform', lambda: (_ for _ in ()).throw(AssertionError('bad')) if v.dispatch('nope', 'repo', {}).get('code') != 'unknown-platform' else None)
