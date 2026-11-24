@@ -142,20 +142,26 @@
   {
    "id": "rollout",
    "path": "bridge/rollout.py",
-   "status": "not-wired",
-   "note": "灰度状态机，未接发布配置"
+   "status": "wired",
+   "integration": "PlatformBroker rollout gate + 发布控制 CLI",
+   "flag": "data/platform-rollout.json",
+   "note": "0/10/50/100"
   },
   {
    "id": "redteam",
    "path": "bridge/redteam.py",
-   "status": "not-wired",
-   "note": "静态样本，未接自动变体"
+   "status": "wired",
+   "integration": "platform_control.redteam_run",
+   "flag": "测试 CLI",
+   "note": "8/8 拦截"
   },
   {
    "id": "birth_config",
    "path": "bridge/birth_config.py",
-   "status": "not-wired",
-   "note": "三技能配置，未接 app 启动"
+   "status": "wired",
+   "integration": "platform_agent.broker -> BirthConfig.load",
+   "flag": "data/birth-config.json",
+   "note": "dsh=false 时 Broker 拒绝"
   },
   {
    "id": "approval",
@@ -168,14 +174,18 @@
   {
    "id": "genome",
    "path": "bridge/evolution/genome.py",
-   "status": "not-wired",
-   "note": "基因组注册，未接 live 配置"
+   "status": "wired",
+   "integration": "platform_control.genome_register",
+   "flag": "data/platform-genome.json",
+   "note": "constitution hash 只读"
   },
   {
    "id": "sandbox",
    "path": "bridge/evolution/sandbox.py",
-   "status": "not-wired",
-   "note": "沙箱，未接提案执行"
+   "status": "wired",
+   "integration": "platform_control.sandbox_run",
+   "flag": "临时目录",
+   "note": "main hash 不变"
   },
   {
    "id": "action_audit",

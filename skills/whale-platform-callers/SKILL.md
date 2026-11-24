@@ -3,12 +3,13 @@ name: whale-platform-callers
 description: 鲸鲸真实平台调用方 runbook：GitHub/抖音/B站只读 adapter、PlatformBroker、24 案例、标记入口与 9 个桥接契约落点。Use when the owner says 真实调用方 / 平台调用 / GitHub 查询 / B站查询 / 抖音只读 / 24 案例 / 接 command_bus 等.
 ---
 
-# 鲸鲸 · 真实平台调用方（P0/P1/P2）
+# 鲸鲸 · 真实平台调用方（P0/P1/P2/P3）
 
 > 目标：不是再写 9 个类，而是让 GitHub / 抖音 / B站有**真实调用链**，再把 9 个契约挂到该挂的位置。
 > 默认：只读、默认关、无标记不联网。
 > P1：shadow 只记录不执行、receipt 落盘、B站 WBI 搜索。
 > P2：写操作 R2 审批；默认关；抖音 like/collect 才走真实 adapter。
+> P3：birth_config / rollout / genome / sandbox / redteam 有真实调用点。
 
 ---
 
@@ -182,6 +183,47 @@ write-disabled / approval-required / wrong-approver
 
 ---
 
+## 2.5 P3 发布控制
+
+```powershell
+cd D:\dsh\whale-personal\src
+
+# 三技能开关
+python scripts\personal\鲸鲸-平台发布控制.py birth
+python scripts\personal\鲸鲸-平台发布控制.py birth-set dsh 0
+
+# 灰度
+python scripts\personal\鲸鲸-平台发布控制.py rollout --platform github --percent 10
+python scripts\personal\鲸鲸-平台发布控制.py rollout
+
+# 基因组
+python scripts\personal\鲸鲸-平台发布控制.py genome --version 1
+
+# 沙箱
+python scripts\personal\鲸鲸-平台发布控制.py sandbox
+
+# 红队
+python scripts\personal\鲸鲸-平台发布控制.py redteam
+```
+
+落点：
+
+| 契约 | 真实调用点 |
+|---|---|
+| `birth_config` | `platform_agent.broker` 读取 `data/birth-config.json`；`dsh=false` 时 Broker 返回 `skill-disabled` |
+| `rollout` | Broker 读 `data/platform-rollout.json`；未进灰度返回 `rollout-blocked` |
+| `genome` | `genome_register` 写 `data/platform-genome.json`，constitution hash 只读 |
+| `sandbox` | `run_cycle` 临时目录应用 diff，主链 hash 不变 |
+| `redteam` | `run_redteam` 8 条攻击全拦，R2/R3 执行 0 |
+
+测试：
+
+```text
+P3 controls 9/9
+```
+
+---
+
 ## 3. 调用链
 
 ```text
@@ -273,12 +315,12 @@ execute(op, args) -> dict
 | `verify` | **已接** | Broker 每个成功结果都必须有 readback/tests |
 | `shadow` | **已接（opt-in）** | `WHALE_PLATFORM_SHADOW=1` 只记录，不执行 |
 | `evolution.approval` | **已接（opt-in）** | PlatformBroker.request_write / approve_write |
-| `rollout` | 未接 | adapter 版本 10/50/100 |
-| `redteam` | 未接 | 平台注入/路径/凭据测试 |
-| `birth_config` | 未接 | 启动/设置页三技能开关 |
+| `rollout` | **已接** | Broker 灰度闸门 + 发布控制 CLI |
+| `redteam` | **已接** | 发布控制 CLI 8/8 拦截 |
+| `birth_config` | **已接** | Broker 读 birth-config；dsh 开关 |
 | `evolution.approval` | 未接 | 平台写操作 R2/R3 |
-| `evolution.genome` | 未接 | adapter 版本登记 |
-| `evolution.sandbox` | 未接 | adapter 改动沙箱 |
+| `evolution.genome` | **已接** | genome CLI / platform-genome.json |
+| `evolution.sandbox` | **已接** | sandbox CLI / main hash 不变 |
 
 > P0 只接真实调用方和 `verify`；其余 8 个必须等有真实调用点再接，不能为了矩阵好看硬接。
 
@@ -333,6 +375,7 @@ DY-08 timeout/no-output 映射
 
 ```text
 离线自测 30/30
+P3 控制 9/9
 live 24/24（含预期错误码）
 无标记 0 网络
 只读 0 写
@@ -435,6 +478,7 @@ P3  rollout / genome / sandbox / redteam / birth_config
 
 ```text
 离线自测        30/30
+P3 控制         9/9
 live 24 案例    24/24
 GitHub          7 个成功 + GH-09 预期 404
 B站             view/comments/user 成功；search 412、无效 BV 预期
@@ -443,6 +487,7 @@ shadow          只记录不执行
 receipt         data/platform-receipts.jsonl
 B站 WBI         search 成功
 写操作闸门       30/30 测试；默认关；未执行真实点赞
+P3 控制         9/9；rollout/genome/sandbox/redteam/birth
 run_all         P0 PASS
 证据            data/integration/evidence/I-36-live.json
 ```

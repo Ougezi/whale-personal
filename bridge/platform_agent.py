@@ -4,6 +4,7 @@
 这条链默认关闭：只有 WHALE_PLATFORM_CALLS=1 才认 [[gh:...]] / [[bili:...]]。
 标记从回复正文里剥掉，结果作为“执行端回报”交给内核转述。
 """
+import json
 import os
 import re
 
@@ -12,11 +13,13 @@ try:
     from .platform_github import GitHubAdapter
     from .platform_bilibili import BilibiliAdapter
     from .shadow import Shadow
+    from .birth_config import BirthConfig
 except Exception:
     from platform_broker import PlatformBroker
     from platform_github import GitHubAdapter
     from platform_bilibili import BilibiliAdapter
     from shadow import Shadow
+    from birth_config import BirthConfig
 
 MARKER_RE = re.compile(r'\[\[(gh|bili):\s*(.+?)(?:\]\]|$)', re.S)
 _warned = False
@@ -30,10 +33,23 @@ def broker():
     root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
     data = os.environ.get('WHALE_PLATFORM_DATA_DIR') or os.path.join(root, 'data')
     sh = Shadow() if str(os.environ.get('WHALE_PLATFORM_SHADOW') or '') == '1' else None
+    try:
+        bp = os.path.join(data, 'birth-config.json')
+        birth = BirthConfig.load(bp) if os.path.exists(bp) else BirthConfig()
+    except Exception:
+        birth = BirthConfig()
+    rollout = None
+    try:
+        rp = os.path.join(data, 'platform-rollout.json')
+        if os.path.exists(rp):
+            rollout = json.load(open(rp, encoding='utf-8'))
+    except Exception:
+        rollout = None
     return PlatformBroker({'github': GitHubAdapter(), 'bilibili': BilibiliAdapter()},
                           shadow=sh, receipt_path=os.path.join(data, 'platform-receipts.jsonl'),
                           writes_enabled=str(os.environ.get('WHALE_PLATFORM_WRITES') or '') == '1',
-                          owner=os.environ.get('WHALE_PLATFORM_OWNER') or 'ougezi')
+                          owner=os.environ.get('WHALE_PLATFORM_OWNER') or 'ougezi',
+                          birth=birth, rollout=rollout)
 
 
 def extract(text):

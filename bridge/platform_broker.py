@@ -4,6 +4,7 @@
 消息里的 [[gh:...]] / [[bili:...]] 进入这里；能力检查、风险检查、shadow、
 adapter、verify、receipt。只读优先；R2/R3 没有 approved 一律拒绝。
 """
+import hashlib
 import json
 import os
 import time
@@ -24,7 +25,7 @@ class BrokerError(Exception):
 
 class PlatformBroker:
     def __init__(self, adapters=None, verifier=None, audit=None, shadow=None, receipt_path=None,
-                 writes_enabled=False, owner='ougezi'):
+                 writes_enabled=False, owner='ougezi', birth=None, rollout=None):
         self.adapters = dict(adapters or {})
         self.verifier = verifier if verifier is not None else Verifier(audit=audit)
         self.audit = audit
@@ -34,6 +35,8 @@ class PlatformBroker:
         self.writes_enabled = bool(writes_enabled)
         self.owner = str(owner or 'ougezi')
         self.approvals = {}
+        self.birth = birth
+        self.rollout = rollout
 
     def available(self):
         out = {}
@@ -115,6 +118,21 @@ class PlatformBroker:
         if not cap:
             return {'ok': False, 'code': 'unknown-op', 'text': '未知操作：%s.%s' % (platform, op)}
         risk = str(cap.get('risk') or 'R1')
+        if self.birth is not None:
+            try:
+                if not (self.birth.skills or {}).get('dsh', True):
+                    return {'ok': False, 'code': 'skill-disabled', 'text': '动手技能已关闭'}
+            except Exception:
+                pass
+        if self.rollout is not None:
+            try:
+                pct = int((self.rollout or {}).get(platform, 100))
+            except Exception:
+                pct = 100
+            if pct < 100:
+                bucket = int(hashlib.sha1((str(chat) + ':' + platform + ':' + op).encode('utf-8')).hexdigest()[:8], 16) % 100
+                if bucket >= pct:
+                    return {'ok': False, 'code': 'rollout-blocked', 'text': '%s 当前灰度 %d%%，这次不在窗口' % (platform, pct)}
         if risk in ('R2', 'R3'):
             if not self.writes_enabled:
                 return {'ok': False, 'code': 'write-disabled', 'text': '平台写操作未开启（WHALE_PLATFORM_WRITES=1）'}
