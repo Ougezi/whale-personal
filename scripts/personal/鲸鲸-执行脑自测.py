@@ -77,6 +77,14 @@ def unit_tests():
     line = open(os.path.join(tmp, 'brain-audit.jsonl'), encoding='utf-8').read()
     check('策略：审计脱敏', 'sk-***' in line and 'sk-abcdefghijklmnop' not in line)
 
+    print('\n[unit] 只读硬隔离')
+    try:
+        import brain_agent as _ba2
+        patch_text = open(_ba2.PATCH_READONLY, encoding='utf-8').read()
+        check('只读硬隔离 patch', all(k in patch_text for k in ('tool-bash', 'tool-pwsh', 'web')), _ba2.PATCH_READONLY)
+    except Exception as e:
+        check('只读硬隔离 patch', False, repr(e))
+
     print('\n[unit] 非主人')
     b, sent = fresh_agent()
     handled = b.handle_message(msg('脑子：查一下', username='other_wxid', sender='other_wxid'))

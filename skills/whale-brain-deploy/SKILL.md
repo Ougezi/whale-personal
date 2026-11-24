@@ -91,7 +91,7 @@ git ls-remote origin refs/heads/release refs/heads/main
 
 ## 测试证据（2026-11-24）
 
-- 单元 25/25；真实 DSH 5/5（P1/P3/P2/P4 + 注入）
+- 单元 30/30；真实 DSH 5/5（P1/P3/P2/P4 + 注入）
 - 修复：多代理取消仍发送、`data/` 文本路径绕过、`脑子：` 被写意图误升级
 - 内核 287/287、桥接 110/110、health/selfcheck 通过
 

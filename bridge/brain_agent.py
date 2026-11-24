@@ -35,6 +35,7 @@ from brain_policy import BrainPolicy
 ROOT = dsh_agent.ROOT
 DATA = os.path.join(ROOT, 'data')
 TASKS_FILE = os.path.join(DATA, 'brain-tasks.json')
+PATCH_READONLY = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'brain-readonly.yml')
 MAX_TASKS = 80
 MAX_OUTPUT = 1400
 APPROVE_WORDS = {'可以', '行', '好', '批准', '执行', '同意', '嗯'}
@@ -386,7 +387,8 @@ class BrainAgent:
         key = dsh_agent._api_key()
         if not key:
             return '（没有可用 API key）'
-        cmd = [dsh_agent.EXE, dsh_agent.BIN, '--profile', 'headless', '--json',
+        cmd = [dsh_agent.EXE, dsh_agent.BIN, '--profile', 'headless',
+               '--patch', PATCH_READONLY, '--json',
                '--permission-mode', 'read-only', '--approval-policy', 'never', prompt]
         env = dict(os.environ)
         env['DEEPSEEK_API_KEY'] = key
@@ -509,8 +511,10 @@ class BrainAgent:
         mode = task.get('mode') or 'read-only'
         self._audit('started', task, 'mode=' + mode)
         prompt = _build_prompt(task['goal'], mode, task['workspace'])
-        cmd = [dsh_agent.EXE, dsh_agent.BIN, '--profile', 'headless', '--json',
-               '--permission-mode', mode, '--approval-policy', 'never']
+        cmd = [dsh_agent.EXE, dsh_agent.BIN, '--profile', 'headless']
+        if mode == 'read-only':
+            cmd += ['--patch', PATCH_READONLY]
+        cmd += ['--json', '--permission-mode', mode, '--approval-policy', 'never']
         if task.get('sessionId'):
             cmd += ['--session-id', task['sessionId']]
         cmd.append(prompt)
