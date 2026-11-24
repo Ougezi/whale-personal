@@ -94,6 +94,14 @@ function recentForPrompt(chat, { currentSeq = 0, maxTokens = LIMITS.recentMaxTok
       picked.sort((a, b) => Number(a.seq || 0) - Number(b.seq || 0));
     }
   }
+  // 保底 user 后允许 1.3 倍预算；超了先裁最旧的 assistant，user 优先保住
+  const hardCap = Math.max(maxTokens, Math.round(maxTokens * 1.3));
+  while (total > hardCap) {
+    const idx = picked.findIndex((m) => m.role === 'assistant' && m.seq !== currentSeq);
+    if (idx < 0) break;
+    total -= messageBudgetTokens(picked[idx]);
+    picked.splice(idx, 1);
+  }
   return { messages: picked, tokens: total };
 }
 

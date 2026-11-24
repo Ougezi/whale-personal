@@ -188,6 +188,9 @@ function buildInsights(dataDir, now) {
   try {
     fs.mkdirSync(path.dirname(insightsFile(dataDir)), { recursive: true });
     fs.appendFileSync(insightsFile(dataDir), lines.join('\n') + '\n', 'utf8');
+    for (const line of lines) {
+      try { audit.append(dataDir, { kind: 'insight', action: 'add', text: line.slice(0, 120) }); } catch { /* 审计失败不影响洞察 */ }
+    }
   } catch { return 0; }
   return lines.length;
 }

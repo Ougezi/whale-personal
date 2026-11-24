@@ -249,6 +249,7 @@ class Store {
         chatStore: this.chatStore,
         llm: this.llm,
         logger: this.logger,
+        audit: (entry) => this._audit(entry),
       });
       if (rotation && rotation.promise) this._track(rotation.promise);
     }
