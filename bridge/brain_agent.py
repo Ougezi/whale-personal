@@ -355,6 +355,8 @@ class BrainAgent:
         if not task:
             self._send('没有待确认的任务。', chat)
             return
+        task['approvedBy'] = 'owner'
+        task['approvedAt'] = _now()
         self._audit('approved', task, 'owner')
         self._send('好，我开始改；会先备份/只动工作区，弄完给你证据。', chat)
         self._run(task)
@@ -683,7 +685,20 @@ class BrainAgent:
         return True
 
     def _tool_guard(self, task, ev):
-        """路径守卫 + P2 网络守卫。"""
+        """路径守卫 + 网络守卫 + I-04 ActionSpec 闸（默认关）。"""
+        try:
+            from action_guard import check_tool
+            av = check_tool(task, ev)
+            if not av.get('ok'):
+                task['blocked'] = 'action_blocked（%s）' % av.get('reason')
+                task['error'] = task['blocked']
+                task['status'] = 'failed'
+                task['finishedAt'] = _now()
+                self._save()
+                self._audit('blocked_action', task, str(av.get('reason')))
+                return False
+        except Exception:
+            pass
         if not self._path_guard(task, ev):
             return False
         if task.get('mode') != 'workspace-write':

@@ -131,19 +131,21 @@
    "min_cases": 5,
    "source_review": [],
    "files": [
+    "bridge/action_guard.py",
     "bridge/brain_agent.py",
-    "bridge/brain_policy.py",
-    "packages/action-core/registry.js",
-    "packages/action-core/job.js"
+    "scripts/personal/鲸鲸-主链动作闸自测.py"
    ],
    "actions": [
     "动作白名单；R2/R3；取消/超时"
    ],
-   "tests": [],
+   "tests": [
+    "python scripts/personal/鲸鲸-主链动作闸自测.py"
+   ],
    "acceptance": [
     "未批 0",
-    "越界 0",
-    "无孤儿"
+    "未知动作 0",
+    "R2/R3 需 approvedBy",
+    "默认关"
    ]
   },
   {
