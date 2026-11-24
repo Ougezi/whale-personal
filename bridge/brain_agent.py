@@ -417,6 +417,10 @@ class BrainAgent:
                 sess = self._state.get('sessions', {}).get(chat) or {}
             if sess.get('sessionId'):
                 task['sessionId'] = sess['sessionId']
+                # 续跑必须用 session 原来的 cwd；否则 DSH 在错误目录恢复，可能返回空文本
+                ws = str(sess.get('workspace') or '')
+                if ws and _allowed_workspace(ws) and not _denied_workspace(ws):
+                    task['workspace'] = ws
         self._run(task)
 
     def _collect_once(self, prompt, workspace, timeout=150):
@@ -708,7 +712,13 @@ class BrainAgent:
             return
         text = final_text.strip()
         if not text:
-            text = '任务跑完了，但没拿到可读结果。'
+            task['status'] = 'failed'
+            task['finishedAt'] = _now()
+            task['error'] = '没有可读结果'
+            self._save()
+            self._audit('failed', task, 'empty_final')
+            self._send('这次没拿到可读结果，我再查一下。', task['chat'])
+            return
         task['status'] = 'done'
         task['finishedAt'] = _now()
         task['output'] = text[:MAX_OUTPUT]

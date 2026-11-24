@@ -3,7 +3,7 @@
 > 日期：2026-11-24
 > 对象：P1 只读、P2 写+审批、P3 续跑、P4 定时/多代理只读
 > 测试入口：`scripts/personal/鲸鲸-执行脑自测.py`
-> 结论：**42/42（36 单元 + 6 真实 DSH）通过**；修复 5 个产品 bug、2 个测试环境误判。
+> 结论：**43/43（37 单元 + 6 真实 DSH）通过**；修复 6 个产品 bug、2 个测试环境误判。
 
 ---
 
@@ -43,7 +43,7 @@ python scripts/personal/鲸鲸-执行脑自测.py --live
 
 ## 2. 测试矩阵与结果
 
-### 2.1 单元（36/36）
+### 2.1 单元（37/37）
 
 | 组 | 用例 | 结果 |
 |---|---|---|
@@ -116,7 +116,14 @@ python scripts/personal/鲸鲸-执行脑自测.py --live
 - 修复：`SELF_ECHO` 吞掉自己的提醒/回执；pending 增加 `lastRemindAt`，60 秒最多提醒一次；初始审批卡也写 `lastRemindAt`。
 - 测试：`审批提醒不刷屏`、`审批提醒不自循环`、`超过 60 秒提醒一次`。
 
-### B6 live 测试目录被白名单拦（测试环境误判）
+### B6 P3 续跑用错工作区，拿不到结果（真 bug）
+
+- 现象：P2 完成后 `脑子继续：刚才那个任务查到什么？` 回“任务跑完了，但没拿到可读结果”。
+- 原因：续跑只取了 sessionId，没取 session 保存的 workspace；DSH 在 `D:\dsh\profiles\desktop` 恢复 `D:\dsh\brain-test` 的 session，返回空 final。
+- 修复：续跑时用 `sessions.workspace`；空 final 不再标 done，改 failed/“没有可读结果”。
+- 测试：`续跑沿用 session 工作区`；真实 resume 通过。
+
+### B7 live 测试目录被白名单拦（测试环境误判）
 
 - 原因：测试用了 `C:\Temp`，被生产白名单拒绝。
 - 修复：live 用例改到 `D:\dsh\brain-live-test`。
@@ -244,4 +251,24 @@ python scripts/personal/鲸鲸-自测.py
 - 但随后“还在等你确认上一条”连续刷屏 18 条；
 - 主人回「不要」后取消，未创建文件。
 
-已按 B5 修复：吞掉自己的提醒回声 + 60 秒提醒一次。应用 19:xx 重启后，需要主人重新发一次 P2 做最终验收。
+已按 B5 修复。19:15 主人重发 P2：只来一条审批卡，回「可以」后创建成功并回读 `hello`，**真实验收通过**。
+
+---
+
+## 11. 真实 P3 验收（失败→修复）
+
+2026-11-24 19:16 主人发送：
+
+```
+脑子继续：刚才那个任务查到什么？
+```
+
+结果：
+
+- 回复“在看了，稍等。”后，回“任务跑完了，但没拿到可读结果”。
+- 任务 `brain_c346204a1a` 标为 done，输出为空 fallback。
+- 根因：session 属于 `D:\dsh\brain-test`，续跑却用了默认 `D:\dsh\profiles\desktop`。
+- 已修：续跑沿用 `sessions.workspace`；空 final 标 failed。
+- 修复后直接 resume 实测：`status=done`，输出 246 字，cwd=`D:\dsh\brain-test`。
+
+需要主人再发一次同样的 `脑子继续` 做最终微信验收。

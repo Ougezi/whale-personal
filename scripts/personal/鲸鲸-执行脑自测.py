@@ -156,6 +156,13 @@ def unit_tests():
     b.handle_message(msg('在吗'))
     check('超过 60 秒提醒一次', len(sent) == base + 1)
 
+    b, _ = fresh_agent()
+    seen = []
+    b._run = lambda task: seen.append(task)
+    b._state['sessions'] = {'wxid_master': {'sessionId': 's-test', 'workspace': r'D:\dsh\brain-test'}}
+    b._start('wxid_master', '刚才那个任务查到什么？', mode='read-only', resume=True)
+    check('续跑沿用 session 工作区', seen and seen[-1].get('workspace') == r'D:\dsh\brain-test', seen[-1].get('workspace') if seen else 'none')
+
     print('\n[unit] P3 状态恢复')
     b, _ = fresh_agent()
     t1 = b._new_task('wxid_master', 'running', 'read-only', r'D:\dsh')
