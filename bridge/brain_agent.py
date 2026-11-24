@@ -17,12 +17,13 @@ r"""鲸鲸的 DSH 执行脑（bridge 侧）。
   脑子深查：两路只读侦察 + 一路汇总
 
 设计约束：
-- 只有主人私聊能触发；非主人一律不处理。
+- 只有主人能触发（私聊/群聊均可）；非主人一律不处理。
 - 任务结果用自然中文发回，不把 tool 日志/traceback 发到微信。
 - 任务卡落盘；重启后标记 interrupted，不自动重放有副作用的操作。
 """
 import json
 import os
+from collections import deque
 import re
 import subprocess
 import threading
@@ -45,6 +46,8 @@ PENDING_REMIND_MS = 60000
 APPROVE_WORDS = {'可以', '行', '好', '批准', '执行', '同意', '嗯'}
 REJECT_WORDS = {'不要', '不行', '取消', '拒绝', '算了', '不'}
 WRITE_HINTS = ('改', '修', '写', '删', '安装', '部署', '重启', '替换', '创建', '生成文件', 'patch')
+FS_TOOLS = {'read', 'read_image', 'write', 'edit', 'glob', 'grep'}
+PATH_KEYS = ('file_path', 'path', 'cwd', 'directory', 'root')
 NET_RE = re.compile(r'curl|Invoke-WebRequest|Invoke-RestMethod|wget|Test-NetConnection|Resolve-DnsName|requests\.|https?\.get|fetch\(|socket\.', re.I)
 CMD_RE = re.compile(r'^(?:/brain|脑子)(写|继续|状态|进度|取消|定时|深查|多查|多代理)?\s*[：:，,]\s*(.*)$', re.S)
 SPACE_RE = re.compile(r'^(?:/brain|脑子)\s+(.+)$', re.S)
@@ -113,6 +116,7 @@ class BrainAgent:
         self.log = log or (lambda *a, **k: None)
         self._lock = threading.RLock()
         self._procs = {}
+        self._sent_recent = deque(maxlen=30)
         self._state = {'version': 1, 'tasks': {}, 'sessions': {}, 'schedules': []}
         self.policy = BrainPolicy(DATA)
         self._load()
@@ -132,6 +136,8 @@ class BrainAgent:
                 # 重启后不自动重放有副作用的操作；只标记，等主人问起再说明
                 if t.get('status') == 'pending_approval':
                     continue
+                for pid in ([t.get('pid')] + list(t.get('children') or [])):
+                    self._kill_tree(pid)
                 t['status'] = 'interrupted'
                 t['finishedAt'] = _now()
                 t['error'] = '进程重启，任务中断'
@@ -141,17 +147,34 @@ class BrainAgent:
 
     def _save(self):
         try:
-            os.makedirs(DATA, exist_ok=True)
-            tasks = self._state.get('tasks', {})
-            if len(tasks) > MAX_TASKS:
-                for k in sorted(tasks, key=lambda x: tasks[x].get('createdAt', 0))[:-MAX_TASKS]:
-                    tasks.pop(k, None)
-            tmp = TASKS_FILE + '.tmp'
-            with open(tmp, 'w', encoding='utf-8') as f:
-                json.dump(self._state, f, ensure_ascii=False, indent=1)
-            os.replace(tmp, TASKS_FILE)
+            with self._lock:
+                os.makedirs(DATA, exist_ok=True)
+                tasks = self._state.get('tasks', {})
+                if len(tasks) > MAX_TASKS:
+                    for k in sorted(tasks, key=lambda x: tasks[x].get('createdAt', 0))[:-MAX_TASKS]:
+                        tasks.pop(k, None)
+                tmp = TASKS_FILE + '.tmp.%d' % threading.get_ident()
+                with open(tmp, 'w', encoding='utf-8') as f:
+                    json.dump(self._state, f, ensure_ascii=False, indent=1)
+                os.replace(tmp, TASKS_FILE)
         except Exception as e:
             self.log('brain 状态保存失败：', repr(e))
+
+    def _kill_tree(self, pid):
+        """只杀 DeepSeek Harness 子进程，避免重启后误杀被复用的 pid。"""
+        try:
+            pid = int(pid or 0)
+            if pid <= 0:
+                return
+            r = subprocess.run(['tasklist', '/FI', 'PID eq %d' % pid, '/FO', 'CSV', '/NH'],
+                               capture_output=True, timeout=8, text=True,
+                               encoding='utf-8', errors='replace')
+            if 'DeepSeek Harness.exe' not in (r.stdout or ''):
+                return
+            subprocess.run(['taskkill', '/PID', str(pid), '/T', '/F'],
+                           capture_output=True, timeout=15)
+        except Exception:
+            pass
 
     def _task(self, task_id):
         return self._state.get('tasks', {}).get(task_id)
@@ -162,7 +185,10 @@ class BrainAgent:
 
     def _send(self, text, chat):
         try:
-            return self.send(str(text or ''), chat)
+            text = str(text or '')
+            with self._lock:
+                self._sent_recent.append((time.time(), text))
+            return self.send(text, chat)
         except Exception as e:
             self.log('brain 发送失败：', repr(e))
             return False
@@ -209,8 +235,12 @@ class BrainAgent:
         text = str(msg.get('content') or '').strip()
         if not text:
             return False
-        # 自己发出的提醒/回执会被微信回读成 incoming；吞掉，避免自循环刷屏
+        # 自己发出的消息会被微信回读成 incoming；先吞掉，避免自循环刷屏
         if any(text.startswith(x) for x in SELF_ECHO):
+            return True
+        with self._lock:
+            recent = [x for x in self._sent_recent if time.time() - x[0] < 120]
+        if any(text == x[1] for x in recent):
             return True
 
         with self._lock:
@@ -423,7 +453,7 @@ class BrainAgent:
                     task['workspace'] = ws
         self._run(task)
 
-    def _collect_once(self, prompt, workspace, timeout=150):
+    def _collect_once(self, prompt, workspace, timeout=150, children=None):
         """同步跑一次只读 DSH，返回 final 文本；供多代理侦察/汇总使用。"""
         key = dsh_agent._api_key()
         if not key:
@@ -440,6 +470,8 @@ class BrainAgent:
                                  errors='replace', creationflags=flags)
         except Exception as e:
             return '（启动失败：%s）' % _short(repr(e), 80)
+        if children is not None:
+            children.append(p.pid)
         try:
             out, err = p.communicate(timeout=timeout)
         except subprocess.TimeoutExpired:
@@ -449,7 +481,13 @@ class BrainAgent:
             except Exception:
                 try: p.kill()
                 except Exception: pass
+            if children is not None:
+                try: children.remove(p.pid)
+                except ValueError: pass
             return '（超时）'
+        if children is not None:
+            try: children.remove(p.pid)
+            except ValueError: pass
         text = ''
         error = ''
         for line in (out or '').splitlines():
@@ -484,6 +522,7 @@ class BrainAgent:
             self._send('这个任务被拦了：工作区/路径不符合策略。', chat)
             return
         task = self._new_task(chat, goal, 'multi-readonly', workspace, risk='R0')
+        task['children'] = []
         task['status'] = 'running'
         task['startedAt'] = _now()
         self._save()
@@ -502,8 +541,9 @@ class BrainAgent:
         pb = ('只读侦察 B（日志/报错/测试/最近改动）：' + goal +
               '\n只列 5-8 条事实 + 证据路径，不要建议、不要写文件、不要联网。')
         notes = {}
+        children = task.setdefault('children', [])
         def scout(name, prompt):
-            notes[name] = self._collect_once(prompt, ws, 150)
+            notes[name] = self._collect_once(prompt, ws, 150, children=children)
         ts = [threading.Thread(target=scout, args=('A', pa), daemon=True),
               threading.Thread(target=scout, args=('B', pb), daemon=True)]
         for t in ts: t.start()
@@ -515,7 +555,7 @@ class BrainAgent:
                    '请合并成一份简短结论：先给结论，再给关键证据；不要贴日志、不要写文件。\n\n'
                    '侦察 A：\n' + notes.get('A', '（无）') +
                    '\n\n侦察 B：\n' + notes.get('B', '（无）'))
-        final = self._collect_once(manager, ws, 150)
+        final = self._collect_once(manager, ws, 150, children=children)
         if task.get('status') == 'cancelled':
             return
         if not final or final.startswith('（'):
@@ -583,6 +623,8 @@ class BrainAgent:
             self._send('执行端没启动起来（不影响聊天）。', task['chat'])
             return
         self._procs[task['id']] = proc
+        task['pid'] = proc.pid
+        self._save()
         self.log('brain 启动：%s mode=%s cwd=%s' % (task['id'], mode, task['workspace']))
         threading.Thread(target=self._reader, args=(task, proc), daemon=True, name='brain-' + task['id']).start()
         threading.Thread(target=self._watchdog, args=(task, proc), daemon=True, name='brain-wd-' + task['id']).start()
@@ -615,8 +657,35 @@ class BrainAgent:
                 warned = True
                 self._send('还在弄，稍等。', task['chat'])
 
+    def _path_guard(self, task, ev):
+        """只允许工作区内的 fs 路径；P1 不能靠 read 绕过白名单。"""
+        if ev.get('type') != 'tool_call' or str(ev.get('tool') or '') not in FS_TOOLS:
+            return True
+        inp = ev.get('input') or {}
+        for k in PATH_KEYS:
+            raw = inp.get(k)
+            if not isinstance(raw, str) or not raw.strip():
+                continue
+            p = os.path.expanduser(raw.strip())
+            if p.startswith(('http://', 'https://')):
+                continue
+            if not os.path.isabs(p):
+                p = os.path.join(task.get('workspace') or '', p)
+            p = os.path.abspath(p)
+            if not _allowed_workspace(p) or _denied_workspace(p):
+                task['blocked'] = 'path_blocked（%s）' % _short(raw, 80)
+                task['error'] = task['blocked']
+                task['status'] = 'failed'
+                task['finishedAt'] = _now()
+                self._save()
+                self._audit('blocked_path', task, raw)
+                return False
+        return True
+
     def _tool_guard(self, task, ev):
-        """P2 默认不允许联网：web 工具已 patch 掉，shell 网络命令在这里拦。"""
+        """路径守卫 + P2 网络守卫。"""
+        if not self._path_guard(task, ev):
+            return False
         if task.get('mode') != 'workspace-write':
             return True
         if os.environ.get('WHALE_BRAIN_ALLOW_NETWORK') == '1' or task.get('network'):
@@ -626,7 +695,8 @@ class BrainAgent:
         tool = str(ev.get('tool') or '')
         inp = json.dumps(ev.get('input') or {}, ensure_ascii=False)
         if NET_RE.search(inp) or tool in ('web_fetch', 'web_search'):
-            task['error'] = 'network_blocked（任务尝试联网，已拦截）'
+            task['blocked'] = 'network_blocked（任务尝试联网，已拦截）'
+            task['error'] = task['blocked']
             task['status'] = 'failed'
             task['finishedAt'] = _now()
             self._save()
@@ -697,9 +767,20 @@ class BrainAgent:
                 except Exception:
                     pass
             self._procs.pop(task['id'], None)
+            task.pop('pid', None)
 
-        if task.get('status') == 'cancelled':
+        status = task.get('status')
+        if status == 'cancelled':
             self._save()
+            return
+        if status == 'timeout':
+            # watchdog 已经发过超时消息；reader 只收尾，不改状态、不重复发
+            self._save()
+            return
+        if status == 'failed':
+            self._save()
+            if task.get('blocked'):
+                self._send('这边没跑成：' + _short(task.get('error') or task.get('blocked'), 120), task['chat'])
             return
         error = final_error or task.get('error')
         if error:
@@ -759,6 +840,8 @@ class BrainAgent:
             except Exception:
                 try: proc.kill()
                 except Exception: pass
+        for pid in list(t.get('children') or []):
+            self._kill_tree(pid)
         t['status'] = 'cancelled'
         t['finishedAt'] = _now()
         self._save()

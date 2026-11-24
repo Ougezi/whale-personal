@@ -105,6 +105,24 @@ def unit_tests():
     ReceiverMixin.on_message(d, msg('脑子状态'), None)
     check('桥接入口接管', any('执行脑任务' in s or '还没有' in s for s in sent), sent[-1][:30] if sent else '')
 
+    b, sent = fresh_agent()
+    ok_group = b.handle_message(msg('脑子状态', username='123@chatroom', sender='wxid_master'))
+    ok_other = b.handle_message(msg('脑子状态', username='123@chatroom', sender='other'))
+    check('主人群聊可触发', ok_group is True and any('执行脑任务' in x or '还没有' in x for x in sent))
+    check('群聊非主人不触发', ok_other is False)
+
+    b, _ = fresh_agent()
+    t = b._new_task('wxid_master', '读 C:\\Windows\\win.ini', 'read-only', r'D:\dsh')
+    bad = b._path_guard(t, {'type': 'tool_call', 'tool': 'read', 'input': {'file_path': r'C:\Windows\win.ini'}})
+    good = b._path_guard(t, {'type': 'tool_call', 'tool': 'read', 'input': {'file_path': r'D:\dsh\brain-test\test.txt'}})
+    check('P1 路径守卫', bad is False and good is True, t.get('error', ''))
+
+    b, sent = fresh_agent()
+    b._send('测试回声', 'wxid_master')
+    n = len(sent)
+    b.handle_message(msg('测试回声'))
+    check('通用自回声过滤', len(sent) == n)
+
     print('\n[unit] P2 审批状态机')
     b, sent = fresh_agent()
     b._run = lambda task: (task.update(status='done', output='fake'), b._save())
@@ -200,7 +218,7 @@ def unit_tests():
 
     print('\n[unit] P4 多代理')
     b, sent = fresh_agent()
-    def fake_collect(prompt, workspace, timeout=150):
+    def fake_collect(prompt, workspace, timeout=150, children=None):
         if '下面是两路' in prompt: return '汇总结论'
         if '侦察 A' in prompt: return 'A-结构'
         if '侦察 B' in prompt: return 'B-日志'
