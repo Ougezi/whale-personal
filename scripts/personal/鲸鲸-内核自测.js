@@ -1138,6 +1138,29 @@ try {
   check('向量路径不依赖 cwd', false, String(e && e.message).slice(0, 50));
 }
 
+// 浏览器缓存清理（2026-11-24 架构体检）
+try {
+  const fsx = require('node:fs');
+  const osx = require('node:os');
+  const bpc = require(path.join(ROOT, 'src', 'adapters', 'browserProfileCleanup.js'));
+  const dir = fsx.mkdtempSync(path.join(osx.tmpdir(), 'bpc-'));
+  fsx.mkdirSync(path.join(dir, 'Default', 'Cache'), { recursive: true });
+  fsx.writeFileSync(path.join(dir, 'Default', 'Cache', 'a.bin'), 'x'.repeat(20));
+  fsx.writeFileSync(path.join(dir, 'Default', 'Cookies'), 'keep');
+  fsx.mkdirSync(path.join(dir, 'component_crx_cache'), { recursive: true });
+  fsx.writeFileSync(path.join(dir, 'component_crx_cache', 'old.bin'), 'x'.repeat(20));
+  const old = (Date.now() - 10 * 86400000) / 1000;
+  fsx.utimesSync(path.join(dir, 'component_crx_cache'), old, old);
+  fsx.mkdirSync(path.join(dir, 'WasmTtsEngine'), { recursive: true });
+  fsx.writeFileSync(path.join(dir, 'WasmTtsEngine', 'new.bin'), 'x');
+  const r = bpc.cleanup(dir, { maxAgeDays: 7 });
+  check('浏览器缓存清理：删缓存', !fsx.existsSync(path.join(dir, 'Default', 'Cache')), JSON.stringify(r));
+  check('浏览器缓存清理：保留登录', fsx.existsSync(path.join(dir, 'Default', 'Cookies')), '');
+  check('浏览器缓存清理：旧组件删/新组件留', !fsx.existsSync(path.join(dir, 'component_crx_cache')) && fsx.existsSync(path.join(dir, 'WasmTtsEngine')), '');
+} catch (e) {
+  check('浏览器缓存清理', false, String(e && e.message).slice(0, 50));
+}
+
 console.log('\n通过 ' + pass + '/' + (pass + fail));
   process.exit(fail ? 1 : 0);
 })();

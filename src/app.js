@@ -112,6 +112,15 @@ function createRuntime({ root = path.resolve(__dirname, '..'), env = process.env
     logger.warn('媒体缓存清理失败（不影响使用）：' + describeError(err));
   }
 
+  // 浏览器缓存清理：只删可再生成的缓存，登录态/Cookies 不动
+  try {
+    const bpc = require('./adapters/browserProfileCleanup');
+    const r = bpc.cleanup(path.join(root, 'data', 'browser-profile'), { maxAgeDays: 7 });
+    if (r.removed) logger.info(`浏览器缓存清理：删 ${r.removed} 项，释放 ${r.freedMB} MB`);
+  } catch (err) {
+    logger.warn('浏览器缓存清理失败（不影响使用）：' + describeError(err));
+  }
+
   const runtime = { config, logger, store, startedAt: Date.now(), version: VERSION, loopProbe };
   runtime.child = child;
   // 进程内定时任务统一入口：日记 tick、记忆快照、朋友圈定时读取共用，

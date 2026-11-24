@@ -20,7 +20,8 @@ const links = require('./links');
 
 // 持久 profile：保留 Cookie / 登录态（下次打开同一站点还是登录状态）。
 // 想换目录可以设环境变量 WHALE_BROWSER_PROFILE。
-const PROFILE_DIR = process.env.WHALE_BROWSER_PROFILE || path.join(process.cwd(), 'data', 'browser-profile');
+const PROFILE_DIR = process.env.WHALE_BROWSER_PROFILE
+  || path.join(path.resolve(__dirname, '..', '..'), 'data', 'browser-profile');
 
 const BROWSERS = [
   'C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe',
