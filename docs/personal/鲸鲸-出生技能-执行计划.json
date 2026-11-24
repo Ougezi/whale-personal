@@ -48,18 +48,24 @@
     "ClawSafety"
    ],
    "files": [
-    "docs/personal/鲸鲸-出生技能-宪法.md"
+    "docs/personal/鲸鲸-出生技能-宪法.md",
+    "docs/personal/鲸鲸-出生技能-宪法.sha256",
+    "scripts/personal/鲸鲸-出生宪法校验.py"
    ],
    "actions": [
-    "写宪法；逐条映射到代码/权限；评审不可变面"
+    "写宪法；逐条映射到代码/权限；冻结 SHA256；篡改测试",
+    "八条红线全部有现有或 B1–B6 落点"
    ],
    "tests": [
-    "红线清单评审",
-    "越权样例拒绝"
+    "python scripts/personal/鲸鲸-出生宪法校验.py --check",
+    "python scripts/personal/鲸鲸-出生宪法校验.py --tamper-test"
    ],
    "acceptance": [
-    "8 条宪法全部有代码/权限落点",
-    "任何提案不能修改宪法"
+    "8 条宪法文本齐全",
+    "每条有现有/后续落点",
+    "哈希锁一致",
+    "篡改被拒绝",
+    "修订只允许主人"
    ]
   },
   {
