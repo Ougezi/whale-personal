@@ -17,10 +17,17 @@ foreach ($d in @("src", "bridge")) {
     robocopy (Join-Path $repo $d) (Join-Path $staging $d) /E /NFL /NDL /NJH /NJS /NP | Out-Null
 }
 robocopy (Join-Path $repo "scripts\personal") (Join-Path $staging "scripts\personal") /E /NFL /NDL /NJH /NJS /NP | Out-Null
-# 启动器是文件夹发布：可执行文件 + 依赖 DLL 一起带上
+# 启动器：优先用「已部署到 dist」的那份（它才是签名/版本最新的），launcher\publish 只作兜底
+$deployed = Join-Path $repo "dist\whale-personal\WhaleLauncher.exe"
 $pub = Join-Path $repo "launcher\publish"
-if (Test-Path (Join-Path $pub "WhaleLauncher.exe")) {
+if (Test-Path $deployed) {
+    Copy-Item $deployed $staging -Force
+    Write-Host "  启动器来源：dist\whale-personal（已部署版本）"
+} elseif (Test-Path (Join-Path $pub "WhaleLauncher.exe")) {
     Copy-Item (Join-Path $pub "*") $staging -Force
+    Write-Host "  启动器来源：launcher\publish（兜底）"
+} else {
+    Write-Host "  [警告] 没找到 WhaleLauncher.exe，包里不会带启动器" -ForegroundColor Yellow
 }
 foreach ($f in @("server.js", "package.json", "release-manifest.json", "LICENSE", "PERSONAL.md")) {
     $src = Join-Path $repo $f
