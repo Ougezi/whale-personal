@@ -1027,18 +1027,21 @@
    ],
    "source_review": [],
    "files": [
+    "bridge/rollout.py",
+    "scripts/personal/鲸鲸-出生灰度回滚自测.py",
     "docs/personal/鲸鲸-出生技能-发布与回滚.md"
    ],
    "actions": [
-    "灰度；监控；回滚"
+    "10%→50%→100%；errorRate≤1%/score≥0.85；kill switch；rollback<5min；数据保留"
    ],
    "tests": [
-    "停/回滚",
-    "数据不丢"
+    "python scripts/personal/鲸鲸-出生灰度回滚自测.py"
    ],
    "acceptance": [
     "随时可停",
-    "回滚 <5min"
+    "回滚 <5min",
+    "数据不丢",
+    "指标不达标不推进"
    ]
   },
   {
