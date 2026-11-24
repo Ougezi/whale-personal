@@ -315,21 +315,24 @@
    ],
    "source_review": [],
    "files": [
+    "packages/memory-core/migrate.js",
+    "scripts/personal/鲸鲸-出生迁移自测.js",
     "src/memory/migrate.js",
     "src/memory/backup.js"
    ],
    "actions": [
-    "双写开关；回放校验；迁移脚本"
+    "只读旧 messages.jsonl；独立 migration 事件文件；幂等；双写 legacy-first；回滚只删迁移文件",
+    "不接真实 data；只做工具/测试"
    ],
    "tests": [
-    "双写一致",
-    "回滚",
-    "旧聊天不丢"
+    "node scripts/personal/鲸鲸-出生迁移自测.js"
    ],
    "acceptance": [
     "迁移 0 丢失",
+    "重复迁移 0 新增",
     "可回滚",
-    "旧聊天不受影响"
+    "旧聊天不受影响",
+    "双写事件失败不伤旧链"
    ]
   },
   {
