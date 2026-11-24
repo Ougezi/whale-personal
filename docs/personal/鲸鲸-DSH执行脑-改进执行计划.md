@@ -176,4 +176,4 @@ node scripts/health.js
 | 日期 | 内容 | 验证 |
 |---|---|---|
 | 2026-11-24 | 计划书 | 本文件 |
-| 2026-11-24 | P0/P1/P2 实现：policy/audit/JSON/test skill、只读硬隔离 patch | 36/36（31 单元 + 5 真实）；内核 287；桥接 110 |
+| 2026-11-24 | P0/P1/P2 实现：policy/audit/JSON/test skill、只读硬隔离 patch | 38/38（32 单元 + 6 真实）；内核 287；桥接 110 |

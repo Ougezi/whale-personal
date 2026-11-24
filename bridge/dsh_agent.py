@@ -208,12 +208,18 @@ def parse_task(text):
 
 
 def _api_key():
-    try:
-        with open(os.path.join(ROOT, "data", "settings.json"), encoding="utf-8-sig") as f:
-            st = json.load(f)
-        return str(st.get("apiKey") or (st.get("keys") or {}).get("deepseek") or "")
-    except Exception:
-        return ""
+    # settings.json 可能被内核原子替换/短暂锁定；重试几次，避免瞬时读失败直接判没 key
+    for _ in range(5):
+        try:
+            with open(os.path.join(ROOT, "data", "settings.json"), encoding="utf-8-sig") as f:
+                st = json.load(f)
+            key = str(st.get("apiKey") or (st.get("keys") or {}).get("deepseek") or "")
+            if key:
+                return key
+        except Exception:
+            pass
+        time.sleep(0.12)
+    return ""
 
 
 def available():

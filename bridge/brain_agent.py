@@ -36,12 +36,14 @@ ROOT = dsh_agent.ROOT
 DATA = os.path.join(ROOT, 'data')
 TASKS_FILE = os.path.join(DATA, 'brain-tasks.json')
 PATCH_READONLY = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'brain-readonly.yml')
+PATCH_WRITE = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'brain-write.yml')
 MAX_TASKS = 80
 MAX_OUTPUT = 1400
 MAX_PER_DAY = int(os.environ.get('WHALE_BRAIN_MAX_PER_DAY') or 20)
 APPROVE_WORDS = {'可以', '行', '好', '批准', '执行', '同意', '嗯'}
 REJECT_WORDS = {'不要', '不行', '取消', '拒绝', '算了', '不'}
 WRITE_HINTS = ('改', '修', '写', '删', '安装', '部署', '重启', '替换', '创建', '生成文件', 'patch')
+NET_RE = re.compile(r'curl|Invoke-WebRequest|Invoke-RestMethod|wget|Test-NetConnection|Resolve-DnsName|requests\.|https?\.get|fetch\(|socket\.', re.I)
 CMD_RE = re.compile(r'^(?:/brain|脑子)(写|继续|状态|进度|取消|定时|深查|多查|多代理)?\s*[：:，,]\s*(.*)$', re.S)
 SPACE_RE = re.compile(r'^(?:/brain|脑子)\s+(.+)$', re.S)
 SCHED_RE = re.compile(r'^每天\s*(\d{1,2}:\d{2})\s*(.*)$', re.S)
@@ -538,6 +540,8 @@ class BrainAgent:
         cmd = [dsh_agent.EXE, dsh_agent.BIN, '--profile', 'headless']
         if mode == 'read-only':
             cmd += ['--patch', PATCH_READONLY]
+        elif mode == 'workspace-write':
+            cmd += ['--patch', PATCH_WRITE]
         cmd += ['--json', '--permission-mode', mode, '--approval-policy', 'never']
         if task.get('sessionId'):
             cmd += ['--session-id', task['sessionId']]
@@ -593,6 +597,25 @@ class BrainAgent:
                 warned = True
                 self._send('还在弄，稍等。', task['chat'])
 
+    def _tool_guard(self, task, ev):
+        """P2 默认不允许联网：web 工具已 patch 掉，shell 网络命令在这里拦。"""
+        if task.get('mode') != 'workspace-write':
+            return True
+        if os.environ.get('WHALE_BRAIN_ALLOW_NETWORK') == '1' or task.get('network'):
+            return True
+        if ev.get('type') != 'tool_call':
+            return True
+        tool = str(ev.get('tool') or '')
+        inp = json.dumps(ev.get('input') or {}, ensure_ascii=False)
+        if NET_RE.search(inp) or tool in ('web_fetch', 'web_search'):
+            task['error'] = 'network_blocked（任务尝试联网，已拦截）'
+            task['status'] = 'failed'
+            task['finishedAt'] = _now()
+            self._save()
+            self._audit('blocked_network', task, tool)
+            return False
+        return True
+
     def _drain_stderr(self, proc):
         try:
             proc.stderr.read()
@@ -623,6 +646,14 @@ class BrainAgent:
                     self._save()
                 elif typ == 'tool_call':
                     task['toolCalls'] = int(task.get('toolCalls', 0)) + 1
+                    if not self._tool_guard(task, ev):
+                        try:
+                            subprocess.run(['taskkill', '/PID', str(proc.pid), '/T', '/F'],
+                                           capture_output=True, timeout=15)
+                        except Exception:
+                            try: proc.kill()
+                            except Exception: pass
+                        break
                 elif typ == 'text':
                     final_text += str(ev.get('text') or '')
                 elif typ == 'final':

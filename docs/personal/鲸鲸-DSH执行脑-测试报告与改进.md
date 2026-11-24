@@ -3,7 +3,7 @@
 > 日期：2026-11-24
 > 对象：P1 只读、P2 写+审批、P3 续跑、P4 定时/多代理只读
 > 测试入口：`scripts/personal/鲸鲸-执行脑自测.py`
-> 结论：**36/36（31 单元 + 5 真实 DSH）通过**；修复 4 个产品 bug、1 个测试环境误判。
+> 结论：**38/38（32 单元 + 6 真实 DSH）通过**；修复 4 个产品 bug、2 个测试环境误判。
 
 ---
 
@@ -43,7 +43,7 @@ python scripts/personal/鲸鲸-执行脑自测.py --live
 
 ## 2. 测试矩阵与结果
 
-### 2.1 单元（31/31）
+### 2.1 单元（32/32）
 
 | 组 | 用例 | 结果 |
 |---|---|---|
@@ -63,6 +63,7 @@ python scripts/personal/鲸鲸-执行脑自测.py --live
 | 策略 | 凭据拒绝、R2/R3 分级、审计脱敏 | ✅ |
 | 硬隔离 | 只读 patch 禁用 web/shell/子代理/工作流 | ✅ |
 | 配额 | 每日任务上限 | ✅ |
+| P2 网络 | curl/Invoke-WebRequest/web_fetch 被运行时代理拦截 | ✅ |
 | 定时 | 合法注册；非法格式拒绝 | ✅ |
 
 ### 2.2 真实 DSH（5/5）
@@ -120,7 +121,7 @@ python scripts/personal/鲸鲸-执行脑自测.py --live
 | 风险 | 说明 | 优先级 |
 |---|---|---|
 | P1 网络 | 已用 `brain-readonly.yml` 禁用 web/shell/子代理/工作流（硬隔离）；代价是 P1 不能跑 shell | ✅ |
-| P2 网络 | 审批写保留 shell 做验证，shell 仍可联网；属“主人批准后的写任务”边界 | P1 |
+| P2 网络 | 已拦 curl/Invoke-WebRequest/web_fetch 等已知网络命令；不是 OS 级防火墙，混淆命令仍可能绕过 | P1 |
 | P2 无 OS 级沙箱 | 依赖 DSH permission + 白名单 + 审批；不是虚拟机 | P1 |
 | 审批是文本 | 没有富 UI/二次确认；R3 还没有分级 | P1 |
 | 多代理只读 | 多代理写未启用；避免并发写 | 设计选择 |
@@ -197,4 +198,4 @@ python scripts/personal/鲸鲸-自测.py
 - [x] selfcheck 已接入执行脑自测，发布门禁自动跑。
 - [x] `whale-brain-testing` skill（仓库 + DSH 全局）。
 - [x] P0 网络硬隔离：只读用 patch 禁用 web/shell/子代理/工作流；P2 写仍保留 shell。
-- [ ] P2 持续评测：已有脚本/JSON，未接 CI。
+- [x] P2 持续评测：脚本/JSON 已接入 selfcheck 门禁。
