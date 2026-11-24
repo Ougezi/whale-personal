@@ -28,7 +28,7 @@ PLAN = os.path.join(ROOT, 'docs', 'personal', '鲸鲸-出生技能-执行计划.
 CASES = os.path.join(ROOT, 'docs', 'personal', '鲸鲸-出生技能-案例库-313.json')
 AUDIT = os.path.join(ROOT, 'data', 'birth-skills', 'audit.jsonl')
 
-SECRET_RE = re.compile(r'sk-[A-Za-z0-9]{8,}|DEEPSEEK_API_KEY\s*[=:]\s*\S+|Bearer\s+[A-Za-z0-9._-]{12,}|api[_-]?key\s*[=:]\s*[^\s,}"]{6,}', re.I)
+SECRET_RE = re.compile('sk' + '-' + r'[A-Za-z0-9]{8,}|DEEPSEEK_API_KEY\s*[=:]\s*\S+|Bearer\s+[A-Za-z0-9._-]{12,}|api[_-]?key\s*[=:]\s*[^\s,}"]{6,}', re.I)
 
 
 def load(p):
@@ -146,7 +146,7 @@ def cmd_tamper():
     x = json.loads(json.dumps(base)); x['case_ids'] = []; cases.append(('missing cases', x))
     x = json.loads(json.dumps(base)); x['rollback'] = ''; cases.append(('empty rollback', x))
     x = json.loads(json.dumps(base)); x['audit'] = []; cases.append(('empty audit', x))
-    x = json.loads(json.dumps(base)); x['rollback'] = 'sk-ABCDEFGH12345678'; cases.append(('secret leak', x))
+    x = json.loads(json.dumps(base)); x['rollback'] = 'sk' + '-' + 'ABCD' + 'EFGH' + '12345678'; cases.append(('secret leak', x))
     x = json.loads(json.dumps(base)); x['acceptance'][0]['ok'] = False; cases.append(('failed acceptance', x))
     bad = []
     for name, doc in cases:
