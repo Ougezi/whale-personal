@@ -89,6 +89,9 @@ class Self:
         self.sent.append(str(text))
         return True
 
+    def _post_job(self, ops):
+        return None
+
 
 def empty_consume():
     A.clear('c0')

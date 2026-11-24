@@ -46,4 +46,29 @@ module.exports = function register(router) {
     const result = await gateway.handleInbound(body, { local: isLocalBridge });
     return json(res, 200, result);
   });
+
+  // I-17：桥接发送回执 → receipts.js 账本（只读统计 + 落内存）
+  router.post('/api/bridge/receipt', async (runtime, req, res) => {
+    const body = await readBody(req);
+    const gw = runtime.gateways.get('wechat');
+    if (!gw || !gw.verifyToken(req, body)) return json(res, 403, { ok: false, error: 'token 不对' });
+    if (!runtime.receiptLedger) return json(res, 503, { ok: false, error: 'receipt ledger not ready' });
+    const r = runtime.receiptLedger.ingest(body);
+    return json(res, r.ok ? 200 : 400, r);
+  });
+
+  router.get('/api/bridge/receipts', async (runtime, req, res) => {
+    if (!runtime.receiptLedger) return json(res, 503, { ok: false, error: 'receipt ledger not ready' });
+    return json(res, 200, { ok: true, stats: runtime.receiptLedger.stats(), last: runtime.receiptLedger.last(20) });
+  });
+
+  // I-16：委托生命周期 → action-core/job.js
+  router.post('/api/actions/jobs', async (runtime, req, res) => {
+    const body = await readBody(req);
+    const gw = runtime.gateways.get('wechat');
+    if (!gw || !gw.verifyToken(req, body)) return json(res, 403, { ok: false, error: 'token 不对' });
+    if (!runtime.actionJobs) return json(res, 503, { ok: false, error: 'action jobs not ready' });
+    const r = runtime.actionJobs.apply(body);
+    return json(res, r.ok ? 200 : 400, r);
+  });
 };

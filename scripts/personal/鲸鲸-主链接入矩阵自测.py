@@ -39,6 +39,9 @@ check('retrieval wired', lambda: (_ for _ in ()).throw(AssertionError()) if by_i
 check('状态合法', lambda: (_ for _ in ()).throw(AssertionError()) if any(p['status'] not in ('wired', 'not-wired') for p in d['packages'] + d['bridge_contracts']) else None)
 check('文件都存在', lambda: (_ for _ in ()).throw(AssertionError()) if any(not os.path.isfile(os.path.join(ROOT, p['path'])) for p in d['packages'] + d['bridge_contracts']) else None)
 check('wired 有测试文件', lambda: (_ for _ in ()).throw(AssertionError()) if any(not os.path.isfile(os.path.join(ROOT, p['test'])) for p in d['packages'] if p['status'] == 'wired') else None)
+check('job wired', lambda: (_ for _ in ()).throw(AssertionError()) if by_id('job')['status'] != 'wired' else None)
+check('receipts wired', lambda: (_ for _ in ()).throw(AssertionError()) if by_id('receipts')['status'] != 'wired' else None)
+
 check('检查器通过', lambda: (_ for _ in ()).throw(AssertionError()) if not M.check()['ok'] else None)
 
 print('\n通过 %d/%d' % (pass_n, pass_n + fail_n))

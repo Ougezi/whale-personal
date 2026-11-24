@@ -63,6 +63,9 @@ class FakeDSH:
     def split_suggestion(self, task):
         return ''
 
+    def needs_write(self, task):
+        return '改' in task or '写' in task
+
     def run_task(self, task, chat='', sender=''):
         return True, 'ok'
 
@@ -88,6 +91,9 @@ class Self:
 
     def send_text(self, *a, **k):
         return True
+
+    def _post_job(self, ops):
+        return None
 
 
 receiver_mixin.ReceiverMixin.delegate_and_reply(Self(), '改文件', 'wxid', 'wxid')

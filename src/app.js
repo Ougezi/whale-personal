@@ -22,6 +22,8 @@ const { DeepSeekClient } = require('./llm/client');
 const { Bot } = require('./pipeline/chat');
 const { createTrace } = require('./core/trace');
 const { createGateways } = require('./adapters/gateway');
+const { createReceiptLedger } = require('./services/receiptLedger');
+const { createActionJobs } = require('./services/actionJobs');
 const personaStore = require('./persona/store');
 const { StickerService } = require('./services/stickerService');
 const stickersAdapter = require('./adapters/stickers');
@@ -145,6 +147,8 @@ function createRuntime({ root = path.resolve(__dirname, '..'), env = process.env
   }
 
   const runtime = { config, logger, store, startedAt: Date.now(), version: VERSION, loopProbe };
+  runtime.receiptLedger = createReceiptLedger({ logger: child('receipts') });
+  runtime.actionJobs = createActionJobs({ logger: child('jobs') });
   runtime.child = child;
   // 进程内定时任务统一入口：日记 tick、记忆快照、朋友圈定时读取共用，
   // 关服务只需要 stopAll；请求超时/桥接轮询不归它管。

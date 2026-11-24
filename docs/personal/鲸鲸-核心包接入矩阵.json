@@ -39,9 +39,11 @@
   {
    "id": "receipts",
    "path": "packages/memory-core/receipts.js",
-   "status": "not-wired",
-   "alternative": "bridge/send_guard.py receipt JSONL",
-   "note": "回执能力存在，但未共用 JS 账本"
+   "status": "wired",
+   "note": "receipts.js 账本",
+   "integration": "sender_mixin._post_receipt -> /api/bridge/receipt -> receiptLedger",
+   "flag": "无（每次发送）",
+   "test": "scripts/personal/鲸鲸-主链回执账本自测.js"
   },
   {
    "id": "commitment",
@@ -81,9 +83,11 @@
   {
    "id": "job",
    "path": "packages/action-core/job.js",
-   "status": "not-wired",
-   "alternative": "bridge/brain_agent.py watchdog/taskkill",
-   "note": "JS Job 状态机未接执行脑"
+   "status": "wired",
+   "note": "job.js 状态机",
+   "integration": "receiver_mixin._post_job -> /api/actions/jobs -> actionJobs",
+   "flag": "无（委托生命周期）",
+   "test": "scripts/personal/鲸鲸-主链Job账本自测.js"
   }
  ],
  "bridge_contracts": [

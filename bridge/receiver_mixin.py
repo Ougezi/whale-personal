@@ -843,6 +843,26 @@ class ReceiverMixin:
             G.log('委托线程启动失败，改为同步：', repr(e))
             self.delegate_and_reply(task, username, sender, force, approved)
 
+    def _post_job(self, ops):
+        """I-16：委托生命周期镜像到 kernel 的 job.js；失败不影响动作。"""
+        try:
+            import threading
+            base = str(getattr(self, 'bot_url', '')).rsplit('/webhook', 1)[0]
+            headers = {'x-whale-bridge': '1'}
+            if getattr(self, 'token', ''):
+                headers['x-bot-token'] = self.token
+            url = base + '/api/actions/jobs'
+            seq = list(ops or [])
+            def work():
+                for payload in seq:
+                    try:
+                        G.LOCAL_HTTP.post(url, json=payload, headers=headers, timeout=2)
+                    except Exception:
+                        pass
+            threading.Thread(target=work, name='job-mirror', daemon=True).start()
+        except Exception:
+            pass
+
     def delegate_and_reply(self, task, username, sender, force=False, approved=False):
         """跑执行端，把结果交回内核，让她用自己的话转述。"""
         # I-07：委托链统一动作审计
@@ -945,6 +965,11 @@ class ReceiverMixin:
                 return
             if write and approved:
                 _audit('approved', 'approved', 'risk=' + risk)
+            _job_ops = [{'op': 'create', 'id': _audit_id, 'risk': risk, 'action': 'delegation', 'goal': task, 'timeoutMs': 150000}]
+            if str(risk or '').upper() in ('R2', 'R3'):
+                _job_ops.append({'op': 'approve', 'id': _audit_id, 'approver': 'owner'})
+            _job_ops.append({'op': 'start', 'id': _audit_id})
+            self._post_job(_job_ops)
         except Exception as _e:
             G.log('委托策略/审批检查失败（按原逻辑继续）：', repr(_e))
         _audit('delegation_started', 'running')
@@ -1042,6 +1067,7 @@ class ReceiverMixin:
         _audit('delegation_done' if ok else 'delegation_failed',
                'done' if ok else 'failed', str(text)[:160],
                int((G.time.time() - _audit_t0) * 1000), [str(text)[:80]])
+        self._post_job([{'op': 'finish', 'id': _audit_id, 'ok': bool(ok), 'value': str(text)[:200], 'reason': '' if ok else str(text)[:200]}])
         _fact_line = ('\n' + _facts) if _facts else ''
         if ok:
             note = ('（这条不是主人说的，是执行端返回的结果——事已经做完，内容如下：\n%s%s）'

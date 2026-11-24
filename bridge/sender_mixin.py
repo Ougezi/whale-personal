@@ -743,6 +743,31 @@ class SenderMixin:
             G.log_error('发送最终失败，请把微信窗口保持在桌面、别最小化（这条 %d 字，正文不写日志）' % len(text))
             return False
 
+    def _post_receipt(self, target, text, ok, reason=''):
+        """I-17：发送回执异步回传内核；失败绝不影响发送。"""
+        try:
+            import hashlib
+            import threading
+            import time
+            at = int(time.time() * 1000)
+            payload = {
+                'id': 'send:%d:%s' % (at, hashlib.sha256(str(text or '').encode('utf-8')).hexdigest()[:12]),
+                'target': str(target or ''), 'text': str(text or '')[:300],
+                'ok': bool(ok), 'reason': str(reason or '')[:120], 'at': at,
+            }
+            headers = {'x-whale-bridge': '1'}
+            if getattr(self, 'token', ''):
+                headers['x-bot-token'] = self.token
+            url = str(getattr(self, 'bot_url', '')).rsplit('/webhook', 1)[0] + '/api/bridge/receipt'
+            def work():
+                try:
+                    G.LOCAL_HTTP.post(url, json=payload, headers=headers, timeout=2)
+                except Exception:
+                    pass
+            threading.Thread(target=work, name='receipt-post', daemon=True).start()
+        except Exception:
+            pass
+
     def send_text(self, text, chat_display_name, chat_username='', force=False, quote_latest=False):
         """I-03 发送口闸：默认关；开启时 target/重复拦截并写 receipt。"""
         try:
@@ -765,6 +790,7 @@ class SenderMixin:
                 guard.receipt(target, text, ok)
             except Exception:
                 pass
+        self._post_receipt(target, text, ok, 'sent' if ok else 'failed')
         return ok
 
     def send_at(self, member, text, chat_display_name, chat_username=''):
