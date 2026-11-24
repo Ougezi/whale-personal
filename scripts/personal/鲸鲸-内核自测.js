@@ -1253,6 +1253,50 @@ try {
   check('摘要超限保留最近', false, String(e && e.message).slice(0, 40));
 }
 
+// 健壮性故障注入（2026-11-24）
+try {
+  const fsx = require('node:fs');
+  const osx = require('node:os');
+  const { Store } = require(path.join(ROOT, 'src', 'memory', 'store.js'));
+  const rootR = fsx.mkdtempSync(path.join(osx.tmpdir(), 'robust-'));
+  const dataR = path.join(rootR, 'data');
+  const mkStore = () => new Store({ file: path.join(dataR, 'store.json'), dir: path.join(dataR, 'memory'), config: { paths: { dataDir: dataR } }, logger: null });
+  const stR = mkStore();
+  const keyR = 'wechat:u:u1';
+  const chatR = stR.chatStore.ensureChat(keyR);
+  const dirR = chatR.dir;
+  fsx.writeFileSync(path.join(dirR, 'messages.jsonl'), JSON.stringify({ seq: 1, role: 'user', text: '好', ts: 1 }) + '\n{ broken json\n' + JSON.stringify({ seq: 2, role: 'assistant', text: '嗯', ts: 2 }) + '\n');
+  const stR2 = mkStore();
+  stR2.chatStore.ensureChat(keyR);
+  check('健壮性：坏消息行', stR2.messages(keyR, 10).length === 2, String(stR2.messages(keyR, 10).length));
+  fsx.writeFileSync(path.join(dirR, 'summary.json'), '{ broken summary');
+  const stR3 = mkStore();
+  stR3.chatStore.ensureChat(keyR);
+  check('健壮性：坏摘要不崩', Boolean(stR3.chatStore.chats.get(keyR).summary), '');
+  const peopleDir = path.join(dirR, 'people');
+  fsx.mkdirSync(peopleDir, { recursive: true });
+  fsx.writeFileSync(path.join(peopleDir, '0123456789abcdef.json'), '{ broken card');
+  const stR4 = mkStore();
+  const chat4R = stR4.chatStore.ensureChat(keyR);
+  check('健壮性：坏人物卡跳过', chat4R.people.size === 0, String(chat4R.people.size));
+  const cfgRoot = fsx.mkdtempSync(path.join(osx.tmpdir(), 'cfg-'));
+  fsx.mkdirSync(path.join(cfgRoot, 'data'), { recursive: true });
+  fsx.writeFileSync(path.join(cfgRoot, 'data', 'config.json'), '{ broken config');
+  let cfgOk = false;
+  try {
+    const cfgMod = require(path.join(ROOT, 'src', 'infra', 'config.js'));
+    const cfg = cfgMod.loadConfig({ root: cfgRoot, env: {} });
+    cfgOk = Boolean(cfg && cfg.persona && cfg.persona.name);
+  } catch { cfgOk = false; }
+  check('健壮性：坏配置回落默认', cfgOk, '');
+  const backupR = require(path.join(ROOT, 'src', 'memory', 'backup.js'));
+  let rejected = false;
+  try { backupR.restoreFrom(cfgRoot, {}); } catch { rejected = true; }
+  check('健壮性：非法备份被拒', rejected, '');
+} catch (e) {
+  check('健壮性：坏消息行', false, String(e && e.message).slice(0, 60));
+}
+
 console.log('\n通过 ' + pass + '/' + (pass + fail));
   process.exit(fail ? 1 : 0);
 })();
