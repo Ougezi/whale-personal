@@ -363,3 +363,19 @@ P1  Broker -> shadow / receipt 全链
 P2  平台写操作 + approval（默认关）
 P3  rollout / genome / sandbox / redteam / birth_config
 ```
+
+---
+
+## 12. 执行记录（2026-11-25）
+
+```text
+离线自测        24/24
+live 24 案例    24/24
+GitHub          7 个成功 + GH-09 预期 404
+B站             view/comments/user 成功；search 412、无效 BV 预期
+抖音            status 成功；like/collect 预期 approval-required
+run_all         P0 PASS
+证据            data/integration/evidence/I-36-live.json
+```
+
+注意：B站 search 当前匿名接口返回 412（risk-control），已按预期失败处理，不重试刷接口。
