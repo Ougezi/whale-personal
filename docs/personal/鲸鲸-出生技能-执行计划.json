@@ -1,0 +1,1055 @@
+{
+ "version": 1,
+ "project": "鲸鲸三大出生技能",
+ "corpus": "docs/personal/鲸鲸-出生技能-案例库-313.json",
+ "case_gate": {
+  "min_cases_per_step": 5,
+  "must_exist_in_corpus": true,
+  "source_review_when_flagged": true,
+  "no_step_without_cases": true,
+  "case_reuse": "allowed",
+  "record": "data/birth-skills/evidence/<step>.json"
+ },
+ "state": "data/birth-skills/state.json",
+ "phases": [
+  "B0",
+  "B1",
+  "B2",
+  "B3",
+  "B4",
+  "B5",
+  "B6",
+  "B7"
+ ],
+ "steps": [
+  {
+   "id": "B0-01",
+   "phase": "B0",
+   "title": "冻结出生宪法",
+   "goal": "写死 8 条不可修改红线、主人身份、kill switch、审计/回滚合同。",
+   "case_categories": [
+    "self-evolution",
+    "safety"
+   ],
+   "min_cases": 5,
+   "case_ids": [
+    "EV-018",
+    "EV-019",
+    "EV-020",
+    "EV-021",
+    "EV-003",
+    "EV-022",
+    "EV-023",
+    "EV-004"
+   ],
+   "source_review": [
+    "EvoMap/evolver",
+    "reef",
+    "ClawSafety"
+   ],
+   "files": [
+    "docs/personal/鲸鲸-出生技能-宪法.md"
+   ],
+   "actions": [
+    "写宪法；逐条映射到代码/权限；评审不可变面"
+   ],
+   "tests": [
+    "红线清单评审",
+    "越权样例拒绝"
+   ],
+   "acceptance": [
+    "8 条宪法全部有代码/权限落点",
+    "任何提案不能修改宪法"
+   ]
+  },
+  {
+   "id": "B0-02",
+   "phase": "B0",
+   "title": "基因组与版本契约",
+   "goal": "定义 constitution/identity/skills/prompts/policies/versions 的 schema 与升级规则。",
+   "case_categories": [
+    "dsh",
+    "skill-library"
+   ],
+   "min_cases": 5,
+   "case_ids": [
+    "GH-001",
+    "GH-002",
+    "GH-003",
+    "GH-004",
+    "GH-005",
+    "GH-006",
+    "GH-007",
+    "GH-008"
+   ],
+   "source_review": [
+    "dsh-persona-shell",
+    "dsh-feiyu"
+   ],
+   "files": [
+    "docs/personal/鲸鲸-出生技能-基因组.schema.json",
+    "docs/personal/鲸鲸-出生技能-宪法.md"
+   ],
+   "actions": [
+    "写 schema；定义只读/可改层；版本号/迁移"
+   ],
+   "tests": [
+    "schema 校验",
+    "非法字段拒绝"
+   ],
+   "acceptance": [
+    "schema 通过",
+    "只读层不可写",
+    "版本可回滚"
+   ]
+  },
+  {
+   "id": "B0-03",
+   "phase": "B0",
+   "title": "证据/审计/回滚契约",
+   "goal": "每个动作和进化提案必须有 case、测试、证据、回滚。",
+   "case_categories": [
+    "eval",
+    "sandbox"
+   ],
+   "min_cases": 5,
+   "case_ids": [
+    "GH-132",
+    "GH-133",
+    "GH-134",
+    "GH-135",
+    "GH-136",
+    "GH-137",
+    "GH-138",
+    "GH-139"
+   ],
+   "source_review": [],
+   "files": [
+    "bridge/brain_policy.py",
+    "docs/personal/鲸鲸-出生技能-执行计划.json"
+   ],
+   "actions": [
+    "定义 evidence 格式；审计事件；回滚字段"
+   ],
+   "tests": [
+    "证据缺失拒绝",
+    "审计脱敏"
+   ],
+   "acceptance": [
+    "无证据不能完成",
+    "审计 100%",
+    "回滚可执行"
+   ]
+  },
+  {
+   "id": "B1-01",
+   "phase": "B1",
+   "title": "事件日志与记忆痕迹",
+   "goal": "append-only 事件；trace/evidence；幂等；投影。",
+   "case_categories": [
+    "memory",
+    "workflow"
+   ],
+   "min_cases": 5,
+   "case_ids": [
+    "GH-057",
+    "GH-058",
+    "GH-059",
+    "GH-060",
+    "GH-061",
+    "GH-062",
+    "GH-063",
+    "GH-064"
+   ],
+   "source_review": [
+    "dsh-world",
+    "letta"
+   ],
+   "files": [
+    "src/memory/store.js",
+    "src/memory/chatStore.js",
+    "packages/memory-core/events.js"
+   ],
+   "actions": [
+    "事件表/痕迹表；idempotency；投影接口"
+   ],
+   "tests": [
+    "回放一致",
+    "重复 0",
+    "崩溃恢复"
+   ],
+   "acceptance": [
+    "事件写入 100%",
+    "回放一致",
+    "重复 0"
+   ]
+  },
+  {
+   "id": "B1-02",
+   "phase": "B1",
+   "title": "工作/会话/指令记忆",
+   "goal": "working/session/instruction 三层与现有 recent/prompt 分离。",
+   "case_categories": [
+    "memory",
+    "companion"
+   ],
+   "min_cases": 5,
+   "case_ids": [
+    "GH-057",
+    "GH-058",
+    "GH-059",
+    "GH-060",
+    "GH-061",
+    "GH-062",
+    "GH-063",
+    "GH-064"
+   ],
+   "source_review": [
+    "案例相关仓库"
+   ],
+   "files": [
+    "src/memory/store.js",
+    "src/persona/prompt.js"
+   ],
+   "actions": [
+    "working 7 槽；session 工作集；instruction 规则表"
+   ],
+   "tests": [
+    "指代解析",
+    "规则优先级",
+    "预算"
+   ],
+   "acceptance": [
+    "规则不被事实淹没",
+    "指代可解析",
+    "预算内"
+   ]
+  },
+  {
+   "id": "B1-03",
+   "phase": "B1",
+   "title": "检索与重构",
+   "goal": "BM25+向量+图+时间；证据/置信度；“不记得”。",
+   "case_categories": [
+    "memory",
+    "eval"
+   ],
+   "min_cases": 5,
+   "case_ids": [
+    "GH-057",
+    "GH-058",
+    "GH-059",
+    "GH-060",
+    "GH-061",
+    "GH-062",
+    "GH-063",
+    "GH-064"
+   ],
+   "source_review": [
+    "mem0",
+    "dsh-fish-soul",
+    "MemOS"
+   ],
+   "files": [
+    "src/memory/retrieval.js",
+    "src/memory/vectorIndex.js"
+   ],
+   "actions": [
+    "混合检索；MMR；证据拼装；信心分"
+   ],
+   "tests": [
+    "Recall@6",
+    "冲突并列",
+    "无证据不装懂"
+   ],
+   "acceptance": [
+    "Recall@6 ≥0.85",
+    "语义记忆 100% evidence",
+    "虚构测试 0"
+   ]
+  },
+  {
+   "id": "B1-04",
+   "phase": "B1",
+   "title": "迁移与双写",
+   "goal": "旧 memory/store 与事件日志双写；投影校验；可回滚。",
+   "case_categories": [
+    "memory",
+    "dsh"
+   ],
+   "min_cases": 5,
+   "case_ids": [
+    "GH-057",
+    "GH-058",
+    "GH-059",
+    "GH-060",
+    "GH-061",
+    "GH-062",
+    "GH-063",
+    "GH-064"
+   ],
+   "source_review": [],
+   "files": [
+    "src/memory/migrate.js",
+    "src/memory/backup.js"
+   ],
+   "actions": [
+    "双写开关；回放校验；迁移脚本"
+   ],
+   "tests": [
+    "双写一致",
+    "回滚",
+    "旧聊天不丢"
+   ],
+   "acceptance": [
+    "迁移 0 丢失",
+    "可回滚",
+    "旧聊天不受影响"
+   ]
+  },
+  {
+   "id": "B2-01",
+   "phase": "B2",
+   "title": "人格与表达分离",
+   "goal": "执行结果不改写；人格层只影响语气；技术内容保护。",
+   "case_categories": [
+    "companion",
+    "dsh"
+   ],
+   "min_cases": 5,
+   "case_ids": [
+    "GH-150",
+    "GH-151",
+    "GH-152",
+    "GH-153",
+    "GH-154",
+    "GH-155",
+    "GH-156",
+    "GH-157"
+   ],
+   "source_review": [
+    "dsh-persona-shell"
+   ],
+   "files": [
+    "src/persona/prompt.js",
+    "src/persona/expression.js",
+    "src/pipeline/chat.js"
+   ],
+   "actions": [
+    "表达层；技术打码；原文保留"
+   ],
+   "tests": [
+    "人格一致性",
+    "原文对照",
+    "不冒充"
+   ],
+   "acceptance": [
+    "工作原文不被改写",
+    "语气一致",
+    "技术内容保护"
+   ]
+  },
+  {
+   "id": "B2-02",
+   "phase": "B2",
+   "title": "情绪/关系/主动",
+   "goal": "affect/关系状态；主动频率；静默；不打扰。",
+   "case_categories": [
+    "companion",
+    "memory"
+   ],
+   "min_cases": 5,
+   "case_ids": [
+    "GH-150",
+    "GH-151",
+    "GH-152",
+    "GH-153",
+    "GH-154",
+    "GH-155",
+    "GH-156",
+    "GH-157"
+   ],
+   "source_review": [],
+   "files": [
+    "src/core/mood.js",
+    "src/services/care.js",
+    "src/core/thoughts.js"
+   ],
+   "actions": [
+    "affect 状态；主动配额；静默；去重"
+   ],
+   "tests": [
+    "频率上限",
+    "静默",
+    "去重"
+   ],
+   "acceptance": [
+    "不刷屏",
+    "不越静默",
+    "关怀可关"
+   ]
+  },
+  {
+   "id": "B2-03",
+   "phase": "B2",
+   "title": "身份/隐私/群聊",
+   "goal": "Account→Persona→Scope；私聊/群/世界隔离；主人范围。",
+   "case_categories": [
+    "channel",
+    "wechat"
+   ],
+   "min_cases": 5,
+   "case_ids": [
+    "BL-06",
+    "BL-01",
+    "DY-10",
+    "DY-02",
+    "DY-06",
+    "DY-05",
+    "DY-09",
+    "DY-01"
+   ],
+   "source_review": [],
+   "files": [
+    "bridge/receiver_mixin.py",
+    "src/memory/store.js",
+    "src/core/identity.js"
+   ],
+   "actions": [
+    "scope 字段；群/私聊策略；private 不召回"
+   ],
+   "tests": [
+    "双账号隔离",
+    "群不召回私聊",
+    "非主人不触发"
+   ],
+   "acceptance": [
+    "串号 0",
+    "私聊不进群",
+    "主人确认"
+   ]
+  },
+  {
+   "id": "B3-01",
+   "phase": "B3",
+   "title": "动作注册表",
+   "goal": "inspect/read/run_test/edit/create_file/delete/restart/send_message，枚举参数。",
+   "case_categories": [
+    "sandbox",
+    "dsh"
+   ],
+   "min_cases": 5,
+   "case_ids": [
+    "GH-082",
+    "GH-083",
+    "GH-084",
+    "GH-085",
+    "GH-086",
+    "GH-087",
+    "GH-088",
+    "GH-089"
+   ],
+   "source_review": [
+    "OpenHands",
+    "AgentDojo"
+   ],
+   "files": [
+    "bridge/brain_agent.py",
+    "bridge/brain_policy.py"
+   ],
+   "actions": [
+    "ActionSpec；动作/风险；参数 schema"
+   ],
+   "tests": [
+    "未知动作拒绝",
+    "R0-R3 映射"
+   ],
+   "acceptance": [
+    "动作可枚举",
+    "未知动作 0",
+    "风险映射正确"
+   ]
+  },
+  {
+   "id": "B3-02",
+   "phase": "B3",
+   "title": "策略/路径/网络",
+   "goal": "工作区、凭据、data/backup、网络、只读 patch。",
+   "case_categories": [
+    "sandbox",
+    "eval"
+   ],
+   "min_cases": 5,
+   "case_ids": [
+    "GH-082",
+    "GH-083",
+    "GH-084",
+    "GH-085",
+    "GH-086",
+    "GH-087",
+    "GH-088",
+    "GH-089"
+   ],
+   "source_review": [],
+   "files": [
+    "bridge/brain_policy.py",
+    "bridge/brain-readonly.yml",
+    "bridge/brain-write.yml"
+   ],
+   "actions": [
+    "路径守卫；网络拦截；凭据拒绝"
+   ],
+   "tests": [
+    "越界读/写",
+    "联网拦截"
+   ],
+   "acceptance": [
+    "越界 0",
+    "网络拦截",
+    "凭据不泄露"
+   ]
+  },
+  {
+   "id": "B3-03",
+   "phase": "B3",
+   "title": "审批/Job/进程",
+   "goal": "R2/R3 确认；job 状态；进程树/孤儿；超时/取消。",
+   "case_categories": [
+    "sandbox",
+    "workflow"
+   ],
+   "min_cases": 5,
+   "case_ids": [
+    "GH-082",
+    "GH-083",
+    "GH-084",
+    "GH-085",
+    "GH-086",
+    "GH-087",
+    "GH-088",
+    "GH-089"
+   ],
+   "source_review": [
+    "OpenHands"
+   ],
+   "files": [
+    "bridge/brain_agent.py",
+    "docs/personal/鲸鲸-出生技能-执行计划.json"
+   ],
+   "actions": [
+    "审批状态机；pid/children；kill tree"
+   ],
+   "tests": [
+    "超时/取消",
+    "孤儿 0",
+    "重复发送 0"
+   ],
+   "acceptance": [
+    "R2/R3 未确认执行 0",
+    "孤儿 0",
+    "停止 ≤2s"
+   ]
+  },
+  {
+   "id": "B3-04",
+   "phase": "B3",
+   "title": "验证/回执/审计",
+   "goal": "读回/测试/diff；receipt；写回记忆。",
+   "case_categories": [
+    "eval",
+    "sandbox"
+   ],
+   "min_cases": 5,
+   "case_ids": [
+    "GH-132",
+    "GH-133",
+    "GH-134",
+    "GH-135",
+    "GH-136",
+    "GH-137",
+    "GH-138",
+    "GH-139"
+   ],
+   "source_review": [],
+   "files": [
+    "bridge/brain_agent.py",
+    "src/http/routes/memory.js"
+   ],
+   "actions": [
+    "verify；receipt 状态；审计；任务卡"
+   ],
+   "tests": [
+    "成功/失败/超时回执",
+    "证据覆盖"
+   ],
+   "acceptance": [
+    "动作 100% 有回执",
+    "失败可解释"
+   ]
+  },
+  {
+   "id": "B4-01",
+   "phase": "B4",
+   "title": "进化提案 schema",
+   "goal": "假设/diff/测试/预期/回滚/证据；无证据拒绝。",
+   "case_categories": [
+    "self-evolution",
+    "prompt-opt"
+   ],
+   "min_cases": 5,
+   "case_ids": [
+    "EV-018",
+    "EV-019",
+    "EV-020",
+    "EV-021",
+    "EV-003",
+    "EV-022",
+    "EV-023",
+    "EV-004"
+   ],
+   "source_review": [
+    "GenericAgent",
+    "EvoMap/evolver"
+   ],
+   "files": [
+    "docs/personal/鲸鲸-出生技能-基因组.schema.json",
+    "bridge/evolution/proposal.py"
+   ],
+   "actions": [
+    "提案结构；diff；测试清单"
+   ],
+   "tests": [
+    "缺证据拒绝",
+    "diff 可读"
+   ],
+   "acceptance": [
+    "提案 100% 带测试/回滚",
+    "无证据不进沙箱"
+   ]
+  },
+  {
+   "id": "B4-02",
+   "phase": "B4",
+   "title": "沙箱与评测",
+   "goal": "workspace 隔离；单测/回放/shadow；独立测试，不许自评。",
+   "case_categories": [
+    "sandbox",
+    "eval"
+   ],
+   "min_cases": 5,
+   "case_ids": [
+    "GH-082",
+    "GH-083",
+    "GH-084",
+    "GH-085",
+    "GH-086",
+    "GH-087",
+    "GH-088",
+    "GH-089"
+   ],
+   "source_review": [
+    "sandbox cases",
+    "EvoMap/evolver"
+   ],
+   "files": [
+    "bridge/evolution/sandbox.py",
+    "scripts/personal/鲸鲸-出生技能自测.py"
+   ],
+   "actions": [
+    "沙箱；评测 harness；回归集"
+   ],
+   "tests": [
+    "回归",
+    "越权",
+    "回滚"
+   ],
+   "acceptance": [
+    "沙箱不碰主链",
+    "评测独立",
+    "回归可复现"
+   ]
+  },
+  {
+   "id": "B4-03",
+   "phase": "B4",
+   "title": "基因组注册与回滚",
+   "goal": "版本、签名/指纹、canary、自动回滚。",
+   "case_categories": [
+    "self-evolution",
+    "skill-library"
+   ],
+   "min_cases": 5,
+   "case_ids": [
+    "EV-018",
+    "EV-019",
+    "EV-020",
+    "EV-021",
+    "EV-003",
+    "EV-022",
+    "EV-023",
+    "EV-004"
+   ],
+   "source_review": [
+    "reef",
+    "PrimeAgent"
+   ],
+   "files": [
+    "bridge/evolution/genome.py",
+    "docs/personal/鲸鲸-出生技能-基因组.schema.json"
+   ],
+   "actions": [
+    "注册；版本；回滚；冻结"
+   ],
+   "tests": [
+    "升级/回滚",
+    "坏版本阻断"
+   ],
+   "acceptance": [
+    "变更可回滚",
+    "坏版本不进 live"
+   ]
+  },
+  {
+   "id": "B4-04",
+   "phase": "B4",
+   "title": "主人审批与灰度",
+   "goal": "R2/R3 审批；shadow→canary→live；指标门槛。",
+   "case_categories": [
+    "eval",
+    "safety"
+   ],
+   "min_cases": 5,
+   "case_ids": [
+    "GH-132",
+    "GH-133",
+    "GH-134",
+    "GH-135",
+    "GH-136",
+    "GH-137",
+    "GH-138",
+    "GH-139"
+   ],
+   "source_review": [],
+   "files": [
+    "bridge/evolution/approval.py",
+    "docs/personal/鲸鲸-出生技能-执行计划.json"
+   ],
+   "actions": [
+    "审批；灰度；指标门槛"
+   ],
+   "tests": [
+    "未批不 live",
+    "指标不达标回滚"
+   ],
+   "acceptance": [
+    "误执行 0",
+    "灰度可停"
+   ]
+  },
+  {
+   "id": "B5-01",
+   "phase": "B5",
+   "title": "Command Bus",
+   "goal": "say/ask/confirm/act/stop/remind/remember/forget；目标/风险/幂等。",
+   "case_categories": [
+    "workflow",
+    "eval"
+   ],
+   "min_cases": 5,
+   "case_ids": [
+    "GH-107",
+    "GH-108",
+    "GH-109",
+    "GH-110",
+    "GH-111",
+    "GH-112",
+    "GH-113",
+    "GH-114"
+   ],
+   "source_review": [],
+   "files": [
+    "bridge/command_bus.py",
+    "bridge/receiver_mixin.py"
+   ],
+   "actions": [
+    "Command；target；outbox；幂等"
+   ],
+   "tests": [
+    "重复 0",
+    "错误接收人 0"
+   ],
+   "acceptance": [
+    "每回合最多一条 say",
+    "重复 0",
+    "审计"
+   ]
+  },
+  {
+   "id": "B5-02",
+   "phase": "B5",
+   "title": "回执→记忆",
+   "goal": "sent/delivered/failed/timeout；写情节/承诺/能力。",
+   "case_categories": [
+    "memory",
+    "companion"
+   ],
+   "min_cases": 5,
+   "case_ids": [
+    "GH-057",
+    "GH-058",
+    "GH-059",
+    "GH-060",
+    "GH-061",
+    "GH-062",
+    "GH-063",
+    "GH-064"
+   ],
+   "source_review": [],
+   "files": [
+    "bridge/command_bus.py",
+    "src/memory/episode.js"
+   ],
+   "actions": [
+    "回执状态；记忆事件；审计"
+   ],
+   "tests": [
+    "回执缺失阻断",
+    "能力计数"
+   ],
+   "acceptance": [
+    "回执覆盖 100%",
+    "不冒充"
+   ]
+  },
+  {
+   "id": "B5-03",
+   "phase": "B5",
+   "title": "承诺与能力",
+   "goal": "intent/commitment/competence；证据；到期提醒。",
+   "case_categories": [
+    "self-evolution",
+    "skill-library"
+   ],
+   "min_cases": 5,
+   "case_ids": [
+    "EV-018",
+    "EV-019",
+    "EV-020",
+    "EV-021",
+    "EV-003",
+    "EV-022",
+    "EV-023",
+    "EV-004"
+   ],
+   "source_review": [
+    "dsh-feiyu"
+   ],
+   "files": [
+    "src/services/care.js",
+    "bridge/command_bus.py"
+   ],
+   "actions": [
+    "三态承诺；证据；能力 3 次"
+   ],
+   "tests": [
+    "到期",
+    "无证据失败",
+    "能力不虚标"
+   ],
+   "acceptance": [
+    "说到做到可查",
+    "无证据 failed"
+   ]
+  },
+  {
+   "id": "B6-01",
+   "phase": "B6",
+   "title": "红队与注入",
+   "goal": "提示注入、路径/网络绕过、越权、隐私、删文件。",
+   "case_categories": [
+    "eval",
+    "safety"
+   ],
+   "min_cases": 5,
+   "case_ids": [
+    "GH-132",
+    "GH-133",
+    "GH-134",
+    "GH-135",
+    "GH-136",
+    "GH-137",
+    "GH-138",
+    "GH-139"
+   ],
+   "source_review": [
+    "ClawSafety",
+    "AgentDojo"
+   ],
+   "files": [
+    "scripts/personal/鲸鲸-出生技能自测.py",
+    "docs/personal/鲸鲸-体系案例驱动-完善方案.md"
+   ],
+   "actions": [
+    "对抗样本；隔离测试；报告"
+   ],
+   "tests": [
+    "注入拦截",
+    "越权 0"
+   ],
+   "acceptance": [
+    "已知注入 100% 拦截",
+    "R2/R3 0"
+   ]
+  },
+  {
+   "id": "B6-02",
+   "phase": "B6",
+   "title": "Shadow 与指标",
+   "goal": "只记录不执行；真实聊天；precision/recall/澄清率。",
+   "case_categories": [
+    "eval",
+    "workflow"
+   ],
+   "min_cases": 5,
+   "case_ids": [
+    "GH-132",
+    "GH-133",
+    "GH-134",
+    "GH-135",
+    "GH-136",
+    "GH-137",
+    "GH-138",
+    "GH-139"
+   ],
+   "source_review": [
+    "AgentBench",
+    "SkillEvaluator"
+   ],
+   "files": [
+    "scripts/personal/鲸鲸-出生技能自测.py",
+    "data/birth-skills/state.json"
+   ],
+   "actions": [
+    "shadow 日志；指标；人工标注"
+   ],
+   "tests": [
+    "误执行 0",
+    "召回"
+   ],
+   "acceptance": [
+    "shadow 3-7 天",
+    "误执行 0"
+   ]
+  },
+  {
+   "id": "B6-03",
+   "phase": "B6",
+   "title": "灰度与回滚",
+   "goal": "10%→100%；kill switch；回滚演练。",
+   "case_categories": [
+    "eval",
+    "channel"
+   ],
+   "min_cases": 5,
+   "case_ids": [
+    "GH-132",
+    "GH-133",
+    "GH-134",
+    "GH-135",
+    "GH-136",
+    "GH-137",
+    "GH-138",
+    "GH-139"
+   ],
+   "source_review": [],
+   "files": [
+    "docs/personal/鲸鲸-出生技能-发布与回滚.md"
+   ],
+   "actions": [
+    "灰度；监控；回滚"
+   ],
+   "tests": [
+    "停/回滚",
+    "数据不丢"
+   ],
+   "acceptance": [
+    "随时可停",
+    "回滚 <5min"
+   ]
+  },
+  {
+   "id": "B7-01",
+   "phase": "B7",
+   "title": "三技能启用",
+   "goal": "生长/说话/动手可独立开关；宪法不可关；出生配置。",
+   "case_categories": [
+    "dsh",
+    "companion"
+   ],
+   "min_cases": 5,
+   "case_ids": [
+    "GH-001",
+    "GH-002",
+    "GH-003",
+    "GH-004",
+    "GH-005",
+    "GH-006",
+    "GH-007",
+    "GH-008"
+   ],
+   "source_review": [],
+   "files": [
+    "docs/personal/鲸鲸-三大出生技能-设计与项目计划书.md",
+    "docs/personal/鲸鲸-出生技能-宪法.md"
+   ],
+   "actions": [
+    "birth config；开关；默认安全"
+   ],
+   "tests": [
+    "三技能独立",
+    "宪法不可关"
+   ],
+   "acceptance": [
+    "三技能可用",
+    "宪法只读"
+   ]
+  },
+  {
+   "id": "B7-02",
+   "phase": "B7",
+   "title": "出生证明与交付",
+   "goal": "文档/HTML/skill/测试/案例/版本；owner 签收。",
+   "case_categories": [
+    "self-evolution",
+    "eval"
+   ],
+   "min_cases": 5,
+   "case_ids": [
+    "EV-018",
+    "EV-019",
+    "EV-020",
+    "EV-021",
+    "EV-003",
+    "EV-022",
+    "EV-023",
+    "EV-004"
+   ],
+   "source_review": [],
+   "files": [
+    "skills/whale-birth-skills/SKILL.md",
+    "docs/personal/鲸鲸-出生技能-执行总目录.md"
+   ],
+   "actions": [
+    "出生证明；交付清单；签收"
+   ],
+   "tests": [
+    "文档一致",
+    "测试全绿"
+   ],
+   "acceptance": [
+    "DoD 全过",
+    "主人签收"
+   ]
+  }
+ ]
+}
