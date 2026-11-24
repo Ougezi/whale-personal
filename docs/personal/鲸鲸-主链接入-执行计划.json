@@ -182,6 +182,41 @@
     "真实微信 E2E 待运行环境",
     "可停/回滚"
    ]
+  },
+  {
+   "id": "I-06",
+   "phase": "I",
+   "title": "接入热停/热开",
+   "goal": "features.eventLog 关掉立即停写、开回来立即写；不重启。",
+   "case_ids": [
+    "GH-132",
+    "GH-133",
+    "GH-134",
+    "GH-135",
+    "GH-136",
+    "GH-137",
+    "GH-138",
+    "GH-139"
+   ],
+   "min_cases": 5,
+   "source_review": [],
+   "files": [
+    "src/memory/eventSink.js",
+    "src/app.js",
+    "scripts/personal/鲸鲸-主链热停自测.js"
+   ],
+   "actions": [
+    "eventSink enabled 运行期判断；app 注入 features.isOn"
+   ],
+   "tests": [
+    "node scripts/personal/鲸鲸-主链热停自测.js"
+   ],
+   "acceptance": [
+    "关掉立即停写",
+    "开回来立即写",
+    "不重启",
+    "旧消息不丢"
+   ]
   }
  ]
 }

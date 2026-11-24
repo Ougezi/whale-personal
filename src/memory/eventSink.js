@@ -9,10 +9,12 @@
  */
 const { createEventStore } = require('../../packages/memory-core/events.js');
 
-function createEventSink({ file, logger = null } = {}) {
+function createEventSink({ file, logger = null, enabled = true } = {}) {
   if (!file) throw new Error('eventSink file required');
   const store = createEventStore({ file });
   function append(entry, chat = {}) {
+    const on = typeof enabled === 'function' ? enabled() : enabled !== false;
+    if (!on) return { skipped: true, reason: 'disabled' };
     const id = 'chat:' + entry.chatId + ':' + entry.id;
     const event = {
       id,

@@ -78,7 +78,11 @@ function createRuntime({ root = path.resolve(__dirname, '..'), env = process.env
   let eventSink = null;
   if (features.isOn(config, 'eventLog')) {
     try {
-      eventSink = createEventSink({ file: path.join(config.paths.dataDir, 'memory-events.jsonl'), logger: child('events') });
+      eventSink = createEventSink({
+        file: path.join(config.paths.dataDir, 'memory-events.jsonl'),
+        logger: child('events'),
+        enabled: () => features.isOn(config, 'eventLog'),
+      });
     } catch (err) {
       logger.warn('事件日志初始化失败（不影响记忆）：' + describeError(err));
     }
