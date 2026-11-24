@@ -8,6 +8,10 @@ import sys
 ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
 PLAN = os.path.join(ROOT, 'docs', 'personal', '鲸鲸-主链接入-执行计划.json')
 STATE = os.path.join(ROOT, 'data', 'integration', 'state.json')
+if not os.path.exists(STATE):
+    _b = os.path.join(os.path.dirname(ROOT), '_local-data-backup', 'integration', 'state.json')
+    if os.path.exists(_b):
+        STATE = _b
 CASES = os.path.join(ROOT, 'docs', 'personal', '鲸鲸-出生技能-案例库-313.json')
 
 
