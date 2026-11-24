@@ -94,19 +94,24 @@
    ],
    "files": [
     "docs/personal/鲸鲸-出生技能-基因组.schema.json",
+    "docs/personal/鲸鲸-出生技能-基因组.example.json",
+    "scripts/personal/鲸鲸-出生基因组校验.py",
     "docs/personal/鲸鲸-出生技能-宪法.md"
    ],
    "actions": [
-    "写 schema；定义只读/可改层；版本号/迁移"
+    "写 JSON Schema；定义只读/可改/审批层；版本+rollbackTo；示例基因组",
+    "源码学习：persona-shell 版本化存储、feiyu 结构化事件"
    ],
    "tests": [
-    "schema 校验",
-    "非法字段拒绝"
+    "python scripts/personal/鲸鲸-出生基因组校验.py --check",
+    "python scripts/personal/鲸鲸-出生基因组校验.py --tamper-test"
    ],
    "acceptance": [
-    "schema 通过",
-    "只读层不可写",
-    "版本可回滚"
+    "schema 文件可读",
+    "example 通过",
+    "constitution 只读且哈希一致",
+    "非法字段/枚举被拒绝",
+    "rollbackTo 合法"
    ]
   },
   {

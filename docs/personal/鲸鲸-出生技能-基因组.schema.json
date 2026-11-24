@@ -1,0 +1,190 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://whale.local/schemas/鲸鲸-出生技能-基因组.schema.json",
+  "title": "鲸鲸出生基因组",
+  "description": "三大出生技能的基因组契约。constitution 只读；identity/skills/prompts/policies/memory/versions 分层可写，但每层有独立审批。",
+  "type": "object",
+  "additionalProperties": false,
+  "patternProperties": {
+    "^x-": {
+      "description": "扩展元数据；不得承载权限或宪法覆盖。"
+    }
+  },
+  "required": [
+    "schemaVersion",
+    "constitution",
+    "identity",
+    "capabilities",
+    "skills",
+    "policies",
+    "prompts",
+    "memory",
+    "versions",
+    "meta"
+  ],
+  "properties": {
+    "schemaVersion": {
+      "const": 1,
+      "description": "基因组 schema 版本；不兼容变更必须升版并写迁移。"
+    },
+    "constitution": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["path", "hash", "readonly"],
+      "properties": {
+        "path": {
+          "const": "docs/personal/鲸鲸-出生技能-宪法.md"
+        },
+        "hash": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{64}$",
+          "description": "宪法 SHA256；运行时必须与文件实际哈希一致。"
+        },
+        "readonly": {
+          "const": true,
+          "description": "只读层；任何提案不得改为 false。"
+        }
+      }
+    },
+    "identity": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["name", "persona", "ownerScope"],
+      "properties": {
+        "name": { "type": "string", "minLength": 1, "maxLength": 32 },
+        "persona": { "type": "string", "minLength": 1, "maxLength": 20000 },
+        "ownerScope": {
+          "type": "string",
+          "enum": ["master-only", "master-group", "master-group-public"]
+        },
+        "locale": { "type": "string", "maxLength": 32 }
+      }
+    },
+    "capabilities": {
+      "type": "array",
+      "description": "出生技能不可卸载；顺序不影响优先级。",
+      "uniqueItems": true,
+      "minItems": 3,
+      "items": {
+        "type": "string",
+        "enum": ["chat", "memory", "dsh", "grow"]
+      },
+      "contains": { "const": "chat" },
+      "allOf": [
+        { "contains": { "const": "memory" } },
+        { "contains": { "const": "dsh" } }
+      ]
+    },
+    "skills": {
+      "type": "array",
+      "description": "可版本化技能；每个技能必须声明风险与来源。",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["id", "version", "enabled", "risk", "source"],
+        "properties": {
+          "id": { "type": "string", "pattern": "^[a-z][a-z0-9_.-]{1,63}$" },
+          "version": { "type": "string", "pattern": "^[0-9]+\\.[0-9]+\\.[0-9]+$" },
+          "enabled": { "type": "boolean" },
+          "risk": { "type": "string", "enum": ["R0", "R1", "R2", "R3"] },
+          "source": { "type": "string", "enum": ["builtin", "owner", "plugin", "evolved"] },
+          "requiresApproval": { "type": "boolean" }
+        }
+      }
+    },
+    "policies": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["allowedRoots", "denyPaths", "network", "approvals", "maxRisk"],
+      "properties": {
+        "allowedRoots": {
+          "type": "array",
+          "minItems": 1,
+          "items": { "type": "string", "minLength": 3 }
+        },
+        "denyPaths": {
+          "type": "array",
+          "items": { "type": "string", "minLength": 1 }
+        },
+        "network": {
+          "type": "string",
+          "enum": ["denied", "approval", "allowed"]
+        },
+        "approvals": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["R2", "R3"],
+          "properties": {
+            "R2": { "type": "string", "enum": ["owner", "auto"] },
+            "R3": { "type": "string", "enum": ["owner", "double"] }
+          }
+        },
+        "maxRisk": { "type": "string", "enum": ["R0", "R1", "R2", "R3"] }
+      }
+    },
+    "prompts": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["static", "dynamic"],
+      "properties": {
+        "static": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["version", "hash"],
+          "properties": {
+            "version": { "type": "string", "minLength": 1, "maxLength": 40 },
+            "hash": { "type": "string", "pattern": "^[a-f0-9]{64}$" }
+          }
+        },
+        "dynamic": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["version"],
+          "properties": {
+            "version": { "type": "string", "minLength": 1, "maxLength": 40 },
+            "budgetTokens": { "type": "integer", "minimum": 100, "maximum": 4000 }
+          }
+        }
+      }
+    },
+    "memory": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["schemaVersion", "eventLog", "projections"],
+      "properties": {
+        "schemaVersion": { "type": "integer", "minimum": 1 },
+        "eventLog": { "type": "string", "enum": ["append-only"] },
+        "projections": {
+          "type": "array",
+          "items": { "type": "string", "enum": ["working", "episode", "semantic", "procedural", "prospective", "affect", "self", "meta"] }
+        }
+      }
+    },
+    "versions": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["genome", "minSupported", "rollbackTo"],
+      "properties": {
+        "genome": { "type": "integer", "minimum": 1 },
+        "minSupported": { "type": "integer", "minimum": 1 },
+        "rollbackTo": { "type": ["integer", "null"], "minimum": 0 }
+      }
+    },
+    "meta": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["createdAt", "updatedAt", "notes"],
+      "properties": {
+        "createdAt": { "type": "integer", "minimum": 0 },
+        "updatedAt": { "type": "integer", "minimum": 0 },
+        "notes": { "type": "string", "maxLength": 500 }
+      }
+    }
+  },
+  "x-whale-layers": {
+    "readonly": ["constitution"],
+    "ownerApproval": ["identity.persona", "skills", "prompts.static", "policies"],
+    "boundedAuto": ["prompts.dynamic", "skills[].enabled", "skills[].risk"],
+    "forbidden": ["constitution.readonly", "constitution.hash", "policies.approvals", "versions.rollbackTo (upward)"]
+  }
+}
