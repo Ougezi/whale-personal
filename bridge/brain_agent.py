@@ -53,6 +53,9 @@ CMD_RE = re.compile(r'^(?:/brain|脑子)(写|继续|状态|进度|取消|定时|
 SPACE_RE = re.compile(r'^(?:/brain|脑子)\s+(.+)$', re.S)
 SCHED_RE = re.compile(r'^每天\s*(\d{1,2}:\d{2})\s*(.*)$', re.S)
 ALLOWED_ROOTS = [os.path.abspath(x.strip()) for x in (os.environ.get('WHALE_BRAIN_ROOTS') or r'D:\dsh').split(';') if x.strip()]
+if not os.environ.get('WHALE_BRAIN_ROOTS'):
+    _t = os.environ.get('TEMP') or os.environ.get('TMP')
+    if _t: ALLOWED_ROOTS.append(os.path.abspath(_t))
 
 
 def _now():
