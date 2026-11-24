@@ -862,19 +862,23 @@
    ],
    "source_review": [],
    "files": [
+    "packages/memory-core/receipts.js",
+    "scripts/personal/鲸鲸-出生回执记忆自测.js",
     "bridge/command_bus.py",
     "src/memory/episode.js"
    ],
    "actions": [
-    "回执状态；记忆事件；审计"
+    "pending/sent/delivered/failed/timeout；缺回执阻断；delivered 写情节/承诺/能力；failed/timeout 写教训；审计"
    ],
    "tests": [
-    "回执缺失阻断",
-    "能力计数"
+    "node scripts/personal/鲸鲸-出生回执记忆自测.js"
    ],
    "acceptance": [
     "回执覆盖 100%",
-    "不冒充"
+    "不冒充：sent 不能声称 delivered",
+    "缺回执阻断",
+    "failed/timeout 不写成功",
+    "能力计数只在 delivered"
    ]
   },
   {
