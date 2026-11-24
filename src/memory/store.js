@@ -11,6 +11,7 @@ const fs = require('node:fs');
 const path = require('node:path');
 const { ChatStore } = require('./chatStore');
 const personCard = require('./personCard');
+const scopeCore = require('../services/scopeCore');
 const audit = require('./audit');
 const personGlobal = require('../core/personGlobal');
 const filter = require('./filter');
@@ -545,7 +546,7 @@ class Store {
     const _rich = _q.length >= 40 || /为什么|怎么办|你觉得|记得|是不是|要不要|分析/.test(_q);
     // S4：单轮事件最多 6 条，防止记忆挤爆上下文
     const _k = Math.max(3, Math.min(6, _kBase + (_rich ? 2 : 0) - (_q.length <= 8 ? 2 : 0)));
-    const events = retrieval.selectEvents(card, {
+    let events = retrieval.selectEvents(card, {
       query,
       recentTexts: recentUser,
       activeTopic: chat.meta.episode ? chat.meta.episode.activeTopic : '',
@@ -556,6 +557,12 @@ class Store {
       vectors: eventVectors,
       core: features.isOn(this.config, 'retrievalCore'),
     });
+    try {
+      if (features.isOn(this.config, 'scopeCore')) {
+        const _scChats = (this.config && this.config.scopeCore && this.config.scopeCore.chats) || [];
+        events = scopeCore.filter({ events, chatId: key, chatType: isGroup ? 'group' : 'private', senderId: uid, chats: _scChats });
+      }
+    } catch { /* scopeCore 失败保留旧候选 */ }
     const block = format.buildMemoryBlock({
       card,
       events,

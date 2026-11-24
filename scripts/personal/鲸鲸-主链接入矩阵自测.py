@@ -49,6 +49,8 @@ check('affect wired', lambda: (_ for _ in ()).throw(AssertionError()) if by_id('
 
 check('expression wired', lambda: (_ for _ in ()).throw(AssertionError()) if by_id('expression')['status'] != 'wired' else None)
 
+check('scope wired', lambda: (_ for _ in ()).throw(AssertionError()) if by_id('scope')['status'] != 'wired' else None)
+
 check('检查器通过', lambda: (_ for _ in ()).throw(AssertionError()) if not M.check()['ok'] else None)
 
 print('\n通过 %d/%d' % (pass_n, pass_n + fail_n))

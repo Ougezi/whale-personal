@@ -1145,6 +1145,43 @@
     "failClosed 全 true",
     "已关闭"
    ]
+  },
+  {
+   "id": "I-32",
+   "phase": "I",
+   "title": "scopeCore 召回过滤",
+   "goal": "默认关；白名单 chat 才按 canRecall 过滤事件候选，异常回退。",
+   "case_ids": [
+    "EV-011",
+    "EV-012",
+    "EV-013",
+    "EV-014",
+    "EV-015",
+    "EV-018",
+    "EV-019",
+    "EV-020"
+   ],
+   "min_cases": 5,
+   "source_review": [],
+   "files": [
+    "src/services/scopeCore.js",
+    "src/memory/store.js",
+    "src/infra/features.js",
+    "scripts/personal/鲸鲸-主链ScopeCore自测.js"
+   ],
+   "actions": [
+    "canRecall 过滤",
+    "fail-open",
+    "白名单"
+   ],
+   "tests": [
+    "node scripts/personal/鲸鲸-主链ScopeCore自测.js"
+   ],
+   "acceptance": [
+    "默认关",
+    "跨 scope 过滤",
+    "异常回退"
+   ]
   }
  ]
 }

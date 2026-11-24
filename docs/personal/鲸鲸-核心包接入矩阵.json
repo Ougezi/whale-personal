@@ -77,11 +77,11 @@
   {
    "id": "scope",
    "path": "packages/persona-core/scope.js",
-   "status": "staged",
-   "note": "shadow only；不替换正式回复",
-   "integration": "src/services/personaShadow.js（shadow，仅日志）",
-   "flag": "features.personaShadow（默认 false）",
-   "test": "scripts/personal/鲸鲸-主链人格Shadow自测.js"
+   "status": "wired",
+   "note": "fail-open；空名单不过滤",
+   "integration": "src/services/scopeCore.js -> Store.buildContext 事件过滤（默认关）",
+   "flag": "features.scopeCore（默认 false）",
+   "test": "scripts/personal/鲸鲸-主链ScopeCore自测.js"
   },
   {
    "id": "registry",

@@ -107,6 +107,14 @@ const REGISTRY = [
     experimental: true,
   },
   {
+    key: 'scopeCore',
+    path: 'features.scopeCore',
+    label: 'Scope Core（实验性，召回过滤）',
+    desc: '默认关闭。开启后只在白名单 chat 对事件候选做 canRecall 过滤；异常回退旧候选。',
+    default: false,
+    experimental: true,
+  },
+  {
     key: 'scopeShadow',
     path: 'features.scopeShadow',
     label: 'Scope Shadow（实验性）',
