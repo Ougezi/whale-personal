@@ -69,6 +69,14 @@ function activePreferenceTexts(card) {
   return personCard.activePreferences(card).map((p) => p.text);
 }
 
+// 外部入口（桥接补录/脚本）可能传秒级时间戳；不归一会把会话当成 1970 年而归档
+function normalizeTs(value, fallback) {
+  let n = Number(value) || 0;
+  if (n > 0 && n < 1e12) n *= 1000; // 秒 → 毫秒
+  if (!(n >= 1e11)) n = fallback; // 1973 年以前视为非法
+  return n;
+}
+
 class Store {
   constructor({ file, dir, limits = {}, logger = null, now = Date.now, llm = null, config = null } = {}) {
     this.file = file || path.resolve(process.cwd(), 'data', 'store.json');
@@ -212,7 +220,7 @@ class Store {
       name: msg.senderName,
       uid: msg.senderId,
       text,
-      ts: Number(extra.ts) || this._now(),
+      ts: normalizeTs(extra.ts, this._now()),
       msgId: msg.msgId,
       isMaster,
       isGroup,
@@ -235,7 +243,7 @@ class Store {
 
   appendMessage(key, message = {}) {
     const chat = this.chatStore.ensureChat(key);
-    const at = Number(message.ts) || this._now();
+    const at = normalizeTs(message.ts, this._now());
     const role = message.role === 'assistant' ? 'assistant' : 'user';
     // silent：补录旧消息时只落原文，不抽事实、不转 episode、不建关系边。
     // 否则回放 26 小时历史会凭空生成事件/偏好，甚至把当前 episode 关掉。

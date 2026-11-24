@@ -112,14 +112,14 @@ module.exports = function register(router) {
           return json(res, 404, { ok: false, error: '会话不存在，拒绝写入（避免凭空建会话）' });
         }
         // 同一条消息已经进过记忆就不要重复写
-        const msgId = String((body && body.msgId) || '');
+        const msgId = String((body && (body.msgId || body.msg_id)) || '');
         if (msgId && runtime.store.isDuplicate(chat, msgId)) {
           return json(res, 200, { ok: true, skipped: 'duplicate' });
         }
         const ts = Number(body.ts) || Date.now();
         const entry = runtime.store.recordUser(chat, {
           platform: 'wechat',
-          chatType: body.chatType === 'group' ? 'group' : 'private',
+          chatType: (body.chatType || body.chat_type) === 'group' ? 'group' : 'private',
           chatId: chat.split(':').pop(),
           senderId: uid,
           senderName: String(body.name || ''),

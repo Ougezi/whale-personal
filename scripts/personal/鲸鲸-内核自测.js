@@ -1326,6 +1326,24 @@ try {
   check('健壮性：写盘失败计数', false, String(e && e.message).slice(0, 60));
 }
 
+// 外部秒级时间戳归一化（2026-11-24 健壮性）
+try {
+  const fsx = require('node:fs');
+  const osx = require('node:os');
+  const { Store } = require(path.join(ROOT, 'src', 'memory', 'store.js'));
+  const rootT = fsx.mkdtempSync(path.join(osx.tmpdir(), 'ts-'));
+  const dataT = path.join(rootT, 'data');
+  const stT = new Store({ file: path.join(dataT, 'store.json'), dir: path.join(dataT, 'memory'), config: { paths: { dataDir: dataT } }, logger: null });
+  const keyT = 'wechat:u:u1';
+  const e1 = stT.recordUser(keyT, { chatType: 'private', senderId: 'u1', senderName: 'n' }, '秒级', { ts: 1795496540 });
+  check('时间戳归一化：秒→毫秒', e1.ts === 1795496540000, String(e1.ts));
+  const before = Date.now();
+  const e2 = stT.recordUser(keyT, { chatType: 'private', senderId: 'u1', senderName: 'n' }, '非法', { ts: 1 });
+  check('时间戳归一化：非法→当前', e2.ts >= before - 2000 && e2.ts <= Date.now() + 2000, String(e2.ts));
+} catch (e) {
+  check('时间戳归一化', false, String(e && e.message).slice(0, 50));
+}
+
 console.log('\n通过 ' + pass + '/' + (pass + fail));
   process.exit(fail ? 1 : 0);
 })();
