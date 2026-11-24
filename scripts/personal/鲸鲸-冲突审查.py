@@ -17,9 +17,8 @@ import re
 import subprocess
 import sys
 
-ROOT = os.environ.get("WHALE_ROOT") or os.path.join(
-    os.environ.get("LOCALAPPDATA") or os.path.join(os.path.expanduser("~"), "AppData", "Local"),
-    "Programs", "WhaleGirl")
+_HERE = os.path.dirname(os.path.abspath(__file__))
+ROOT = os.environ.get("WHALE_ROOT") or os.path.abspath(os.path.join(_HERE, "..", ".."))
 W = r"D:\dsh\profiles\desktop"
 BRIDGE = os.path.join(ROOT, "bridge")
 SRC = os.path.join(ROOT, "src")
@@ -132,8 +131,10 @@ def check_docs_vs_code():
     if not os.path.exists(script):
         conflict("文档", "找不到 鲸鲸-文档同步.py")
         return
+    env = dict(os.environ)
+    env['WHALE_ROOT'] = ROOT
     r = subprocess.run([sys.executable, script], capture_output=True, text=True,
-                       encoding="utf-8", errors="replace", timeout=60)
+                       encoding="utf-8", errors="replace", timeout=60, env=env)
     if r.returncode == 0:
         ok("文档参数块与代码/配置一致")
     else:
@@ -145,7 +146,8 @@ def check_memory_vs_ledger():
     print("\n[4] 记忆 ↔ 能力台账")
     ledger = jload(os.path.join(W, "鲸鲸-能力台账.json")).get("entries") or []
     cfg = jload(os.path.join(ROOT, "data", "config.json"))
-    wxid = ((cfg.get("persona") or {}).get("master") or {}).get("wxids", [""])[0]
+    wxids = ((cfg.get("persona") or {}).get("master") or {}).get("wxids") or [""]
+    wxid = wxids[0]
     card = None
     base = os.path.join(ROOT, "data", "memory", "chats")
     for chat in (os.listdir(base) if os.path.isdir(base) else []):
@@ -208,8 +210,10 @@ def check_script_refs():
         for m in re.finditer(r"(鲸鲸-[A-Za-z\u4e00-\u9fff\-]+\.(?:py|ps1|js))(?![a-zA-Z])", t):
             names.add(m.group(1))
     missing = []
+    roots = [W, os.path.join(W, "tools"), os.path.join(ROOT, "scripts", "personal"),
+             os.path.join(W, "scripts", "personal"), ROOT]
     for n in sorted(names):
-        if not (os.path.exists(os.path.join(W, n)) or os.path.exists(os.path.join(W, "tools", n))):
+        if not any(os.path.exists(os.path.join(r, n)) for r in roots):
             missing.append(n)
     if missing:
         conflict("引用", "文档/技能里提到的脚本不存在：%s" % "、".join(missing))
