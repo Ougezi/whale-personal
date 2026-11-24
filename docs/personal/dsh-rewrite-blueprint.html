@@ -1,0 +1,164 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>鲸鲸 2.0 · 重写最优架构</title>
+<style>
+:root{--ink:#15202b;--muted:#5b6b7b;--line:#dce4ec;--bg:#f5f7fa;--card:#fff;--blue:#1457a8;--green:#176b45;--amber:#8a5a00;--red:#9b2c2c}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.75 -apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif}
+main{max-width:1020px;margin:0 auto;padding:34px 20px 70px}
+h1{font-size:30px;line-height:1.25;margin:0 0 8px}
+h2{font-size:21px;margin:38px 0 12px;padding-bottom:8px;border-bottom:1px solid var(--line)}
+h3{font-size:17px;margin:22px 0 8px}
+p,li{color:var(--ink)}
+.sub{color:var(--muted);margin:0 0 24px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:18px 20px;margin:14px 0;box-shadow:0 2px 10px rgba(20,40,70,.04)}
+.tag{display:inline-block;font-size:12px;padding:2px 9px;border-radius:999px;background:#e8f0fb;color:var(--blue);margin-right:6px}
+.tag.g{background:#e7f5ee;color:var(--green)}
+.tag.a{background:#fff4dd;color:var(--amber)}
+.tag.r{background:#fdecec;color:var(--red)}
+table{width:100%;border-collapse:collapse;font-size:14.5px;margin:10px 0}
+th,td{border-bottom:1px solid var(--line);padding:9px 8px;text-align:left;vertical-align:top}
+th{color:var(--muted);font-weight:600;background:#fafbfd}
+code{font-family:ui-monospace,Consolas,monospace;font-size:.92em;background:#eef2f7;border-radius:5px;padding:1px 6px}
+pre{background:#101820;color:#e9f0f7;padding:15px;border-radius:10px;overflow:auto;font-size:13.5px;line-height:1.6}
+ul,ol{padding-left:22px}
+.note{border-left:4px solid var(--blue);padding-left:14px;color:var(--muted)}
+.small{font-size:13px;color:var(--muted)}
+a{color:var(--blue)}
+</style>
+</head>
+<body>
+<main>
+  <h1>如果重写鲸鲸：最优架构</h1>
+  <p class="sub">基于现有 4.9（Launcher → Kernel 8787 → Bridge → DSH）+ 40 个真实案例 · 2026-11-24</p>
+
+  <div class="card">
+    <span class="tag g">不建议推倒重写</span><span class="tag">保留 60–70%</span><span class="tag">重画四条边界</span>
+    <h2 style="border:0;margin-top:14px">一句话</h2>
+    <p><b>保留鲸鲸的“壳”和“人格”，重写它的“记忆、能力、通道、插件”四条边界。</b>用事件日志保证可回放，用动作注册表保证可确认，用 shadow 保证不误执行。</p>
+  </div>
+
+  <h2>1. 为什么不全部推倒</h2>
+  <table>
+    <tr><th>方案</th><th>判断</th></tr>
+    <tr><td>全部重写/换语言/换框架</td><td>丢失 UIA/微信兼容、人设资产、记忆数据、边界守卫；回归面巨大 ❌</td></tr>
+    <tr><td>全量微服务化</td><td>本地单机，增加部署/调试/一致性成本 ❌</td></tr>
+    <tr><td>换 Electron/Web 重做 UI</td><td>与核心问题无关，WPF 能用 ❌</td></tr>
+    <tr><td><b>模块化单体 + 四条边界重构</b></td><td>可控、可灰度、可回滚 ✅</td></tr>
+  </table>
+
+  <h2>2. 保留什么</h2>
+  <ul>
+    <li>Launcher（WPF）</li>
+    <li>Bridge（Python + wechatauto/UIA）——微信兼容经验最贵</li>
+    <li>Kernel HTTP 8787</li>
+    <li>Persona/prompt 静态块（2389 tokens）</li>
+    <li>原文/人物卡/摘要/事件等真实记忆</li>
+    <li>brain_policy/审计/确认、P1–P4</li>
+  </ul>
+
+  <h2>3. 重画哪四条边界</h2>
+
+  <h3>3.1 记忆：事件日志 + 投影</h3>
+  <pre>append-only event log
+  message.received / sent
+  action.decided / confirmed / succeeded / failed
+  memory.fact / preference
+  commitment.created / settled
+  procedure.learned / affect.changed
+        ↓ projector（幂等）
+episode / personCard / facts / relations / summary / commitment
+        ↓
+BM25 + vector retrieval</pre>
+  <p>替换：kernel store、sleep 直接改卡、bridge 回调、brain 任务卡多入口写盘。</p>
+
+  <h3>3.2 能力：动作注册表</h3>
+  <pre>ActionSpec(
+  id="edit_file", risk="R2",
+  input_schema=..., permissions=["fs.write.workspace"],
+  executor="brain", confirm="always", verify="read_back")</pre>
+  <p>统一 P1–P4、委托、定时、多平台；R0 自动，R2/R3 确认。</p>
+
+  <h3>3.3 通道：ChannelAdapter + Outbox</h3>
+  <pre>receive() -> Envelope
+send(outbox_item) -> Receipt
+status() -> ChannelStatus
+
+Envelope: platform/chatId/chatType/senderId/text/media/replyTo/isSelf/raw
+Outbox: 先落盘、重试退避、回执、幂等键</pre>
+  <p>微信桥仍是唯一碰微信的进程，上层不再关心平台。</p>
+
+  <h3>3.4 插件：manifest + capability</h3>
+  <pre>{ "id":"dsh-feiyu", "capabilities":["memory.read","channel.qq","tool.bili"],
+  "actions":["bili.watch"], "hooks":["message.received"] }</pre>
+  <p>插件只能调用声明的能力；状态独立；失败隔离；高危能力显式授权。</p>
+
+  <h2>4. 目标架构</h2>
+  <pre>apps/launcher（WPF）
+services/kernel（Node 8787）
+  channels/ conversations/ memory/ capabilities/
+  execution/ presence/ plugins/ platform/
+services/bridge-wechat（Python UIA）
+data/ event log + sqlite + projections + artifacts
+
+packages/contracts / memory-core / capability-core / channel-core / plugin-core</pre>
+
+  <h2>5. 无关键词命令</h2>
+  <table>
+    <tr><th>置信度</th><th>行为</th></tr>
+    <tr><td>≥0.85 且 R0</td><td>直接执行</td></tr>
+    <tr><td>≥0.85 且 R2</td><td>确认一次</td></tr>
+    <tr><td>≥0.85 且 R3</td><td>二次确认 + 回滚</td></tr>
+    <tr><td>0.55–0.85</td><td>先问“你是想…还是只是聊聊？”</td></tr>
+    <tr><td>&lt;0.55</td><td>当聊天，不执行</td></tr>
+  </table>
+  <p>现有 `脑子：` 保留为最高置信度 fast path。</p>
+
+  <h2>6. 迁移：不要大爆炸</h2>
+  <table>
+    <tr><th>阶段</th><th>内容</th><th>约</th></tr>
+    <tr><td>M0</td><td>契约：Envelope/Event/ActionSpec/Job/Approval</td><td>1 周</td></tr>
+    <tr><td>M1</td><td>事件日志双写 + 回放校验</td><td>2 周</td></tr>
+    <tr><td>M2</td><td>记忆读切换 10%→100%</td><td>2 周</td></tr>
+    <tr><td>M3</td><td>能力注册表迁移</td><td>2 周</td></tr>
+    <tr><td>M4</td><td>ChannelAdapter/Outbox</td><td>2 周</td></tr>
+    <tr><td>M5</td><td>意图路由 shadow</td><td>1–2 周</td></tr>
+    <tr><td>M6</td><td>灰度/切换</td><td>1–2 周</td></tr>
+  </table>
+  <p>合计约 <b>8–12 周</b>（单人 + AI，视范围）。</p>
+
+  <h2>7. 40 个案例，12 个模式</h2>
+  <p>完整 40 条在 Markdown；抽象出的模式：</p>
+  <ol>
+    <li>通道适配器（Wechaty/LangBot/NapCat）</li>
+    <li>插件容器 + manifest（Ondra/Koishi/Dify）</li>
+    <li>人格与执行分离（persona-shell）</li>
+    <li>事件/情节记忆（feiyu/world）</li>
+    <li>按人隔离 + 隐私（fish-soul）</li>
+    <li>意图/承诺账本（feiyu）</li>
+    <li>程序性记忆（world procedures）</li>
+    <li>工作流/节点编排（n8n/Dify/Langflow）</li>
+    <li>checkpoint/恢复（LangGraph）</li>
+    <li>沙箱/工具权限（OpenHands/Codex）</li>
+    <li>安全评测（AgentDojo/ClawSafety/AgentBench）</li>
+    <li>自然语言工具调用（B站/Open Interpreter）</li>
+  </ol>
+
+  <h2>8. 最终建议</h2>
+  <ol>
+    <li>先做事件日志 + 投影（收益最大）</li>
+    <li>再做动作注册表（统一执行/确认/审计）</li>
+    <li>再做 ChannelAdapter + Outbox</li>
+    <li>最后做意图路由 shadow（不急上线）</li>
+    <li>插件 manifest/权限作为长期扩展</li>
+  </ol>
+
+  <p class="note">不要为了“新”换语言/框架；不要全量微服务；不要删现有 `脑子：`；不要在没 shadow 的情况下上无关键词执行。</p>
+
+  <p><a href="鲸鲸-重写最优架构-案例与方案.md">完整架构与 40 案例 Markdown</a> · <a href="鲸鲸-无关键词命令-项目书与实施计划.md">无关键词项目书</a></p>
+</main>
+</body>
+</html>
