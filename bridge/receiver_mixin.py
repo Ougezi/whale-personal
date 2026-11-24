@@ -951,7 +951,18 @@ class ReceiverMixin:
             _v = _policy.check_action(task, workspace, mode)
             if not _v.get('ok'):
                 _audit('delegation_policy_blocked', 'blocked', str(_v.get('reason')))
-                self.send_text('这个委托被边界拦了：%s。' % _v.get('reason'), target, username)
+                _reason = str(_v.get('reason'))
+                if _reason == 'workspace_not_allowed':
+                    try:
+                        _roots = '、'.join(getattr(_policy, 'roots', [])[:4])
+                    except Exception:
+                        _roots = ''
+                    self.send_text(
+                        '这个委托被边界拦了：workspace_not_allowed（工作区不在允许范围%s）。' % (
+                            '：' + _roots if _roots else ''),
+                        target, username)
+                else:
+                    self.send_text('这个委托被边界拦了：%s。' % _reason, target, username)
                 return
             risk = _v.get('risk') or ('R2' if write else 'R0')
             if write and not approved:
