@@ -55,6 +55,26 @@ dist/           本地便携版产物（不入库）
   实测：造一张写着「鲸鲸图片识别测试 / OCR fallback works 123」的图，无 Key 和坏地址两种情况下都正确读出。
 - 依赖：系统里要有 OCR 语言包（中文系统自带）；没有时返回空，仍会把原错误抛给调用方。
 
+## 4.9.2：一条命令完成「证书信任 + 签名 + 打包校验」
+
+新增 `scripts/personal/sign-and-release.ps1`（需要管理员）：
+
+1. 准备本机自签名代码签名证书（CN=Ougezi Whale，5 年，可导出 .cer）；
+2. 把证书装进本机「受信任的根证书颁发机构」+「受信任的发布者」；
+3. 停掉占用 exe 的启动器 → 用 signtool 签名 → `/pa` 校验；
+4. 重打 `whale-personal-update-<ver>.zip` → **解出包里的 exe 再验一次签名**；
+5. 默认 `--autostart` 重启启动器（`-NoRestart` 可跳过）。
+
+用法：
+
+```powershell
+powershell -ExecutionPolicy Bypass -File scripts\personal\sign-and-release.ps1
+```
+
+注意：自签名证书只在**装过它的电脑**上算「受信任发布者」；换电脑要先导入
+`launcher\certs\whale-codesign.cer`（Root + TrustedPublisher）。证书私钥在 `CurrentUser\My`，
+`.pfx` 自行保管，仓库只留公开 `.cer` 且被 `.gitignore` 排除。
+
 ## 4.9.1：去掉「打开文件 - 安全警告 / 无法验证发布者」
 
 那个弹窗不是杀软误报，是 Windows 的 **Mark-of-the-Web**：exe 从浏览器/网盘/聊天工具下载、

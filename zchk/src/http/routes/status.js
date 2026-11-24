@@ -1,0 +1,45 @@
+'use strict';
+
+const { statusPayload, recentMessages } = require('../../services/status');
+const { json } = require('../util');
+const { isLoopbackRequest } = require('../security');
+const memoryBackup = require('../../memory/backup');
+
+module.exports = function register(router) {
+  // 一键健康：错误计数 + 记忆规模 + 运行时长，排障先看这个
+  router.get('/api/health', (runtime, req, res) => {
+    let errors = { total: 0, top: {} };
+    try { errors = require('../../infra/errorMeter').stats(); } catch { /* 计数模块不可用就报空 */ }
+    let memory = null;
+    try { memory = runtime.store ? runtime.store.summary() : null; } catch { /* 记忆统计失败不影响健康接口 */ }
+    let bridgeErrors = null;
+    try {
+      const p = require('node:path').join(runtime.config.root, 'data', 'bridge-errors.json');
+      bridgeErrors = JSON.parse(require('node:fs').readFileSync(p, 'utf8'));
+    } catch { /* 桥接还没写过计数就报空 */ }
+    let writeFailures = null;
+    try { writeFailures = runtime.store ? runtime.store.writeFailures : null; } catch { /* 老 store 没有 */ }
+    return json(res, 200, { ok: true, uptimeSec: Math.round(process.uptime()),
+      errors, bridgeErrors, memory, writeFailures });
+  });
+
+  router.get('/api/status', (runtime, req, res) => json(res, 200, statusPayload(runtime)));
+  // 启动器状态页的「最近动态」：只读内存快照，本机可读（与 /api/status 同级信息）。
+  router.get('/api/recent', (runtime, req, res, info) => {
+    const raw = Number(info.url.searchParams.get('limit') || 10);
+    const limit = Number.isFinite(raw) ? Math.min(50, Math.max(1, Math.round(raw))) : 10;
+    return json(res, 200, { ok: true, items: recentMessages(runtime.store, limit) });
+  });
+  // 本机运维控制，只回成功/失败；不开放任何记忆正文、导出或恢复接口。
+  router.post('/api/runtime/prepare-stop', (runtime, req, res) => {
+    const gateway = runtime.gateways.get('wechat');
+    if (!isLoopbackRequest(req) || !gateway || !gateway.verifyToken(req, null)) {
+      return json(res, 403, { ok: false, error: '停止准备仅允许通过本机令牌调用' });
+    }
+    runtime.store.flush();
+    const pending = [...runtime.store.chatStore.chats.values()].some(chat => chat.dirtyMeta || chat.dirtySummary);
+    if (pending) return json(res, 503, { ok: false, error: '记忆尚未保存，已取消停止准备' });
+    memoryBackup.writeSnapshot(runtime.config.root, 'before-stop');
+    return json(res, 200, { ok: true });
+  });
+};

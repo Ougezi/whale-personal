@@ -80,6 +80,8 @@ def main():
     p = subprocess.run([PY, '-B', '-c', "import sys;sys.path.insert(0,'bridge');import selfcheck;r=selfcheck.run_checks();print('selfcheck',r['ok'],r.get('fails'))"], cwd=DIST, env=dict(ENV), capture_output=True, text=True, encoding='utf-8', errors='replace', timeout=180)
     code = p.returncode
     tail = (p.stdout or '').strip().splitlines()[-1] if p.stdout.strip() else ''
+    if code == 0 and 'selfcheck True' not in tail:
+        code = 1
     rows.append({'name': 'selfcheck', 'code': code, 'tail': tail})
     print(('✓' if code == 0 else '✗') + ' selfcheck ' + tail)
     # planned steps

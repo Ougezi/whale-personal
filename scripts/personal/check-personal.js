@@ -156,6 +156,13 @@ check('MOTW：启动/更新都不弹「无法验证发布者」', () => {
   return 'ok';
 });
 
+check('一条命令：证书信任 + 签名 + 打包校验', () => {
+  const f = read('scripts/personal/sign-and-release.ps1');
+  for (const key of ['certutil', 'signtool', 'verify', 'make-update-zip', 'Expand-Archive']) must(f.includes(key), '签名链路缺 ' + key);
+  must(f.includes('TrustedPublisher') && f.includes('Root'), '缺证书存储安装');
+  return 'ok';
+});
+
 check('自主上网反应只要一句（提示词与 maxTokens）', () => {
   const b = read('src/services/browse.js');
   must(/只(输出|回)[^。\n]{0,4}一句/.test(b), 'browse.js SYSTEM 里没有「只输出这一句」');
