@@ -223,22 +223,27 @@
     "GH-064"
    ],
    "source_review": [
-    "案例相关仓库"
+    "dsh-world",
+    "dsh-persona-shell"
    ],
    "files": [
+    "packages/memory-core/working.js",
+    "scripts/personal/鲸鲸-出生工作记忆自测.js",
     "src/memory/store.js",
     "src/persona/prompt.js"
    ],
    "actions": [
-    "working 7 槽；session 工作集；instruction 规则表"
+    "working 7 槽/1000 字；session 12 条/3000 字；instruction owner>config>default",
+    "规则存储与事实存储分离；指代只从工作/会话取"
    ],
    "tests": [
-    "指代解析",
-    "规则优先级",
-    "预算"
+    "node scripts/personal/鲸鲸-出生工作记忆自测.js"
    ],
    "acceptance": [
-    "规则不被事实淹没",
+    "working 7 槽",
+    "session 12 条",
+    "instruction 规则优先级",
+    "事实不能进 instruction",
     "指代可解析",
     "预算内"
    ]
