@@ -359,22 +359,25 @@
     "dsh-persona-shell"
    ],
    "files": [
+    "packages/persona-core/expression.js",
+    "scripts/personal/鲸鲸-出生表达自测.js",
     "src/persona/prompt.js",
     "src/persona/expression.js",
     "src/pipeline/chat.js"
    ],
    "actions": [
-    "表达层；技术打码；原文保留"
+    "mask 代码/路径/URL/命令/版本；origin 永不变；marker 丢失/重复/抛错回退原文",
+    "表达层只接收 masked prose；style 不入技术字面"
    ],
    "tests": [
-    "人格一致性",
-    "原文对照",
-    "不冒充"
+    "node scripts/personal/鲸鲸-出生表达自测.js"
    ],
    "acceptance": [
     "工作原文不被改写",
-    "语气一致",
-    "技术内容保护"
+    "语气/派生表达与原文分离",
+    "技术内容一字不差",
+    "marker 异常回退",
+    "style 不影响技术字面"
    ]
   },
   {
