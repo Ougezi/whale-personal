@@ -27,6 +27,7 @@ const nickname = require('../core/nickname');
 const coref = require('../core/coref');
 const intent = require('../core/intent');
 const promptBudget = require('../core/promptBudget');
+const backlog = require('../core/backlog');
 const sessionMod = require('./session');
 const marks = require('./marks');
 const persona = require('../persona');
@@ -1044,12 +1045,21 @@ class Bot {
     try {
       if (isMaster && !isGroup) intentLine = intent.hint(String(clean && clean.text || ''));
     } catch { /* 意图提示失败不影响回复 */ }
+    // 漏回提醒：只在下一次回复时提示，不主动补发
+    let backlogLine = '';
+    try {
+      if (isMaster && !isGroup) {
+        const chatObj = this.store.chatStore.ensureChat(key);
+        backlogLine = backlog.hint(chatObj.messages, { now: nowMs, currentSeq });
+      }
+    } catch { /* 漏回检测失败不影响回复 */ }
     const innerLine = promptBudget.fitBlocks([
       { key: 'mood', text: moodLine }, { key: 'thought', text: thoughtLine },
       { key: 'notes', text: notesLine }, { key: 'empathy', text: empathyLine },
       { key: 'concern', text: concernLine }, { key: 'nick', text: nickLine },
       { key: 'coref', text: corefLine }, { key: 'intent', text: intentLine },
       { key: 'pin', text: pinLine }, { key: 'skill', text: skillLine },
+      { key: 'backlog', text: backlogLine },
     ]);
 
     const promptParts = persona.buildPromptParts({

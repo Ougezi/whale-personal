@@ -1344,6 +1344,24 @@ try {
   check('时间戳归一化', false, String(e && e.message).slice(0, 50));
 }
 
+// 漏回提醒（2026-11-24 截图：09:07 漏回）
+try {
+  const bl = require(path.join(ROOT, 'src', 'core', 'backlog.js'));
+  const nowB = Date.now();
+  const msgsB = [
+    { seq: 1, role: 'assistant', text: '在', ts: nowB - 3600000 },
+    { seq: 2, role: 'user', text: '早捏', ts: nowB - 1800000 },
+    { seq: 3, role: 'user', text: '在上班呢', ts: nowB - 1200000 },
+    { seq: 4, role: 'user', text: '现在这句', ts: nowB },
+  ];
+  const hB = bl.hint(msgsB, { now: nowB, currentSeq: 4 });
+  check('漏回提醒：只有旧消息', hB.includes('2 条') && hB.includes('早捏') && !hB.includes('现在这句'), hB.slice(0, 40));
+  const hC = bl.hint(msgsB.slice(0, 2).concat([{ seq: 4, role: 'assistant', text: '回了', ts: nowB }]), { now: nowB, currentSeq: 4 });
+  check('漏回提醒：已回不提示', hC === '', hC.slice(0, 20));
+} catch (e) {
+  check('漏回提醒', false, String(e && e.message).slice(0, 50));
+}
+
 console.log('\n通过 ' + pass + '/' + (pass + fail));
   process.exit(fail ? 1 : 0);
 })();
