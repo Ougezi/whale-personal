@@ -252,6 +252,16 @@ def quote_content_text(quote, image_description=None):
     return ('（引用%s「%s」）' % (quoted_by or '对方', quoted)).strip()
 
 
+# 主人私聊的“迟到消息”宽限：重启/断线期间的消息不要只补记不回复。
+# 群聊/其他人仍按 STALE_AFTER，避免停机后把一堆旧消息全回一遍。
+MASTER_LATE_GRACE_SEC = 3 * 3600
+
+
+def late_grace_sec(username, master=None):
+    m = master if master is not None else G.MASTER_WXID
+    return MASTER_LATE_GRACE_SEC if (m and username == m) else 0
+
+
 class ReceiverMixin:
 
     def _get_media(self):
@@ -2373,7 +2383,8 @@ class ReceiverMixin:
                 G.log('委托恢复检查出错（忽略）：', repr(_e))
             username = msg.get('username') or ''
             create_time = float(msg.get('create_time') or 0)
-            if create_time and create_time < G.START_TS - G.SKIP_OLDER_THAN:
+            grace = late_grace_sec(username)
+            if create_time and create_time < G.START_TS - G.SKIP_OLDER_THAN - grace:
                 G.log_throttled(
                     'msg-too-old:%s' % (username or 'unknown'),
                     '消息未处理：早于本次启动太多（消息id=%s:%s，创建时间=%s）'
@@ -2382,7 +2393,7 @@ class ReceiverMixin:
                 )
                 self._remember_skipped(msg)
                 return
-            if create_time and G.time.time() - create_time > G.STALE_AFTER:
+            if create_time and G.time.time() - create_time > G.STALE_AFTER + grace:
                 G.log('跳过过期消息（%.0fs 前）：%s' % (G.time.time() - create_time, G.safe_text(msg.get('content') or '')))
                 self._remember_skipped(msg)
                 return

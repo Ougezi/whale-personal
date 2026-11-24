@@ -460,6 +460,14 @@ def main():
     if real:
         test_real_fetch()
 
+    # 主人私聊迟到消息宽限（2026-11-24 截图：09:07 消息重启后只补记不回复）
+    try:
+        from receiver_mixin import late_grace_sec, MASTER_LATE_GRACE_SEC
+        check("主人迟到消息宽限", late_grace_sec("wxid_master", "wxid_master") == MASTER_LATE_GRACE_SEC, str(late_grace_sec("wxid_master", "wxid_master")))
+        check("群聊不享受迟到宽限", late_grace_sec("123@chatroom", "wxid_master") == 0, str(late_grace_sec("123@chatroom", "wxid_master")))
+    except Exception as e:
+        check("主人迟到消息宽限", False, repr(e))
+
     print("=== 鲸鲸改造自测 ===")
     bad = 0
     for name, ok, detail in results:
