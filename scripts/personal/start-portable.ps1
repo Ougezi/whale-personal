@@ -4,6 +4,8 @@ $ErrorActionPreference = "Stop"
 if (-not $Target) { $Target = Split-Path -Parent (Split-Path -Parent $PSScriptRoot) }
 $exe = Join-Path $Target "WhaleLauncher.exe"
 if (-not (Test-Path $exe)) { throw "找不到 $exe" }
+# 从 zip/聊天工具出来时 exe 带 Mark-of-the-Web，双击会弹「无法验证发布者」；启动前顺手去掉
+try { Unblock-File -LiteralPath $exe -ErrorAction SilentlyContinue } catch {}
 Write-Host "== 启动鲸鲸 · 个人版 ==" -ForegroundColor Cyan
 Write-Host "  目录: $Target"
 
