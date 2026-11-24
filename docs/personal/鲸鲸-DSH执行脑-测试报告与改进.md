@@ -271,4 +271,8 @@ python scripts/personal/鲸鲸-自测.py
 - 已修：续跑沿用 `sessions.workspace`；空 final 标 failed。
 - 修复后直接 resume 实测：`status=done`，输出 246 字，cwd=`D:\dsh\brain-test`。
 
-需要主人再发一次同样的 `脑子继续` 做最终微信验收。
+2026-11-24 19:26 主人重发同一条 `脑子继续`：
+
+- 回复“在看了，稍等。”后，直接给出结论和证据；
+- 任务 `done`，输出 246 字，cwd=`D:\dsh\brain-test`；
+- **真实 P3 验收通过**。
