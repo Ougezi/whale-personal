@@ -823,19 +823,21 @@
    "source_review": [],
    "files": [
     "bridge/command_bus.py",
+    "scripts/personal/鲸鲸-出生CommandBus自测.py",
     "bridge/receiver_mixin.py"
    ],
    "actions": [
-    "Command；target；outbox；幂等"
+    "8 命令枚举；target 白名单；outbox；cid 幂等；每回合一条 say；act R2/R3 需 approved；审计"
    ],
    "tests": [
-    "重复 0",
-    "错误接收人 0"
+    "python scripts/personal/鲸鲸-出生CommandBus自测.py"
    ],
    "acceptance": [
     "每回合最多一条 say",
     "重复 0",
-    "审计"
+    "错误接收人 0",
+    "R2/R3 未确认拒绝",
+    "审计入队"
    ]
   },
   {
