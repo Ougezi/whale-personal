@@ -487,24 +487,27 @@
     "GH-089"
    ],
    "source_review": [
-    "OpenHands",
-    "AgentDojo"
+    "OpenHands"
    ],
    "files": [
+    "packages/action-core/registry.js",
+    "scripts/personal/鲸鲸-出生动作注册自测.js",
     "bridge/brain_agent.py",
     "bridge/brain_policy.py"
    ],
    "actions": [
-    "ActionSpec；动作/风险；参数 schema"
+    "8 个 ActionSpec；参数白名单；风险 R0–R3；R2/R3 审批；执行器/验证器",
+    "本步只做注册表，不做执行"
    ],
    "tests": [
-    "未知动作拒绝",
-    "R0-R3 映射"
+    "node scripts/personal/鲸鲸-出生动作注册自测.js"
    ],
    "acceptance": [
     "动作可枚举",
     "未知动作 0",
-    "风险映射正确"
+    "R0–R3 映射正确",
+    "R2/R3 必须审批",
+    "参数白名单"
    ]
   },
   {
