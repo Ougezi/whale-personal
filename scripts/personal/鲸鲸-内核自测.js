@@ -1126,6 +1126,18 @@ try {
   check('silent 补录', false, String(e && e.message).slice(0, 60));
 }
 
+// 向量/嵌入路径不依赖 cwd（2026-11-24 架构体检）
+try {
+  const embed = require(path.join(ROOT, 'src', 'core', 'embed.js'));
+  const vi = require(path.join(ROOT, 'src', 'memory', 'vectorIndex.js'));
+  const rootPath = path.dirname(path.dirname(ROOT)); // ROOT 的上一级（dist/whale-personal 或 repo）
+  const norm = (x) => String(x).replace(/\\/g, '/').toLowerCase();
+  check('向量路径不依赖 cwd：embed', norm(embed.VEC_DIR).includes('/data/vector') && norm(embed.VEC_DIR).startsWith(norm(path.dirname(ROOT)).toLowerCase() + '/'), embed.VEC_DIR);
+  check('向量路径不依赖 cwd：cache', norm(vi.CACHE_FILE).includes('/data/vector/event-vecs.json'), vi.CACHE_FILE);
+} catch (e) {
+  check('向量路径不依赖 cwd', false, String(e && e.message).slice(0, 50));
+}
+
 console.log('\n通过 ' + pass + '/' + (pass + fail));
   process.exit(fail ? 1 : 0);
 })();

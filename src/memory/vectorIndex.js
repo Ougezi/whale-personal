@@ -12,7 +12,8 @@ const fs = require('node:fs');
 const path = require('node:path');
 const embed = require('../core/embed');
 
-const CACHE_FILE = path.join(process.cwd(), 'data', 'vector', 'event-vecs.json');
+const ROOT = path.resolve(__dirname, '..', '..');
+const CACHE_FILE = path.join(ROOT, 'data', 'vector', 'event-vecs.json');
 let cache = null;
 let dirty = false;
 
@@ -105,4 +106,5 @@ function stats() {
   return { entries: Object.keys(c).length, file: CACHE_FILE };
 }
 
-module.exports = { getVectors, getQueryVector, stats, keyOf, quantize, dequantize, CACHE_FILE };
+module.exports = {
+  CACHE_FILE, getVectors, getQueryVector, stats, keyOf, quantize, dequantize, CACHE_FILE };

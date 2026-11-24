@@ -10,9 +10,12 @@ const { spawn } = require('node:child_process');
 const fs = require('node:fs');
 const path = require('node:path');
 
-const VEC_DIR = path.join(process.cwd(), 'data', 'vector');
+// 用 __dirname 推导应用根，不能依赖 cwd：换工作目录/从别处启动时
+// 原实现会去 cwd/data/vector 找模型、去 cwd/runtime 找 node，向量检索静默失效。
+const ROOT = path.resolve(__dirname, '..', '..');
+const VEC_DIR = path.join(ROOT, 'data', 'vector');
 const SERVER = path.join(VEC_DIR, 'embed-server.mjs');
-const NODE = path.join(process.cwd(), 'runtime', 'node.exe');
+const NODE = path.join(ROOT, 'runtime', 'node.exe');
 
 let child = null;
 let seq = 0;
@@ -23,6 +26,7 @@ let lastUsed = 0;
 function available() {
   try {
     return !broken
+      && fs.existsSync(NODE)
       && fs.existsSync(SERVER)
       && fs.existsSync(path.join(VEC_DIR, 'node_modules', '@huggingface', 'transformers', 'package.json'));
   } catch {
@@ -133,4 +137,5 @@ function stop() {
 // 进程退出时不要留孤儿嵌入进程
 process.on('exit', stop);
 
-module.exports = { available, embed, cosine, stop, VEC_DIR, SERVER, idleSince: () => lastUsed };
+module.exports = {
+  VEC_DIR, NODE, SERVER, available, embed, cosine, stop, VEC_DIR, SERVER, idleSince: () => lastUsed };

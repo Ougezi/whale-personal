@@ -146,6 +146,10 @@ def finish_job(job_id, ok, text=''):
                 j["status"] = "done" if ok else "failed"
                 j["ok"] = bool(ok)
                 j["chars"] = len(str(text or ""))
+                # 失败时把原因留下来，否则事后只有一个 failed，没法排查
+                j["message"] = str(text or "")[:500]
+                if not ok:
+                    j["error"] = str(text or "")[:500]
                 j["finished_at"] = time.strftime("%Y-%m-%d %H:%M:%S")
                 j["elapsed"] = round(time.time() - float(j.get("ts") or time.time()), 1)
                 break
