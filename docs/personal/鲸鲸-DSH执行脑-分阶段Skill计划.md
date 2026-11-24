@@ -660,3 +660,18 @@ brain.p4.enabled
 先做 P1，验收通过再做 P2；P3 解决“长任务/重启”，P4 最后。每个阶段都有独立开关、独立验收、独立回滚。
 
 **本轮仍然没有改代码、没有安装新 skill，只补了调研和计划书。**
+
+---
+
+## 14. 执行记录（2026-11-24）
+
+实现提交：`a64f300`（已推送 main/release）
+
+- P1 只读：真实读 `D:\dsh\brain-test\test.txt` 返回 42，未写文件。
+- P2 审批：`脑子写` 先 pending_approval；主人回「可以」后 workspace-write 创建 `ok.txt`，内容 hello。
+- P3 续跑：同一个 `session-id` 续问，返回上一轮结果；会话一致。
+- P4 定时：`脑子定时：每天 HH:MM ...` 解析/静默 23–08/配额已实现；多代理 Scout/Manager 暂不启用。
+- 技能：`whale-brain-p1-readonly`、`p2-write-approval`、`p3-resume`、`p4-proactive` 已安装到 `D:\dsh\skills`。
+- 测试：内核 287/287、桥接 108/108、health/selfcheck 通过。
+
+已知边界：P1 的“不联网”是提示词约束，不是硬网络隔离；P2 的 workspace 白名单尚未做成强制配置；P4 多代理未启用。
