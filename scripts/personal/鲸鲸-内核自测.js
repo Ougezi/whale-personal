@@ -1161,6 +1161,15 @@ try {
   check('浏览器缓存清理', false, String(e && e.message).slice(0, 50));
 }
 
+// episode 关闭保留尾部原文（2026-11-24 摘要体检）
+try {
+  const ep = require(path.join(ROOT, 'src', 'memory', 'episode.js'));
+  check('episode 保留尾部原文', ep.episodeCoverageTo({ messageSeqFrom: 10, messageSeqTo: 100 }, 8) === 92, String(ep.episodeCoverageTo({ messageSeqFrom: 10, messageSeqTo: 100 }, 8)));
+  check('episode 短段不越界', ep.episodeCoverageTo({ messageSeqFrom: 10, messageSeqTo: 12 }, 8) === 10, '');
+} catch (e) {
+  check('episode 保留尾部原文', false, String(e && e.message).slice(0, 40));
+}
+
 console.log('\n通过 ' + pass + '/' + (pass + fail));
   process.exit(fail ? 1 : 0);
 })();

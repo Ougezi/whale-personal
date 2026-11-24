@@ -9,6 +9,9 @@
  */
 const { LIMITS, DAY_MS } = require('./constants');
 const personCard = require('./personCard');
+
+// 关闭 episode 时保留最后 N 条原文在 recent，避免整段只剩摘要
+const EPISODE_TAIL_KEEP = 8;
 const extractor = require('./extractor');
 const compression = require('./compression');
 const retrieval = require('./retrieval');
@@ -109,6 +112,13 @@ function enqueue(chat, task) {
  * 关闭一个 episode，写 L2 + thread。可重复调用，第二次直接返回 already_closed。
  * @returns {Promise<{closed:boolean, reason?:string, episodeId?:string, events?:number}>}
  */
+function episodeCoverageTo(ep, keep = EPISODE_TAIL_KEEP) {
+  const from = Math.max(0, Number(ep && ep.messageSeqFrom) || 0);
+  const to = Math.max(0, Number(ep && ep.messageSeqTo) || 0);
+  const k = Math.max(0, Number(keep) || 0);
+  return Math.max(from, to - k);
+}
+
 async function closeEpisode({ chat, chatStore, llm = null, logger = null, now = Date.now(), reason = 'manual', episode = null }) {
   const ep = episode || chat.meta.episode;
   if (!ep) return { closed: false, reason: 'no_episode' };
@@ -220,7 +230,7 @@ async function closeEpisode({ chat, chatStore, llm = null, logger = null, now = 
     if (compression.applySegment(chat, {
       text: summaryText,
       fromSeq: ep.messageSeqFrom,
-      toSeq: ep.messageSeqTo,
+      toSeq: episodeCoverageTo(ep),
       now,
     })) {
       chat.summary.episodeId = ep.id;
@@ -278,6 +288,8 @@ function closeIdleEpisodes({ chat, chatStore, llm = null, logger = null, now = D
 }
 
 module.exports = {
+  episodeCoverageTo,
+  EPISODE_TAIL_KEEP,
   TOPIC_SHIFT_RE,
   episodeStart,
   ensureEpisode,

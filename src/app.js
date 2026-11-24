@@ -152,6 +152,20 @@ function createRuntime({ root = path.resolve(__dirname, '..'), env = process.env
     } catch (err) { logger.warn('启动补跑睡眠失败（不影响聊天）：' + describeError(err)); }
   }, 8000);
 
+  // 媒体缓存周期清理：启动清一次还不够，长期挂着也要收
+  try {
+    runtime.scheduler.every('media.cleanup', 6 * 60 * 60 * 1000, () => {
+      if (!features.isOn(runtime.config, 'mediaCleanup')) return;
+      try {
+        const mc = mediaCache.cleanup(path.join(root, 'data', 'media-cache'), {
+          maxAgeDays: Number((config.storage || {}).mediaKeepDays) || 7,
+          maxTotalMB: Number((config.storage || {}).mediaMaxMB) || 500,
+        });
+        if (mc.removed) logger.info(`媒体缓存清理（定时）：删 ${mc.removed} 个，释放 ${mc.freedMB} MB`);
+      } catch (err) { logger.warn('媒体缓存定时清理失败：' + describeError(err)); }
+    });
+  } catch { /* 定时器起不来不影响主流程 */ }
+
   runtime.llm = new DeepSeekClient({ config, logger: child('llm') });
   runtime.diary = new DiaryService(config, {
     store,
