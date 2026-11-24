@@ -1,0 +1,748 @@
+{
+ "scanned": 77,
+ "kept": 74,
+ "queries": 8,
+ "note": "2026-11-24 GitHub 搜索样本；仅作调研，不是依赖列表",
+ "items": [
+  {
+   "full": "zhayujie/CowAgent",
+   "stars": 48056,
+   "desc": "Open-source personal AI assistant & Agent Harness. Plans tasks, runs tools and skills, self-evolves with memory and knowledge. Multi-agent, multi-model, multi-c",
+   "url": "https://github.com/zhayujie/CowAgent",
+   "lang": "Python",
+   "updated": "2026-11-24",
+   "cat": "个人助理",
+   "q": "personal assistant llm agent"
+  },
+  {
+   "full": "AstrBotDevs/AstrBot",
+   "stars": 47416,
+   "desc": "AI Agent Assistant & development framework that integrates lots of IM platforms, LLMs, plugins and AI feature, and can be your openclaw alternative. ✨",
+   "url": "https://github.com/AstrBotDevs/AstrBot",
+   "lang": "Python",
+   "updated": "2026-11-24",
+   "cat": "工具/MCP",
+   "q": "mcp agent framework"
+  },
+  {
+   "full": "khoj-ai/khoj",
+   "stars": 38225,
+   "desc": "Your AI second brain. Self-hostable. Get answers from the web or your docs. Build custom agents, schedule automations, do deep research. Turn any online or loca",
+   "url": "https://github.com/khoj-ai/khoj",
+   "lang": "Python",
+   "updated": "2026-11-24",
+   "cat": "个人助理",
+   "q": "personal assistant llm agent"
+  },
+  {
+   "full": "mukul975/Anthropic-Cybersecurity-Skills",
+   "stars": 36646,
+   "desc": "817 structured cybersecurity skills for AI agents · Mapped to 6 frameworks: MITRE ATT&CK, NIST CSF 2.0, MITRE ATLAS, D3FEND, NIST AI RMF & MITRE F3 (Fight Fraud",
+   "url": "https://github.com/mukul975/Anthropic-Cybersecurity-Skills",
+   "lang": "Python",
+   "updated": "2026-11-24",
+   "cat": "工具/MCP",
+   "q": "mcp agent framework"
+  },
+  {
+   "full": "topoteretes/cognee",
+   "stars": 33539,
+   "desc": "Cognee is the open-source AI memory platform for agents. Give your AI agents persistent long-term memory with small models for free",
+   "url": "https://github.com/topoteretes/cognee",
+   "lang": "Python",
+   "updated": "2026-11-24",
+   "cat": "记忆",
+   "q": "long-term memory agent"
+  },
+  {
+   "full": "trycua/cua",
+   "stars": 32848,
+   "desc": "Scale computer-use 2.0 with open-source drivers, cross-OS sandboxes, and benchmarks for training, evaluation, and data generation.",
+   "url": "https://github.com/trycua/cua",
+   "lang": "Rust",
+   "updated": "2026-11-24",
+   "cat": "操作电脑",
+   "q": "computer use agent"
+  },
+  {
+   "full": "mastra-ai/mastra",
+   "stars": 29775,
+   "desc": "Mastra is the modern TypeScript framework for AI-powered applications and agents.",
+   "url": "https://github.com/mastra-ai/mastra",
+   "lang": "TypeScript",
+   "updated": "2026-11-24",
+   "cat": "工具/MCP",
+   "q": "mcp agent framework"
+  },
+  {
+   "full": "deepset-ai/haystack",
+   "stars": 27091,
+   "desc": "Open-source AI orchestration framework for building context-engineered, production-ready LLM applications. Design modular pipelines and agent workflows with exp",
+   "url": "https://github.com/deepset-ai/haystack",
+   "lang": "Python",
+   "updated": "2026-11-24",
+   "cat": "工具/MCP",
+   "q": "mcp agent framework"
+  },
+  {
+   "full": "vercel-labs/agent-desktop",
+   "stars": 26387,
+   "desc": "Computer use CLI for AI agents",
+   "url": "https://github.com/vercel-labs/agent-desktop",
+   "lang": "Rust",
+   "updated": "2026-11-24",
+   "cat": "操作电脑",
+   "q": "computer use agent"
+  },
+  {
+   "full": "screenpipe/screenpipe",
+   "stars": 22523,
+   "desc": "YC (S26) | Screenpipe finds the work worth automating | Continuously record computer work locally, discover recurring workflows, and hand the result to any agen",
+   "url": "https://github.com/screenpipe/screenpipe",
+   "lang": "Rust",
+   "updated": "2026-11-24",
+   "cat": "操作电脑",
+   "q": "computer use agent"
+  },
+  {
+   "full": "wanshuiyin/Auto-claude-code-research-in-sleep",
+   "stars": 19672,
+   "desc": "ARIS ⚔️ (Auto-Research-In-Sleep) — Lightweight Markdown-only skills for autonomous ML research: cross-model review loops, idea discovery, and experiment automat",
+   "url": "https://github.com/wanshuiyin/Auto-claude-code-research-in-sleep",
+   "lang": "Python",
+   "updated": "2026-11-24",
+   "cat": "工具/MCP",
+   "q": "mcp agent framework"
+  },
+  {
+   "full": "langbot-app/LangBot",
+   "stars": 19176,
+   "desc": "Production-grade platform for building agentic IM bots - 生产级多平台智能机器人开发平台/ Agent、知识库编排、插件系统 / Bots for Discord / Slack / LINE / Telegram / WeChat(企业微信, 企微智能机器人, ",
+   "url": "https://github.com/langbot-app/LangBot",
+   "lang": "Python",
+   "updated": "2026-11-24",
+   "cat": "微信/IM 接入",
+   "q": "wechat llm bot"
+  },
+  {
+   "full": "a2ui-project/a2ui",
+   "stars": 18436,
+   "desc": "Open-source generative UI framework: agents stream layout data, and apps render it with native components in React, Angular, Lit, Flutter, SwiftUI and Jetpack C",
+   "url": "https://github.com/a2ui-project/a2ui",
+   "lang": "TypeScript",
+   "updated": "2026-11-24",
+   "cat": "工具/MCP",
+   "q": "mcp agent framework"
+  },
+  {
+   "full": "memvid/memvid",
+   "stars": 17438,
+   "desc": "Memory layer for AI Agents. Replace complex RAG pipelines with a serverless, single-file memory layer. Give your agents instant retrieval and long-term memory.",
+   "url": "https://github.com/memvid/memvid",
+   "lang": "Rust",
+   "updated": "2026-11-24",
+   "cat": "记忆",
+   "q": "long-term memory agent"
+  },
+  {
+   "full": "QwenLM/Qwen-Agent",
+   "stars": 17281,
+   "desc": "Agent framework and applications built upon Qwen>=3.0, featuring Function Calling, MCP, Code Interpreter, RAG, Chrome extension, etc.",
+   "url": "https://github.com/QwenLM/Qwen-Agent",
+   "lang": "Python",
+   "updated": "2026-11-24",
+   "cat": "工具/MCP",
+   "q": "mcp agent framework"
+  },
+  {
+   "full": "xbtlin/ai-berkshire",
+   "stars": 17238,
+   "desc": "AI 时代的伯克希尔：基于 Claude Code / Codex 的价值投资研究框架。巴菲特·芒格·段永平·李录四大师方法论 + 多Agent并行研究。| AI-era Berkshire: a value investing research framework built for Claude Code / Co",
+   "url": "https://github.com/xbtlin/ai-berkshire",
+   "lang": "HTML",
+   "updated": "2026-11-24",
+   "cat": "工具/MCP",
+   "q": "mcp agent framework"
+  },
+  {
+   "full": "akitaonrails/ai-memory",
+   "stars": 16329,
+   "desc": "Solution for long term memory for agent coding CLIs and to facilitate handoff between different agent vendors",
+   "url": "https://github.com/akitaonrails/ai-memory",
+   "lang": "Rust",
+   "updated": "2026-11-24",
+   "cat": "记忆",
+   "q": "long-term memory agent"
+  },
+  {
+   "full": "NanmiCoder/cc-haha",
+   "stars": 15541,
+   "desc": "本地优先的跨平台 Claude Code / AI Agent 桌面工作台：多 Agent 协作、Git Worktree、代码 Diff、技能市场、多模型、Computer Use、桌面宠物；支持微信、飞书、钉钉及 H5 等远程访问。 | Local-first Claude Code / AI Agent desk",
+   "url": "https://github.com/NanmiCoder/cc-haha",
+   "lang": "TypeScript",
+   "updated": "2026-11-24",
+   "cat": "操作电脑",
+   "q": "computer use agent"
+  },
+  {
+   "full": "langchain4j/langchain4j",
+   "stars": 13438,
+   "desc": "LangChain4j is an idiomatic, open-source Java library for building LLM-powered applications on the JVM. It offers a unified API over popular LLM providers and v",
+   "url": "https://github.com/langchain4j/langchain4j",
+   "lang": "Java",
+   "updated": "2026-11-24",
+   "cat": "框架/工具",
+   "q": "mcp agent framework"
+  },
+  {
+   "full": "simular-ai/Agent-S",
+   "stars": 13033,
+   "desc": "Agent S: the state-of-the-art open source computer use agents",
+   "url": "https://github.com/simular-ai/Agent-S",
+   "lang": "Python",
+   "updated": "2026-11-24",
+   "cat": "电脑操作/运行时",
+   "q": "computer use agent"
+  },
+  {
+   "full": "humanlayer/humanlayer",
+   "stars": 12939,
+   "desc": "The best way to get AI coding agents to solve hard problems in complex codebases.",
+   "url": "https://github.com/humanlayer/humanlayer",
+   "lang": "TypeScript",
+   "updated": "2026-11-24",
+   "cat": "审批/多代理",
+   "q": "human-in-the-loop agent"
+  },
+  {
+   "full": "wangrongding/wechat-bot",
+   "stars": 11566,
+   "desc": "🤖 Multi-platform IM AI Agent for Telegram, WhatsApp, Lark, and WeChat. Connects ChatGPT / Claude / Kimi / DeepSeek / Ollama / Pi for auto-replies, community ana",
+   "url": "https://github.com/wangrongding/wechat-bot",
+   "lang": "JavaScript",
+   "updated": "2026-11-23",
+   "cat": "IM/微信桥",
+   "q": "wechat agent bot"
+  },
+  {
+   "full": "aden-hive/hive",
+   "stars": 11165,
+   "desc": "Multi-Agent Harness for Production AI",
+   "url": "https://github.com/aden-hive/hive",
+   "lang": "Python",
+   "updated": "2026-11-24",
+   "cat": "审批/人机协同",
+   "q": "human-in-the-loop agent"
+  },
+  {
+   "full": "VoltAgent/voltagent",
+   "stars": 11006,
+   "desc": "AI Agent Engineering Platform built on an Open Source TypeScript AI Agent Framework",
+   "url": "https://github.com/VoltAgent/voltagent",
+   "lang": "TypeScript",
+   "updated": "2026-11-24",
+   "cat": "框架/工具",
+   "q": "mcp agent framework"
+  },
+  {
+   "full": "mdiri-ai/SoduWork",
+   "stars": 7278,
+   "desc": "The AI-native engine for teams and their agents. Multi-harness, multi-agent, self-hosted.",
+   "url": "https://github.com/mdiri-ai/SoduWork",
+   "lang": "JavaScript",
+   "updated": "2026-11-24",
+   "cat": "审批/人机协同",
+   "q": "human-in-the-loop agent"
+  },
+  {
+   "full": "microsoft/fara",
+   "stars": 6262,
+   "desc": "Fara1.5 – A family of frontier computer use agent models",
+   "url": "https://github.com/microsoft/fara",
+   "lang": "Python",
+   "updated": "2026-11-23",
+   "cat": "电脑操作/运行时",
+   "q": "computer use agent"
+  },
+  {
+   "full": "agentscope-ai/AgentTeams",
+   "stars": 6126,
+   "desc": "An open-source Collaborative Multi-Agent OS for transparent, human-in-the-loop task coordination via Matrix rooms.",
+   "url": "https://github.com/agentscope-ai/AgentTeams",
+   "lang": "Go",
+   "updated": "2026-11-24",
+   "cat": "审批/多代理",
+   "q": "human-in-the-loop agent"
+  },
+  {
+   "full": "a16z-infra/companion-app",
+   "stars": 5987,
+   "desc": "AI companions with memory: a lightweight stack to create and host your own AI companions",
+   "url": "https://github.com/a16z-infra/companion-app",
+   "lang": "TypeScript",
+   "updated": "2026-11-23",
+   "cat": "陪伴/人设/记忆",
+   "q": "ai companion memory"
+  },
+  {
+   "full": "PySpur-Dev/pyspur",
+   "stars": 5806,
+   "desc": "A visual playground for agentic workflows: Iterate over your agents 10x faster",
+   "url": "https://github.com/PySpur-Dev/pyspur",
+   "lang": "TypeScript",
+   "updated": "2026-11-23",
+   "cat": "框架/工具",
+   "q": "human-in-the-loop agent"
+  },
+  {
+   "full": "the-open-agent/openagent",
+   "stars": 5754,
+   "desc": "⚡️next-generation personal AI assistant powered by LLM, RAG and agent loops, supporting computer-use, browser-use and coding agent, demo: https://demo.openagent",
+   "url": "https://github.com/the-open-agent/openagent",
+   "lang": "Go",
+   "updated": "2026-11-24",
+   "cat": "电脑操作/运行时",
+   "q": "computer use agent"
+  },
+  {
+   "full": "AhmadHassan-BTed/AutoSwarm-Shadow-Adapter",
+   "stars": 5173,
+   "desc": "Zero-modification Human-in-the-Loop adapter for OpenOPC's agentic DAG runtime.",
+   "url": "https://github.com/AhmadHassan-BTed/AutoSwarm-Shadow-Adapter",
+   "lang": "Python",
+   "updated": "2026-11-23",
+   "cat": "审批/多代理",
+   "q": "human-in-the-loop agent"
+  },
+  {
+   "full": "modelflare-ai/AnyModelBot",
+   "stars": 4996,
+   "desc": "🤖 Open-source, local-first alternative to Grok Bot, OpenAI dots and Claude Duet. Your own AI bots on any model: GPT, Claude, Gemini, Grok, DeepSeek, Kimi, GLM a",
+   "url": "https://github.com/modelflare-ai/AnyModelBot",
+   "lang": "Python",
+   "updated": "2026-11-24",
+   "cat": "微信/IM 接入",
+   "q": "wechat llm bot"
+  },
+  {
+   "full": "cs-lazy-tools/ChatGPT-On-CS",
+   "stars": 4638,
+   "desc": "拼多多、千牛、抖店 AI 客服机器人：自动回复客户咨询、商品答疑、售后申诉处理，支持微信、小红书、京东、抖音、B站、微博等多平台统一接待；可接入 DeepSeek / 通义千问 等大模型，支持自有知识库定制。",
+   "url": "https://github.com/cs-lazy-tools/ChatGPT-On-CS",
+   "lang": "TypeScript",
+   "updated": "2026-11-24",
+   "cat": "IM/微信桥",
+   "q": "wechat llm bot"
+  },
+  {
+   "full": "tigerless-labs/agent-memory",
+   "stars": 4319,
+   "desc": "Long-term memory runtime for AI agents — plain Markdown as the source of truth, local ranked retrieval, and an independent sleep-time Manage layer. Claude Code ",
+   "url": "https://github.com/tigerless-labs/agent-memory",
+   "lang": "Python",
+   "updated": "2026-11-23",
+   "cat": "记忆",
+   "q": "long-term memory agent"
+  },
+  {
+   "full": "yuruotong1/autoMate",
+   "stars": 4008,
+   "desc": "Like Manus, Computer Use Agent(CUA) and Omniparser, we are computer-using agents.AI-driven local automation assistant that uses natural language to make compute",
+   "url": "https://github.com/yuruotong1/autoMate",
+   "lang": "Python",
+   "updated": "2026-11-21",
+   "cat": "电脑操作/运行时",
+   "q": "computer use agent"
+  },
+  {
+   "full": "FireRedTeam/FireRed-OpenStoryline",
+   "stars": 3737,
+   "desc": "FireRed-OpenStoryline is an AI video editing agent that transforms manual editing into intention-driven directing through natural language interaction, LLM-powe",
+   "url": "https://github.com/FireRedTeam/FireRed-OpenStoryline",
+   "lang": "Python",
+   "updated": "2026-11-24",
+   "cat": "审批/人机协同",
+   "q": "human-in-the-loop agent"
+  },
+  {
+   "full": "Project-N-E-K-O/N.E.K.O",
+   "stars": 3282,
+   "desc": " Open-source companion agents, and the community that raises them: realtime voice & vision, long-term memory, Live2D / 3D avatars, game companions, social visit",
+   "url": "https://github.com/Project-N-E-K-O/N.E.K.O",
+   "lang": "Python",
+   "updated": "2026-11-24",
+   "cat": "记忆",
+   "q": "long-term memory agent"
+  },
+  {
+   "full": "TurixAI/TuriX-CUA",
+   "stars": 3177,
+   "desc": "This is the official website for TuriX Computer-use-Agent",
+   "url": "https://github.com/TurixAI/TuriX-CUA",
+   "lang": "Python",
+   "updated": "2026-11-24",
+   "cat": "电脑操作/运行时",
+   "q": "computer use agent"
+  },
+  {
+   "full": "langchain-ai/social-media-agent",
+   "stars": 3054,
+   "desc": "📲 An agent for sourcing, curating, and scheduling social media posts with human-in-the-loop.",
+   "url": "https://github.com/langchain-ai/social-media-agent",
+   "lang": "TypeScript",
+   "updated": "2026-11-23",
+   "cat": "审批/多代理",
+   "q": "human-in-the-loop agent"
+  },
+  {
+   "full": "aoci-spec/aoci-code",
+   "stars": 2983,
+   "desc": "A persistent, Git-versioned map of your whole codebase and database schema that coding agents read before they touch anything. Local-first MCP server + CLI in G",
+   "url": "https://github.com/aoci-spec/aoci-code",
+   "lang": "Go",
+   "updated": "2026-11-24",
+   "cat": "记忆",
+   "q": "long-term memory agent"
+  },
+  {
+   "full": "felinics/Memoh",
+   "stars": 2824,
+   "desc": "✨ The open-source multi-agent platform. Every agent gets its own computer, desktop, network, and long-term memory.  You can bring your own key, or host your cod",
+   "url": "https://github.com/felinics/Memoh",
+   "lang": "Go",
+   "updated": "2026-11-22",
+   "cat": "陪伴/人设/记忆",
+   "q": "long-term memory agent"
+  },
+  {
+   "full": "Zafer-Liu/Data-Analysis-Agent",
+   "stars": 2629,
+   "desc": "🚀你的私人数据分析助手。通过对话式交互，自动生成可视化报表与商业洞察，让数据决策变得像聊天一样简单。  🚀 Your personal data analysis assistant. Say goodbye to complex SQL and Excel formulas.  An LLM-powered data",
+   "url": "https://github.com/Zafer-Liu/Data-Analysis-Agent",
+   "lang": "JavaScript",
+   "updated": "2026-11-24",
+   "cat": "个人助理",
+   "q": "personal assistant llm agent"
+  },
+  {
+   "full": "langchain-ai/agents-from-scratch",
+   "stars": 2463,
+   "desc": "Build an email assistant with human-in-the-loop and memory",
+   "url": "https://github.com/langchain-ai/agents-from-scratch",
+   "lang": "Jupyter Notebook",
+   "updated": "2026-11-23",
+   "cat": "审批/多代理",
+   "q": "human-in-the-loop agent"
+  },
+  {
+   "full": "e2b-dev/open-computer-use",
+   "stars": 2414,
+   "desc": "AI computer use powered by open source LLMs and E2B Desktop Sandbox",
+   "url": "https://github.com/e2b-dev/open-computer-use",
+   "lang": "Python",
+   "updated": "2026-11-22",
+   "cat": "电脑操作/运行时",
+   "q": "computer use agent"
+  },
+  {
+   "full": "maxritter/qualitylayer",
+   "stars": 2161,
+   "desc": "Plan, implement and verify software with your favorite coding agents. Work in the App or browser, or in your own terminal, IDE or agent app.",
+   "url": "https://github.com/maxritter/qualitylayer",
+   "lang": "TypeScript",
+   "updated": "2026-11-23",
+   "cat": "审批/多代理",
+   "q": "human-in-the-loop agent"
+  },
+  {
+   "full": "yincongcyincong/MuseBot",
+   "stars": 1815,
+   "desc": "Agent for Telegram, Discord, Slack, Lark（飞书），dingding（钉钉）, 企业微信, QQ, 微信（wechat）",
+   "url": "https://github.com/yincongcyincong/MuseBot",
+   "lang": "Go",
+   "updated": "2026-11-23",
+   "cat": "IM/微信桥",
+   "q": "wechat agent bot"
+  },
+  {
+   "full": "oceanbase/powercontext",
+   "stars": 1805,
+   "desc": "Agent memory: long-term memory & agent memory handoff. Claude Code & Codex.",
+   "url": "https://github.com/oceanbase/powercontext",
+   "lang": "Python",
+   "updated": "2026-11-24",
+   "cat": "记忆",
+   "q": "long-term memory agent"
+  },
+  {
+   "full": "HKUDS/Auto-Deep-Research",
+   "stars": 1757,
+   "desc": "\"Your Fully-Automated Personal AI Assistant\"",
+   "url": "https://github.com/HKUDS/Auto-Deep-Research",
+   "lang": "Python",
+   "updated": "2026-11-21",
+   "cat": "个人助理",
+   "q": "personal assistant llm agent"
+  },
+  {
+   "full": "morettt/my-neuro",
+   "stars": 1464,
+   "desc": "This project lets you create your own AI desktop companion with customizable characters and voice conversations that respond in just 1 second. Features include ",
+   "url": "https://github.com/morettt/my-neuro",
+   "lang": "JavaScript",
+   "updated": "2026-11-24",
+   "cat": "陪伴/人设/记忆",
+   "q": "ai companion memory"
+  },
+  {
+   "full": "Dataojitori/nocturne_memory",
+   "stars": 1436,
+   "desc": "A lightweight, rollbackable, and visual Long-Term Memory Server for MCP Agents. Say goodbye to Vector RAG and amnesia. Empower your AI with persistent, graph-li",
+   "url": "https://github.com/Dataojitori/nocturne_memory",
+   "lang": "Python",
+   "updated": "2026-11-24",
+   "cat": "记忆",
+   "q": "long-term memory agent"
+  },
+  {
+   "full": "DasterProkio/awesome-ai-companion",
+   "stars": 1258,
+   "desc": "Open-source AI companions, desktop pets, long-term memory & proactive chat. 人机恋开源项目大全。让你的家机能够脱离官端自主存在，拥有记忆和主动性。",
+   "url": "https://github.com/DasterProkio/awesome-ai-companion",
+   "lang": "HTML",
+   "updated": "2026-11-24",
+   "cat": "陪伴/人设/记忆",
+   "q": "ai companion memory"
+  },
+  {
+   "full": "death34018-hue/AionsHome",
+   "stars": 1035,
+   "desc": "Aion — 一个支持长期记忆、语音交互、摄像头视觉的伴侣。 A self-hosted AI companion with long-term memory, voice interaction, camera vision, and smart home integration.",
+   "url": "https://github.com/death34018-hue/AionsHome",
+   "lang": "Python",
+   "updated": "2026-11-24",
+   "cat": "陪伴/人设/记忆",
+   "q": "ai companion memory"
+  },
+  {
+   "full": "Banan1cee/whale_girl",
+   "stars": 963,
+   "desc": "鲸鲸 · 让 DeepSeek 用你的微信账号陪聊（Windows 桌面端 + WPF 启动器）。WeChat chat bot powered by DeepSeek/Qwen.",
+   "url": "https://github.com/Banan1cee/whale_girl",
+   "lang": "JavaScript",
+   "updated": "2026-11-24",
+   "cat": "微信/IM 接入",
+   "q": "wechat llm bot"
+  },
+  {
+   "full": "iwyxdxl/WeChatBot_WXAUTO_SE",
+   "stars": 880,
+   "desc": "【停止维护】LLM API 聚合对话工具。原项目仓库：https://github.com/KouriChat/KouriChat 本项目由iwyxdxl在原项目基础上修改创建。仅供学习，请遵守规定使用，请勿接入公众平台或者用于任何生产活动。",
+   "url": "https://github.com/iwyxdxl/WeChatBot_WXAUTO_SE",
+   "lang": "Python",
+   "updated": "2026-10-26",
+   "cat": "IM/微信桥",
+   "q": "wechat llm bot"
+  },
+  {
+   "full": "open-gitagent/gitagent",
+   "stars": 754,
+   "desc": "A universal git-native AI agent framework. Your agent lives inside a git repo — identity, rules, memory, tools, and skills are all version-controlled files.",
+   "url": "https://github.com/open-gitagent/gitagent",
+   "lang": "Rust",
+   "updated": "2026-11-21",
+   "cat": "框架/工具",
+   "q": "personal assistant llm agent"
+  },
+  {
+   "full": "corespeed-io/wechatbot",
+   "stars": 706,
+   "desc": "微信 iLink Bot SDK for OpenClaw/AI Agent",
+   "url": "https://github.com/corespeed-io/wechatbot",
+   "lang": "TypeScript",
+   "updated": "2026-11-21",
+   "cat": "IM/微信桥",
+   "q": "wechat agent bot"
+  },
+  {
+   "full": "sunnoy/openclaw-plugin-wecom",
+   "stars": 701,
+   "desc": "企业微信 AI 机器人插件 - Enterprise WeChat (WeCom) AI Bot plugin for OpenClaw. 支持流式输出、动态 Agent 管理、群聊集成、指令白名单等功能。",
+   "url": "https://github.com/sunnoy/openclaw-plugin-wecom",
+   "lang": "JavaScript",
+   "updated": "2026-11-09",
+   "cat": "IM/微信桥",
+   "q": "wechat agent bot"
+  },
+  {
+   "full": "zeekk0/OpenAmika",
+   "stars": 685,
+   "desc": "OpenAmika: MekaHime's AI companion Amika, open source. Live2D avatar, real-time voice, long-term memory, OpenRouter or Ollama brain.",
+   "url": "https://github.com/zeekk0/OpenAmika",
+   "lang": "Python",
+   "updated": "2026-11-24",
+   "cat": "陪伴/人设/记忆",
+   "q": "ai companion memory"
+  },
+  {
+   "full": "UNLINEARITY/CLI-WeChat-Bridge",
+   "stars": 579,
+   "desc": "Bridge WeChat, WeCom & Telegram to local Codex, Claude Code, OpenCode & Pi. Keep the native terminal experience & CLI options with bidirectional interaction, mu",
+   "url": "https://github.com/UNLINEARITY/CLI-WeChat-Bridge",
+   "lang": "TypeScript",
+   "updated": "2026-11-24",
+   "cat": "IM/微信桥",
+   "q": "wechat agent bot"
+  },
+  {
+   "full": "pinganbbOvO/ai-companion-kit",
+   "stars": 574,
+   "desc": "给你的 AI 一副身体，和一点人味 —— 会记事、会看场合的 QQ 陪聊 + 能控制安卓手机的 MCP",
+   "url": "https://github.com/pinganbbOvO/ai-companion-kit",
+   "lang": "JavaScript",
+   "updated": "2026-11-23",
+   "cat": "陪伴/人设/记忆",
+   "q": "ai companion memory"
+  },
+  {
+   "full": "epiral/weixin-bot",
+   "stars": 489,
+   "desc": "WeChat iLink Bot SDK for Node.js and Python — zero-config agent integration",
+   "url": "https://github.com/epiral/weixin-bot",
+   "lang": "Python",
+   "updated": "2026-11-21",
+   "cat": "IM/微信桥",
+   "q": "wechat agent bot"
+  },
+  {
+   "full": "liupig/xiaokeai",
+   "stars": 465,
+   "desc": "Open-source 3D AI companion and transparent desktop pet. Also: 开源 3D AI 伴侣, 本地 3D 陪玩, 虚拟陪玩, 透明桌宠. Desktop VRM / MMD / GLB: voice, lip-sync, motion, dance, camer",
+   "url": "https://github.com/liupig/xiaokeai",
+   "lang": "Python",
+   "updated": "2026-11-23",
+   "cat": "陪伴/人设/记忆",
+   "q": "ai companion memory"
+  },
+  {
+   "full": "CapriChooms/CapriCore",
+   "stars": 394,
+   "desc": "Capri — an AI desktop companion for Windows with local/API models, Hugging Face, optional voice, memory and permission-based desktop tools.",
+   "url": "https://github.com/CapriChooms/CapriCore",
+   "lang": "JavaScript",
+   "updated": "2026-11-24",
+   "cat": "陪伴/人设/记忆",
+   "q": "ai companion memory"
+  },
+  {
+   "full": "LucieEveille/kiwi-mem",
+   "stars": 355,
+   "desc": "🥝 Self-hosted memory gateway for AI companions — OpenAI-compatible proxy with vector search, memory heat, Dream consolidation and calendar-level summaries · AI ",
+   "url": "https://github.com/LucieEveille/kiwi-mem",
+   "lang": "Python",
+   "updated": "2026-11-23",
+   "cat": "陪伴/人设/记忆",
+   "q": "ai companion memory"
+  },
+  {
+   "full": "v2rockets/Loyal-Elephie",
+   "stars": 350,
+   "desc": "Your Trusty Memory-enabled AI Companion - Simple RAG chatbot optimized for local LLMs | 12 Languages Supported | OpenAI API Compatible",
+   "url": "https://github.com/v2rockets/Loyal-Elephie",
+   "lang": "Python",
+   "updated": "2026-11-19",
+   "cat": "陪伴/人设/记忆",
+   "q": "ai companion memory"
+  },
+  {
+   "full": "lawrencewzen/wx-bot",
+   "stars": 245,
+   "desc": "把微信接入你的 AI Agent（Grok / Muse / Claude 等）· Connect WeChat to your personal AI agent via official iLink",
+   "url": "https://github.com/lawrencewzen/wx-bot",
+   "lang": "TypeScript",
+   "updated": "2026-11-24",
+   "cat": "IM/微信桥",
+   "q": "wechat llm bot"
+  },
+  {
+   "full": "oratis/LISA",
+   "stars": 228,
+   "desc": "Open-source AI Personal Assistant for planning, writing and personal knowledge. Use LISA Cloud or connect your own Mac.",
+   "url": "https://github.com/oratis/LISA",
+   "lang": "TypeScript",
+   "updated": "2026-11-20",
+   "cat": "记忆",
+   "q": "personal assistant llm agent"
+  },
+  {
+   "full": "Run-Tu/MindFlow",
+   "stars": 206,
+   "desc": "A multimodal personal assistant that allows Large Language Models (LLMs) to run code locally, acting as an autonomous agent capable of completing and automating",
+   "url": "https://github.com/Run-Tu/MindFlow",
+   "lang": "Python",
+   "updated": "2026-11-18",
+   "cat": "电脑操作/运行时",
+   "q": "personal assistant llm agent"
+  },
+  {
+   "full": "tercumantanumut/selene",
+   "stars": 174,
+   "desc": "Selene is a desktop app that runs AI agents on your machine. Connect them to your WhatsApp, Telegram, Slack, or Discord. Write code, generate images, build pers",
+   "url": "https://github.com/tercumantanumut/selene",
+   "lang": "TypeScript",
+   "updated": "2026-11-11",
+   "cat": "个人助理",
+   "q": "personal assistant llm agent"
+  },
+  {
+   "full": "ksm26/LangChain-for-LLM-Application-Development",
+   "stars": 157,
+   "desc": "Apply LLMs to your data, build personal assistants, and expand your use of LLMs with agents, chains, and memories.",
+   "url": "https://github.com/ksm26/LangChain-for-LLM-Application-Development",
+   "lang": "Jupyter Notebook",
+   "updated": "2026-10-14",
+   "cat": "个人助理",
+   "q": "personal assistant llm agent"
+  },
+  {
+   "full": "Chain-Mao/Chat-Style-Bot",
+   "stars": 144,
+   "desc": "Chat-Style-Bot是一个聊天风格模仿大语言模型，通过分析和学习微信聊天记录，可模仿你的说话风格（口头禅等），并可接入微信和你的朋友们自动聊天。Chat-Style-Bot is a chat style imitating llm. By analyzing and learning WeChat chat ",
+   "url": "https://github.com/Chain-Mao/Chat-Style-Bot",
+   "lang": "Python",
+   "updated": "2026-11-02",
+   "cat": "IM/微信桥",
+   "q": "wechat llm bot"
+  },
+  {
+   "full": "ybh-ybh/know-where",
+   "stars": 101,
+   "desc": "知归是一个面向个人使用的 AI 知识归档工具。把内容链接（微信公众号、稀土掘金、GitHub、小红书、抖音、B站）发送给飞书机器人，知归会自动完成内容提取、AI 分类与总结，并将结果沉淀到飞书多维表格中。Send WeChat Article / Douyin / Xiaohongshu / Bilibili link",
+   "url": "https://github.com/ybh-ybh/know-where",
+   "lang": "Python",
+   "updated": "2026-11-11",
+   "cat": "微信/IM 接入",
+   "q": "wechat llm bot"
+  },
+  {
+   "full": "alingalingling/Astrbot-wechat-bot-",
+   "stars": 78,
+   "desc": "微信 ↔ AstrBot 双端互通桥接。通过 wxauto 监听微信消息，调用 AstrBot Open API 与 LLM 对话，让微信小号变成 AI 机器人，与 QQ 机器人共享记忆。",
+   "url": "https://github.com/alingalingling/Astrbot-wechat-bot-",
+   "lang": "Python",
+   "updated": "2026-11-17",
+   "cat": "IM/微信桥",
+   "q": "wechat llm bot"
+  },
+  {
+   "full": "ErisPulse/ErisPulse",
+   "stars": 65,
+   "desc": "Event-driven multi-platform bot framework with Dashboard, Docker, hot-reload & module marketplace | 事件驱动的多平台机器人框架 — 支持 QQ/Telegram/Kook/云湖/Matrix/邮件等 15+ 平台",
+   "url": "https://github.com/ErisPulse/ErisPulse",
+   "lang": "Python",
+   "updated": "2026-11-22",
+   "cat": "微信/IM 接入",
+   "q": "wechat llm bot"
+  }
+ ]
+}
