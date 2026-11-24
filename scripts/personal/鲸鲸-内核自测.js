@@ -1075,14 +1075,19 @@ try {
   fsx.writeFileSync(path.join(dataA, 'nicknames.json'), JSON.stringify({ c1: { name: '哦鲸鲸' } }));
   fsx.writeFileSync(path.join(dataA, 'concerns.json'), JSON.stringify({ items: [] }));
   fsx.writeFileSync(path.join(dataA, 'skills.md'), '- [11-24] 改配置前先备份\n');
+  fsx.writeFileSync(path.join(dataA, 'mood.json'), JSON.stringify({ emotions: { 喜: 1 } }));
+  fsx.writeFileSync(path.join(dataA, 'thoughts.json'), JSON.stringify({ items: [{ text: '念头' }] }));
   const bundle = backup.collect(rootA);
-  check('备份覆盖新文件', Boolean(bundle.files.pins && bundle.files.nicknames && bundle.files.concerns && bundle.files.skills), Object.keys(bundle.files).join(','));
+  check('备份覆盖新文件', Boolean(bundle.files.pins && bundle.files.nicknames && bundle.files.concerns && bundle.files.skills && bundle.files.mood && bundle.files.thoughts), Object.keys(bundle.files).join(','));
   const rootB = fsx.mkdtempSync(path.join(osx.tmpdir(), 'bakB-'));
   fsx.mkdirSync(path.join(rootB, 'data'), { recursive: true });
   backup.restoreFrom(rootB, bundle);
   const restored = fsx.readFileSync(path.join(rootB, 'data', 'pins.json'), 'utf8');
   const restoredSkill = fsx.readFileSync(path.join(rootB, 'data', 'skills.md'), 'utf8');
   check('恢复新文件', restored.includes('每周三看电影') && restoredSkill.includes('先备份'), '');
+  const moodB = JSON.parse(fsx.readFileSync(path.join(rootB, 'data', 'mood.json'), 'utf8'));
+  const thoughtsB = JSON.parse(fsx.readFileSync(path.join(rootB, 'data', 'thoughts.json'), 'utf8'));
+  check('恢复情绪/念头', moodB.emotions && moodB.emotions.喜 === 1 && thoughtsB.items && thoughtsB.items[0].text === '念头', '');
 } catch (e) {
   check('备份覆盖新文件', false, String(e && e.message).slice(0, 60));
 }
