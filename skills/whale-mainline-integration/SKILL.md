@@ -1,6 +1,6 @@
 ---
 name: whale-mainline-integration
-description: 鲸鲸主链接入与结构治理的可执行 runbook：按 I-01..I-33 过案例/源码/测试/证据/回滚门禁，接 kernel/bridge、job/receipts、动作硬审批、action-audit、dist 全量同步，并分 L0-L5 做真实微信/真实动作/热停验收。Use when the owner says 主链接入 / 接入主链 / 结构治理 / 下一步接入 / 热停 / 端到端验收 / 真实微信验收 / 核心包接入.
+description: 鲸鲸主链接入与结构治理的可执行 runbook：按 I-01..I-34 过案例/源码/测试/证据/回滚门禁，接 kernel/bridge、job/receipts、动作硬审批、action-audit、dist 全量同步，并分 L0-L5 做真实微信/真实动作/热停验收。Use when the owner says 主链接入 / 接入主链 / 结构治理 / 下一步接入 / 热停 / 端到端验收 / 真实微信验收 / 核心包接入.
 ---
 
 # whale-mainline-integration
@@ -255,6 +255,7 @@ git commit -m "I-XX ..."
 | I-31 | scope 私聊+群聊试跑 | 4/4 failClosed true；已关闭 |
 | I-32 | scopeCore | 默认关；canRecall 过滤；fail-open |
 | I-33 | scopeCore 真实召回 | 私聊/群聊不串；已关闭 |
+| I-34 | migrate 真实迁移 | 8 行，源 SHA 不变，二次 0/8 |
 
 详细命令/文件/验收在计划 JSON；本 skill 只规定方法。
 

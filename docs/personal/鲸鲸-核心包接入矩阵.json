@@ -32,11 +32,11 @@
   {
    "id": "migrate",
    "path": "packages/memory-core/migrate.js",
-   "status": "staged",
-   "note": "dry-run only；真实迁移需主人授权",
-   "integration": "/api/memory/migrate-preview（dry-run，不写目标）",
-   "flag": "无（只读预览）",
-   "test": "scripts/personal/鲸鲸-主链迁移预演自测.js"
+   "status": "wired",
+   "note": "源 SHA 不变；目标 verify；二次幂等",
+   "integration": "scripts/personal/鲸鲸-主链真实迁移.js（owner 授权）",
+   "flag": "无（一次性迁移）",
+   "test": "scripts/personal/鲸鲸-主链真实迁移.js"
   },
   {
    "id": "receipts",

@@ -1217,6 +1217,41 @@
     "群不串私聊",
     "已关闭"
    ]
+  },
+  {
+   "id": "I-34",
+   "phase": "I",
+   "title": "migrate 真实迁移",
+   "goal": "授权后迁移一个小 chat；源文件 SHA 不变，目标 verify 通过，二次迁移幂等。",
+   "case_ids": [
+    "GH-100",
+    "GH-101",
+    "GH-102",
+    "GH-103",
+    "GH-104",
+    "GH-105",
+    "GH-106",
+    "GH-107"
+   ],
+   "min_cases": 5,
+   "source_review": [],
+   "files": [
+    "scripts/personal/鲸鲸-主链真实迁移.js"
+   ],
+   "actions": [
+    "dry-run",
+    "备份",
+    "真实迁移",
+    "二次幂等"
+   ],
+   "tests": [
+    "node scripts/personal/鲸鲸-主链真实迁移.js --chat ... --owner ougezi --confirm"
+   ],
+   "acceptance": [
+    "sourceUnchanged",
+    "verify ok",
+    "二次 added=0 duplicate=8"
+   ]
   }
  ]
 }
