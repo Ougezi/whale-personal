@@ -699,24 +699,25 @@
     "GH-089"
    ],
    "source_review": [
-    "sandbox cases",
     "EvoMap/evolver"
    ],
    "files": [
     "bridge/evolution/sandbox.py",
+    "scripts/personal/鲸鲸-出生沙箱自测.py",
     "scripts/personal/鲸鲸-出生技能自测.py"
    ],
    "actions": [
-    "沙箱；评测 harness；回归集"
+    "临时沙箱复制；最小 unified diff 应用；独立 test/shadow；失败清理；主链 hash 前后一致",
+    "本步不复制回主链，不做真实 git reset"
    ],
    "tests": [
-    "回归",
-    "越权",
-    "回滚"
+    "python scripts/personal/鲸鲸-出生沙箱自测.py"
    ],
    "acceptance": [
     "沙箱不碰主链",
-    "评测独立",
+    "测试失败不提升",
+    "shadow 失败不提升",
+    "回滚=删沙箱",
     "回归可复现"
    ]
   },
