@@ -15,7 +15,7 @@ function check(name, fn) {
   catch (e) { fail++; console.log('  ✗ ' + name + '  ' + (e && e.message)); }
 }
 
-check('features 26 个唯一键', () => assert.strictEqual(features.REGISTRY.length, 26));
+check('features 27 个唯一键', () => assert.strictEqual(features.REGISTRY.length, 27));
 check('features 无重复', () => {
   const keys = features.REGISTRY.map((x) => x.key);
   assert.strictEqual(new Set(keys).size, keys.length);

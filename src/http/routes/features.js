@@ -40,4 +40,15 @@ module.exports = function register(router) {
     const { status } = require('../../services/affectCore');
     return json(res, 200, { ok: true, chat, last: status(chat) });
   });
+
+  router.post('/api/expression-core/chats', async (runtime, req, res) => {
+    const body = await readBody(req);
+    const chats = Array.isArray(body.chats) ? body.chats.map(String).filter(Boolean).slice(0, 50) : [];
+    try {
+      applyConfigPatch(runtime, { 'expressionCore.chats': chats });
+      return json(res, 200, { ok: true, chats });
+    } catch (err) {
+      return json(res, 400, { ok: false, error: err.message });
+    }
+  });
 };

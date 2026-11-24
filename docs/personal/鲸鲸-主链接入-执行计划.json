@@ -997,6 +997,43 @@
     "已关闭",
     "质量结论待主人"
    ]
+  },
+  {
+   "id": "I-28",
+   "phase": "I",
+   "title": "expressionCore 技术 literal 保护",
+   "goal": "默认关；只对白名单 chat 保护版本/路径/代码，不被拆气泡破坏。",
+   "case_ids": [
+    "EV-003",
+    "EV-004",
+    "EV-005",
+    "EV-006",
+    "EV-007",
+    "EV-008",
+    "EV-009",
+    "EV-010"
+   ],
+   "min_cases": 5,
+   "source_review": [],
+   "files": [
+    "src/services/expressionCore.js",
+    "src/pipeline/chat.js",
+    "src/http/routes/features.js",
+    "scripts/personal/鲸鲸-主链表达Core自测.js"
+   ],
+   "actions": [
+    "mask/restore",
+    "chat 白名单",
+    "默认关"
+   ],
+   "tests": [
+    "node scripts/personal/鲸鲸-主链表达Core自测.js"
+   ],
+   "acceptance": [
+    "默认关",
+    "literal 还原",
+    "空名单不生效"
+   ]
   }
  ]
 }

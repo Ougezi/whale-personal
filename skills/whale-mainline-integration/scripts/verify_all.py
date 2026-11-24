@@ -26,6 +26,7 @@ CASES = [
     ('迁移预演', 'node', 'scripts/personal/鲸鲸-主链迁移预演自测.js', {}),
     ('人格 Shadow', 'node', 'scripts/personal/鲸鲸-主链人格Shadow自测.js', {}),
     ('Core 心情', 'node', 'scripts/personal/鲸鲸-主链Core心情自测.js', {}),
+    ('表达 Core', 'node', 'scripts/personal/鲸鲸-主链表达Core自测.js', {}),
     ('Shadow A/B', 'py', 'scripts/personal/鲸鲸-主链ShadowAB自测.py', {}),
     ('委托审批', 'py', 'scripts/personal/鲸鲸-主链委托审批自测.py', {}),
     ('动作审计', 'py', 'scripts/personal/鲸鲸-主链动作审计自测.py', {}),

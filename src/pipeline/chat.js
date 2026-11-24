@@ -23,6 +23,7 @@ const concerns = require('../core/concerns');
 const commitmentLedger = require('../services/commitmentLedger');
 const personaShadow = require('../services/personaShadow');
 const affectCore = require('../services/affectCore');
+const expressionCore = require('../services/expressionCore');
 const empathy = require('../core/empathy');
 const antiRepeat = require('../core/antiRepeat');
 const skills = require('../core/skills');
@@ -2108,6 +2109,14 @@ class Bot {
       }
     }
     if (!text) return [];
+    let _exprGuard = null;
+    try {
+      if (features.isOn(this.config, 'expressionCore')) {
+        const _ecChats = (this.config && this.config.expressionCore && this.config.expressionCore.chats) || [];
+        _exprGuard = expressionCore.protect({ chatId: msg.chatId || decision.key || '', text, chats: _ecChats });
+        if (_exprGuard) text = _exprGuard.masked;
+      }
+    } catch { _exprGuard = null; }
     const persist = () => {
     try {
       this.store.recordAssistant(decision.key, {
@@ -2130,7 +2139,11 @@ class Bot {
     };
     const isGroup = msg.chatType === 'group';
     // 命令路径以前在这里直接 return [text]，刚剥出来的 foundEmoji（🫧 这种）直接丢了（M28）
-    if (decision.action === 'command') { persist(); return foundEmoji ? [text, foundEmoji] : [text]; }
+    if (decision.action === 'command') {
+      persist();
+      const _cmd = foundEmoji ? [text, foundEmoji] : [text];
+      return _exprGuard ? _cmd.map((x) => expressionCore.restore(x, _exprGuard)) : _cmd;
+    }
     const maxBubbles = Math.max(1, Number(this.config.chat.maxBubbles) || 2);
     const hard = LIMITS.maxOutputHard || 4000;
     const normalMaxChars = Math.max(20, Math.min(Number(isGroup ? this.config.chat.groupMaxChars : this.config.chat.privateMaxChars) || LIMITS.maxOutputNormal, hard));
@@ -2186,6 +2199,10 @@ class Bot {
       // 遵守 maxBubbles：气泡已经满了就并到最后一条，别偷偷多发一条
       if (bubbles.length < maxBubbles) bubbles.push(extra);
       else if (bubbles.length) bubbles[bubbles.length - 1] = (bubbles[bubbles.length - 1] + ' ' + extra).trim();
+    }
+    if (_exprGuard && bubbles.length) {
+      bubbles = bubbles.map((b) => expressionCore.restore(b, _exprGuard));
+      if (decision.finalText) decision.finalText = expressionCore.restore(decision.finalText, _exprGuard);
     }
     if (bubbles.length) persist();
     if (bubbles.length && features.isOn(this.config, 'personaShadow')) {

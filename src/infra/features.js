@@ -107,6 +107,14 @@ const REGISTRY = [
     experimental: true,
   },
   {
+    key: 'expressionCore',
+    path: 'features.expressionCore',
+    label: '表达 Core（实验性，技术 literal 保护）',
+    desc: '默认关闭。只对白名单 chat 保护版本号/路径/代码等 literal，不被拆气泡/清理破坏；不做风格重写。',
+    default: false,
+    experimental: true,
+  },
+  {
     key: 'affectCore',
     path: 'features.affectCore',
     label: '情绪 Core（实验性，正式候选）',

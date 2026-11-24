@@ -59,11 +59,11 @@
   {
    "id": "expression",
    "path": "packages/persona-core/expression.js",
-   "status": "staged",
-   "note": "shadow only；不替换正式回复",
-   "integration": "src/services/personaShadow.js（shadow，仅日志）",
-   "flag": "features.personaShadow（默认 false）",
-   "test": "scripts/personal/鲸鲸-主链人格Shadow自测.js"
+   "status": "wired",
+   "note": "只保护 literal，不做风格重写",
+   "integration": "src/services/expressionCore.js -> chat 技术 literal 保护（默认关）",
+   "flag": "features.expressionCore（默认 false）",
+   "test": "scripts/personal/鲸鲸-主链表达Core自测.js"
   },
   {
    "id": "affect",

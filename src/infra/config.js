@@ -268,6 +268,7 @@ const DEFAULT_CONFIG = {
   },
 
   affectCore: { chats: [] },
+  expressionCore: { chats: [] },
   storage: {
     mediaKeepDays: 7,
     mediaMaxMB: 500,
