@@ -113,11 +113,8 @@ module.exports = function register(router) {
         }
         // 同一条消息已经进过记忆就不要重复写
         const msgId = String((body && body.msgId) || '');
-        if (msgId) {
-          const recent = runtime.store.messages(chat, 80) || [];
-          if (recent.some((m) => String(m.msgId || '') === msgId)) {
-            return json(res, 200, { ok: true, skipped: 'duplicate' });
-          }
+        if (msgId && runtime.store.isDuplicate(chat, msgId)) {
+          return json(res, 200, { ok: true, skipped: 'duplicate' });
         }
         const ts = Number(body.ts) || Date.now();
         const entry = runtime.store.recordUser(chat, {
