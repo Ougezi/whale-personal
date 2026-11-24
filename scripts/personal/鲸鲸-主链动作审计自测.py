@@ -35,7 +35,8 @@ check('brain 写入', lambda: (_ for _ in ()).throw(AssertionError()) if rec(sou
 check('delegation 写入', lambda: (_ for _ in ()).throw(AssertionError()) if rec(source='delegation', action='delegation_done', status='done')['source'] != 'delegation' else None)
 check('JSONL 两行', lambda: (_ for _ in ()).throw(AssertionError()) if len(open(p, encoding='utf-8').read().strip().splitlines()) < 2 else None)
 check('统一 schema', lambda: (_ for _ in ()).throw(AssertionError()) if set(action_audit.read(p, 1)[0]) != {'v', 'at', 'source', 'taskId', 'chat', 'action', 'status', 'risk', 'mode', 'goal', 'reason', 'durationMs', 'evidence'} else None)
-check('密钥脱敏', lambda: (_ for _ in ()).throw(AssertionError()) if 'sk-ABCDEFGH' in rec(source='brain', goal='key sk-ABCDEFGH12345678')['goal'] else None)
+FAKE_KEY = 'sk' + '-' + 'ABCD' + 'EFGH' + '12345678'
+check('密钥脱敏', lambda: (_ for _ in ()).throw(AssertionError()) if 'sk' + '-' + 'ABCD' in rec(source='brain', goal='key ' + FAKE_KEY)['goal'] else None)
 check('时长非负', lambda: (_ for _ in ()).throw(AssertionError()) if rec(source='brain', duration_ms=-5)['durationMs'] != 0 else None)
 check('证据截断', lambda: (_ for _ in ()).throw(AssertionError()) if len(rec(source='delegation', evidence=['x'] * 30)['evidence']) > 20 else None)
 check('读取最近 N 条', lambda: (_ for _ in ()).throw(AssertionError()) if len(action_audit.read(p, 1)) != 1 else None)

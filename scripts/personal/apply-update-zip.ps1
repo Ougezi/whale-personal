@@ -43,3 +43,8 @@ if (-not $NoRestart) {
     Write-Host "  [启动] 已拉起启动器（--autostart）"
 }
 Write-Host "  回滚：把 $bak 里的目录拷回 $Target"
+# 更新包从网上下载，解压出来的 exe 会带 Zone.Identifier；统一去掉，免得每次启动弹「无法验证发布者」
+Get-ChildItem -LiteralPath $Target -Recurse -File -Include *.exe, *.dll -ErrorAction SilentlyContinue | ForEach-Object {
+    try { if (Get-Item -LiteralPath $_.FullName -Stream Zone.Identifier -ErrorAction SilentlyContinue) { Unblock-File -LiteralPath $_.FullName -ErrorAction SilentlyContinue } } catch {}
+}
+

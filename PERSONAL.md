@@ -55,6 +55,27 @@ dist/           本地便携版产物（不入库）
   实测：造一张写着「鲸鲸图片识别测试 / OCR fallback works 123」的图，无 Key 和坏地址两种情况下都正确读出。
 - 依赖：系统里要有 OCR 语言包（中文系统自带）；没有时返回空，仍会把原错误抛给调用方。
 
+## 4.9.1：去掉「打开文件 - 安全警告 / 无法验证发布者」
+
+那个弹窗不是杀软误报，是 Windows 的 **Mark-of-the-Web**：exe 从浏览器/网盘/聊天工具下载、
+或从 zip 解压出来时带了 `Zone.Identifier` 备用数据流，双击就会弹「无法验证发布者」。
+
+修法（四个入口都堵上）：
+
+| 入口 | 处理 |
+|---|---|
+| 手动运行 | `scripts/personal/unblock-whale.ps1`：递归去掉目标目录/zip 的 Zone.Identifier |
+| 便携启动 | `start-portable.ps1` 启动前自动 `Unblock-File` 启动器 exe |
+| 应用增量包 | `apply-update-zip.ps1` 解压后统一 unblock exe/dll |
+| 自动更新 | 启动器 `UpdateService` 下载完成即调用 `Motw.Remove`（P/Invoke 删 `:Zone.Identifier`） |
+
+实测：给 exe 打上 `Zone.Identifier` 后跑脚本，`before=True → after=False`。
+
+**想彻底显示发布者**（可选）：`scripts/personal/sign-launcher.ps1` 会建一张本机自签名代码签名证书
+（CN=Ougezi Whale）、导出 `data/certs/whale-codesign.cer`、导入「受信任的发布者」，然后用 signtool 签名并校验。
+注意：自签名证书要同时导入「受信任的根证书颁发机构」（Windows 会弹一次确认），且**只在导入过这张证书的电脑上有效**；
+其他电脑仍可能被 SmartScreen 按「低信誉」提示一次。
+
 ## 4.9.0：插件市场支持排序/置顶 + 每个插件的介绍页
 
 - **排序 / 置顶**：每张卡右上角 ☆（置顶）/ ↑ / ↓，点一下立即生效并落盘

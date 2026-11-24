@@ -79,3 +79,7 @@ publish/
 
 # bridge/vendor 由构建/安装包生成，不入库
 bridge/vendor/
+
+# 本地自签名证书（公开证书可重建，不进仓库）
+launcher/certs/*.cer
+launcher/certs/*.pfx
