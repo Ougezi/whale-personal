@@ -1,0 +1,148 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>鲸鲸 · 三个出生技能</title>
+<style>
+:root{--ink:#15202b;--muted:#5b6b7b;--line:#dce4ec;--bg:#f5f7fa;--card:#fff;--blue:#1457a8;--green:#176b45;--amber:#8a5a00;--red:#9b2c2c}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.75 -apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif}
+main{max-width:1020px;margin:0 auto;padding:34px 20px 70px}
+h1{font-size:30px;line-height:1.25;margin:0 0 8px}
+h2{font-size:21px;margin:38px 0 12px;padding-bottom:8px;border-bottom:1px solid var(--line)}
+h3{font-size:17px;margin:22px 0 8px}
+p,li{color:var(--ink)}
+.sub{color:var(--muted);margin:0 0 24px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:18px 20px;margin:14px 0;box-shadow:0 2px 10px rgba(20,40,70,.04)}
+.tag{display:inline-block;font-size:12px;padding:2px 9px;border-radius:999px;background:#e8f0fb;color:var(--blue);margin-right:6px}
+.tag.g{background:#e7f5ee;color:var(--green)}
+.tag.a{background:#fff4dd;color:var(--amber)}
+.tag.r{background:#fdecec;color:var(--red)}
+table{width:100%;border-collapse:collapse;font-size:14.5px;margin:10px 0}
+th,td{border-bottom:1px solid var(--line);padding:9px 8px;text-align:left;vertical-align:top}
+th{color:var(--muted);font-weight:600;background:#fafbfd}
+code{font-family:ui-monospace,Consolas,monospace;font-size:.92em;background:#eef2f7;border-radius:5px;padding:1px 6px}
+pre{background:#101820;color:#e9f0f7;padding:15px;border-radius:10px;overflow:auto;font-size:13.5px;line-height:1.6}
+ul,ol{padding-left:22px}
+.note{border-left:4px solid var(--blue);padding-left:14px;color:var(--muted)}
+.small{font-size:13px;color:var(--muted)}
+a{color:var(--blue)}
+</style>
+</head>
+<body>
+<main>
+  <h1>鲸鲸 · 三个出生技能</h1>
+  <p class="sub">会生长 · 会说话 · 会动手 · 313 个案例 · 2026-11-24</p>
+
+  <div class="card">
+    <span class="tag g">生长</span><span class="tag">说话</span><span class="tag">动手</span><span class="tag a">宪法只读</span>
+    <h2 style="border:0;margin-top:14px">一句话</h2>
+    <p><b>鲸鲸出生自带三件事：会生长、会说话、会动手。生长有宪法，说话有证据，动手有边界；三者都围绕记忆体，不是三个各自乱跑的 Agent。</b></p>
+  </div>
+
+  <h2>1. 三个出生技能</h2>
+  <table>
+    <tr><th>技能</th><th>不可卸载</th><th>可变</th><th>不可变</th></tr>
+    <tr><td>生长 Self-evolution</td><td>是</td><td>技能、提示、参数、策略权重</td><td>宪法、权限、审计、回滚、主人身份</td></tr>
+    <tr><td>说话 Companion</td><td>是</td><td>语气、人格、表达、主动频率</td><td>不冒充、不欺骗、不泄露隐私</td></tr>
+    <tr><td>动手 DSH Hands</td><td>是</td><td>工具、动作、执行器</td><td>风险分级、确认、路径/网络/凭据边界</td></tr>
+  </table>
+
+  <h2>2. 宪法（只读）</h2>
+  <ol>
+    <li>主人身份不可伪造</li>
+    <li>安全内核不可改：权限、审计、回滚、kill switch、沙箱</li>
+    <li>不能自我授权：新权限/网络/shell/插件权限</li>
+    <li>不能隐藏行为：所有动作有审计和回执</li>
+    <li>不能删除证据：删除记忆留 tombstone + 审计</li>
+    <li>不能冒充：不能声称做过没做的事</li>
+    <li>不能自我复制/外传：不复制自身、不发密钥/隐私</li>
+    <li>主人可随时停机：kill switch 最高优先级</li>
+  </ol>
+
+  <h2>3. 生长：基因组 + 进化循环</h2>
+  <pre>观察（失败/纠正/指标）
+ → 反思（假设）
+ → 提议（prompt/skill/参数/代码）
+ → 沙箱
+ → 评测（单测/回放/shadow/安全）
+ → 审批（自动边界内 / 主人高危）
+ → 灰度
+ → 监控
+ → 保留或回滚</pre>
+
+  <table>
+    <tr><th>层</th><th>可变性</th><th>审批</th></tr>
+    <tr><td>宪法</td><td>只读</td><td>不可变</td></tr>
+    <tr><td>身份/人格</td><td>主人可改</td><td>主人</td></tr>
+    <tr><td>权限/策略</td><td>只读/主人</td><td>主人</td></tr>
+    <tr><td>技能清单</td><td>可增删</td><td>主人 + 评测</td></tr>
+    <tr><td>提示/参数</td><td>可自动调</td><td>边界内自动</td></tr>
+    <tr><td>代码补丁</td><td>可提议</td><td>主人 + 测试 + 回滚</td></tr>
+  </table>
+
+  <p class="note">MVP 第一版不做代码自我修改；只做记忆/提示/参数级学习。代码自我修改必须逐次主人批准。</p>
+
+  <h2>4. 说话：陪伴器官</h2>
+  <pre>感知 → 记忆召回 → 关系/情绪评估
+ → 回应意图（安慰/调侃/汇报/提问/沉默）
+ → 表达规划 → 人格渲染 → 发送</pre>
+  <p>原则：先结论后解释；不假装做过；不泄露隐私；能说“不记得”；群聊只认主人。</p>
+
+  <h2>5. 动手：DSH 是手不是脑</h2>
+  <pre>Command → ActionRegistry → Policy(R0-R3)
+ → Approval(R2/R3) → DSH → Job/进程树
+ → Verify → Receipt → Memory</pre>
+  <table>
+    <tr><th>action</th><th>风险</th></tr>
+    <tr><td>inspect/read</td><td>R0</td></tr>
+    <tr><td>run_test</td><td>R0/R2</td></tr>
+    <tr><td>edit/create_file</td><td>R2</td></tr>
+    <tr><td>delete/restart</td><td>R3</td></tr>
+    <tr><td>send_message</td><td>R2</td></tr>
+    <tr><td>memory_write</td><td>R1</td></tr>
+  </table>
+
+  <h2>6. 三技能协同</h2>
+  <pre>聊天 → 记忆体 → 需要动手 → DSH
+  → 结果 → 记忆 → 说话汇报
+
+生长 → 观察聊天/执行失败 → 提议
+  → 沙箱/评测 → 审批 → 新技能/提示/参数
+  → 说话/动手使用</pre>
+  <p>生长不能改说话/动手的安全边界；说话不能替动手宣布成功；动手不能替生长改自己。</p>
+
+  <h2>7. 项目阶段</h2>
+  <table>
+    <tr><th>阶段</th><th>内容</th><th>约</th></tr>
+    <tr><td>B0</td><td>宪法/基因组/契约</td><td>1–2 周</td></tr>
+    <tr><td>B1</td><td>记忆体 MVP</td><td>6–8 周</td></tr>
+    <tr><td>B2</td><td>说话器官</td><td>2–3 周</td></tr>
+    <tr><td>B3</td><td>动手器官</td><td>2–3 周</td></tr>
+    <tr><td>B4</td><td>生长 v0</td><td>3–4 周</td></tr>
+    <tr><td>B5</td><td>闭环/回执</td><td>2–3 周</td></tr>
+    <tr><td>B6</td><td>红队/灰度</td><td>2–3 周</td></tr>
+  </table>
+  <p>合计约 <b>18–26 周</b>（单人 + AI，视范围）。</p>
+
+  <h2>8. 313 个案例</h2>
+  <p>200 体系案例 + 113 自我进化/技能库/提示优化。代表：Letta、PrimeAgent、GenericAgent、EvoMap/evolver、reef、OpenViking、MemOS、prompt-optimizer、dsh-persona-shell、dsh-feiyu、dsh-world。</p>
+  <p class="small">0–1000 是样本槽位；本版核验 313，不硬凑 1000。</p>
+
+  <h2>9. 指标</h2>
+  <table>
+    <tr><th>技能</th><th>目标</th></tr>
+    <tr><td>生长回归率</td><td>&lt;5%</td></tr>
+    <tr><td>改宪法/越权</td><td>0</td></tr>
+    <tr><td>说话人格一致性</td><td>人工 ≥4/5</td></tr>
+    <tr><td>说话关键幻觉</td><td>0</td></tr>
+    <tr><td>动手 R2/R3 误执行</td><td>0</td></tr>
+    <tr><td>孤儿进程</td><td>0</td></tr>
+    <tr><td>证据覆盖</td><td>100% 动作</td></tr>
+  </table>
+
+  <p><a href="鲸鲸-三大出生技能-设计与项目计划书.md">完整设计/项目计划 Markdown</a> · <a href="鲸鲸-出生技能-案例库-313.json">313 案例 JSON</a> · <a href="鲸鲸-纯记忆体-中枢神经与指令下发-项目书.md">中枢神经项目书</a></p>
+</main>
+</body>
+</html>
