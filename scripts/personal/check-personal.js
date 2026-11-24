@@ -146,6 +146,16 @@ check('插件市场：排序/置顶 + 插件介绍页', () => {
   return 'ok';
 });
 
+check('MOTW：启动/更新都不弹「无法验证发布者」', () => {
+  must(read('launcher/Motw.cs').includes('Zone.Identifier'), '缺 Motw 去标记实现');
+  must(read('launcher/UpdateService.cs').includes('Motw.Remove'), '更新下载后没去 MOTW');
+  must(read('scripts/personal/start-portable.ps1').includes('Unblock-File'), 'start-portable 没 unblock');
+  must(read('scripts/personal/apply-update-zip.ps1').includes('Unblock-File'), 'apply-update 没 unblock');
+  must(read('scripts/personal/unblock-whale.ps1').includes('Unblock-File'), '缺手动 unblock 脚本');
+  must(read('scripts/personal/sign-launcher.ps1').includes('signtool'), '缺可选签名脚本');
+  return 'ok';
+});
+
 check('自主上网反应只要一句（提示词与 maxTokens）', () => {
   const b = read('src/services/browse.js');
   must(/只(输出|回)[^。\n]{0,4}一句/.test(b), 'browse.js SYSTEM 里没有「只输出这一句」');
