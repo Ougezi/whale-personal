@@ -1,0 +1,157 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>鲸鲸 · 纯记忆体项目书</title>
+<style>
+:root{--ink:#15202b;--muted:#5b6b7b;--line:#dce4ec;--bg:#f5f7fa;--card:#fff;--blue:#1457a8;--green:#176b45;--amber:#8a5a00;--red:#9b2c2c}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.75 -apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif}
+main{max-width:1020px;margin:0 auto;padding:34px 20px 70px}
+h1{font-size:30px;line-height:1.25;margin:0 0 8px}
+h2{font-size:21px;margin:38px 0 12px;padding-bottom:8px;border-bottom:1px solid var(--line)}
+h3{font-size:17px;margin:22px 0 8px}
+p,li{color:var(--ink)}
+.sub{color:var(--muted);margin:0 0 24px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:18px 20px;margin:14px 0;box-shadow:0 2px 10px rgba(20,40,70,.04)}
+.tag{display:inline-block;font-size:12px;padding:2px 9px;border-radius:999px;background:#e8f0fb;color:var(--blue);margin-right:6px}
+.tag.g{background:#e7f5ee;color:var(--green)}
+.tag.a{background:#fff4dd;color:var(--amber)}
+table{width:100%;border-collapse:collapse;font-size:14.5px;margin:10px 0}
+th,td{border-bottom:1px solid var(--line);padding:9px 8px;text-align:left;vertical-align:top}
+th{color:var(--muted);font-weight:600;background:#fafbfd}
+code{font-family:ui-monospace,Consolas,monospace;font-size:.92em;background:#eef2f7;border-radius:5px;padding:1px 6px}
+pre{background:#101820;color:#e9f0f7;padding:15px;border-radius:10px;overflow:auto;font-size:13.5px;line-height:1.6}
+ul,ol{padding-left:22px}
+.note{border-left:4px solid var(--blue);padding-left:14px;color:var(--muted)}
+.small{font-size:13px;color:var(--muted)}
+a{color:var(--blue)}
+</style>
+</head>
+<body>
+<main>
+  <h1>鲸鲸 · 纯记忆体项目书</h1>
+  <p class="sub">从“会聊天的 Agent”拆出“记得住、想得起、分得清、忘得掉”的记忆体 · 2026-11-24</p>
+
+  <div class="card">
+    <span class="tag g">独立领域</span><span class="tag">事件日志</span><span class="tag">类人脑功能映射</span><span class="tag a">聊天/执行只是客户端</span>
+    <h2 style="border:0;margin-top:14px">一句话</h2>
+    <p><b>让鲸鲸先成为一个记忆体；再让聊天和执行去使用它。</b>记忆体不生成人设回复、不执行工具、不发微信，只负责编码、巩固、检索、重构、遗忘、元认知。</p>
+  </div>
+
+  <h2>1. 什么叫“纯粹的记忆体”</h2>
+  <p>不是“没有感情”，也不是“只会复读聊天记录”。它要有记忆的功能闭环：</p>
+  <table>
+    <tr><th>功能</th><th>软件含义</th></tr>
+    <tr><td>编码</td><td>消息/文件/事件 → 可存储的记忆痕迹</td></tr>
+    <tr><td>工作记忆</td><td>当前话题、指代、槽位、待办</td></tr>
+    <tr><td>情节记忆</td><td>谁在何时做了什么、感受如何</td></tr>
+    <tr><td>语义记忆</td><td>事实、偏好、关系、边界</td></tr>
+    <tr><td>程序记忆</td><td>怎么做、步骤、回退</td></tr>
+    <tr><td>前瞻记忆</td><td>答应过什么、什么时候做</td></tr>
+    <tr><td>巩固</td><td>睡眠/离线整理、去重、归纳</td></tr>
+    <tr><td>检索/重构</td><td>按线索重建，允许“不记得”</td></tr>
+    <tr><td>再巩固</td><td>新信息修正旧记忆，保留旧版</td></tr>
+    <tr><td>遗忘</td><td>衰减、抑制、删除、隐私</td></tr>
+    <tr><td>元认知</td><td>来源、置信度、虚构抑制</td></tr>
+    <tr><td>自我</td><td>我是谁、叙事、能力边界</td></tr>
+  </table>
+
+  <h2>2. 类人脑功能映射</h2>
+  <table>
+    <tr><th>人脑部分/功能</th><th>模块</th><th>职责</th></tr>
+    <tr><td>感觉缓冲</td><td>sensory_buffer</td><td>原始输入短暂停留</td></tr>
+    <tr><td>丘脑/注意力</td><td>attention</td><td>什么值得编码</td></tr>
+    <tr><td>前额叶/工作记忆</td><td>working_memory</td><td>当前话题/指代/槽位</td></tr>
+    <tr><td>海马</td><td>hippocampus</td><td>情节编码/回放/索引</td></tr>
+    <tr><td>新皮层</td><td>neocortex</td><td>语义事实/图式/关系</td></tr>
+    <tr><td>杏仁核</td><td>amygdala</td><td>情绪显著性/危险标记</td></tr>
+    <tr><td>基底核</td><td>basal_ganglia</td><td>程序记忆/习惯</td></tr>
+    <tr><td>默认模式网络</td><td>default_mode</td><td>自我叙事/反思</td></tr>
+    <tr><td>小脑</td><td>cerebellum</td><td>时序/预测/节奏</td></tr>
+    <tr><td>脑干</td><td>brainstem</td><td>生命周期/健康/限流</td></tr>
+    <tr><td>睡眠</td><td>sleep</td><td>巩固/压缩/清理</td></tr>
+    <tr><td>元认知</td><td>metacognition</td><td>来源/置信度/虚构抑制</td></tr>
+  </table>
+  <p class="small">这是功能类比，不是宣称实现人脑。</p>
+
+  <h2>3. 目标架构</h2>
+  <pre>壳层：聊天 / DSH 执行 / 主动关怀 / 控制台
+        │ Memory API（本地 HTTP / in-process）
+Memory Core（Kernel 内独立领域）
+  intake/ encode/ working/ store/ project/
+  consolidate/ retrieve/ reconstruct/ forget/
+  meta/ self/ audit/
+        │
+SQLite WAL（事件/痕迹/链接/投影）
++ FTS5 + vector BLOB + attachments + export</pre>
+
+  <h2>4. 记忆生命周期</h2>
+  <pre>输入 → 感觉缓冲 → 注意力/显著性 → 工作记忆
+ → 情节编码 → 事件日志 → 投影
+ → 睡眠巩固（回放/去重/图式/程序）
+ → 检索 → 重构（证据/置信度）
+ → 再巩固（保留旧版） → 遗忘</pre>
+
+  <h2>5. 关键规则</h2>
+  <ul>
+    <li>所有记忆写入走 <b>append-only 事件日志</b>；投影可重建。</li>
+    <li>语义记忆必须有 <b>evidence</b>；推断标 <code>source.kind=inference</code>。</li>
+    <li>私聊 <code>private</code> 不进群召回。</li>
+    <li>冲突并列，不静默覆盖；旧版保留。</li>
+    <li>遗忘分衰减/抑制/硬删/取代；删除有审计。</li>
+    <li>检索是重构，不是全量回放；预算优先决定/承诺/边界。</li>
+    <li>能说“我不记得/我不确定”，不编。</li>
+  </ul>
+
+  <h2>6. Memory API</h2>
+  <pre>POST /api/memory/encode
+POST /api/memory/recall
+POST /api/memory/consolidate
+POST /api/memory/forget
+GET  /api/memory/explain/:id
+POST /api/memory/replay
+GET  /api/memory/status</pre>
+
+  <h2>7. 项目阶段</h2>
+  <table>
+    <tr><th>阶段</th><th>内容</th><th>验收</th><th>约</th></tr>
+    <tr><td>M0</td><td>契约/数据模型</td><td>评审通过</td><td>1 周</td></tr>
+    <tr><td>M1</td><td>事件日志+痕迹</td><td>双写不丢；回放一致</td><td>2 周</td></tr>
+    <tr><td>M2</td><td>编码/工作记忆</td><td>新消息可编码；指代可解析</td><td>2 周</td></tr>
+    <tr><td>M3</td><td>检索/重构</td><td>Recall@6 ≥0.85；无证据不装懂</td><td>2 周</td></tr>
+    <tr><td>M4</td><td>巩固/睡眠</td><td>幂等；重复 0；可回滚</td><td>2 周</td></tr>
+    <tr><td>M5</td><td>遗忘/元认知/自我</td><td>删除 100%；“不记得”正确</td><td>2 周</td></tr>
+    <tr><td>M6</td><td>API/客户端接入</td><td>不破坏现有聊天</td><td>2 周</td></tr>
+    <tr><td>M7</td><td>迁移/灰度</td><td>回滚可用</td><td>1–2 周</td></tr>
+  </table>
+  <p>合计约 <b>12–15 周</b>（单人 + AI，视范围）。</p>
+
+  <h2>8. 测试与指标</h2>
+  <table>
+    <tr><th>指标</th><th>目标</th></tr>
+    <tr><td>来源覆盖</td><td>100% 语义记忆有 evidence</td></tr>
+    <tr><td>回放一致</td><td>100%</td></tr>
+    <tr><td>重复事件</td><td>0</td></tr>
+    <tr><td>Recall@6</td><td>≥0.85</td></tr>
+    <tr><td>虚构率</td><td>测试集 0</td></tr>
+    <tr><td>删除成功</td><td>100%</td></tr>
+    <tr><td>p95 recall</td><td>≤150ms（本地）</td></tr>
+  </table>
+
+  <h2>9. 与现有项目的关系</h2>
+  <pre>记忆体（本文）← 提供 encode/recall
+      ↑
+无关键词意图（项目书）← 决定“要不要执行”
+      ↑
+重写架构（四条边界）← 决定“模块放哪”</pre>
+  <p><b>建议顺序：</b>先做记忆体 M0–M3，再做意图路由 shadow；不要反过来。</p>
+
+  <h2>10. 一句话</h2>
+  <p class="note">把鲸鲸从“记得很多的聊天机器人”，改造成“记得住、想得起、分得清、忘得掉”的记忆体；聊天和执行只是它的客户端。</p>
+
+  <p><a href="鲸鲸-纯记忆体-项目书与实施计划.md">完整项目书 Markdown</a> · <a href="鲸鲸-重写最优架构-案例与方案.md">重写架构</a> · <a href="鲸鲸-无关键词命令-项目书与实施计划.md">无关键词项目书</a></p>
+</main>
+</body>
+</html>
