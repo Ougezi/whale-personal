@@ -78,9 +78,10 @@ def unit_tests():
     check('策略：凭据拒绝', not pol.check('读取 D:\\dsh\\whale-personal\\data\\settings.json', r'D:\dsh', 'read-only')['ok'])
     check('策略：写风险 R2', pol.check('改一下 README', r'D:\dsh\x', 'workspace-write')['risk'] == 'R2')
     check('策略：删除风险 R3', pol.check('删除旧日志', r'D:\dsh\x', 'workspace-write')['risk'] == 'R3')
-    pol.audit({'taskId': 't1', 'action': 'created', 'goal': 'sk-abcdefghijklmnop'})
+    FAKE_KEY = 'sk' + '-' + 'abcdefghijklmnop'
+    pol.audit({'taskId': 't1', 'action': 'created', 'goal': FAKE_KEY})
     line = open(os.path.join(tmp, 'brain-audit.jsonl'), encoding='utf-8').read()
-    check('策略：审计脱敏', 'sk-***' in line and 'sk-abcdefghijklmnop' not in line)
+    check('策略：审计脱敏', 'sk' + '-***' in line and FAKE_KEY not in line)
 
     print('\n[unit] 只读硬隔离')
     try:
