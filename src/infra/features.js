@@ -15,27 +15,6 @@ const { parseBoolean } = require('./configValues');
 
 const REGISTRY = [
   {
-    key: 'mood',
-    path: 'features.mood',
-    label: '情绪状态（三轴 + 七情 + 六欲）',
-    desc: '关掉后不读写 data/mood.json，提示词里没有【此刻心情】这一行；开着时情绪有惯性（各有半衰期）、六个欲望会自己饿。',
-    default: true,
-  },
-  {
-    key: 'thoughts',
-    path: 'features.thoughts',
-    label: '念头流（脑子里挂着的事）',
-    desc: '关掉后不读写 data/thoughts.json，提示词里没有【脑子里挂着的】。开着时心里挂 3~5 条短念头，跨轮带着、3 小时淡掉。',
-    default: true,
-  },
-  {
-    key: 'browse',
-    path: 'features.browse',
-    label: '自主上网（隔几小时自己刷一条热榜）',
-    desc: '关掉后完全不联网、不写 data/browse-state.json。开着时每 180 分钟挑一条没看过的热榜，用自己的话说一句并影响情绪念头（每天最多 5 次）。',
-    default: true,
-  },
-  {
     key: 'stickers',
     path: 'features.stickers',
     label: '表情包（实验性）',
@@ -118,6 +97,14 @@ const REGISTRY = [
     label: '自动记忆快照',
     desc: '启动和每 30 分钟备份一次记忆到 data/backups（最多 20 份）。关掉=只保留手动备份。',
     default: true,
+  },
+  {
+    key: 'retrievalCore',
+    path: 'features.retrievalCore',
+    label: '混合检索 Core（实验性）',
+    desc: '开启后事件召回改用 packages/memory-core/retrieval 的 RRF + MMR；失败自动回退旧 BM25。',
+    default: false,
+    experimental: true,
   },
   {
     key: 'workingMemory',

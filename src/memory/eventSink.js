@@ -8,6 +8,7 @@
  *  - event.id 幂等，重复写不会产生第二行。
  */
 const { createEventStore } = require('../../packages/memory-core/events.js');
+const { rotate } = require('../infra/jsonlRetention.js');
 
 function createEventSink({ file, logger = null, enabled = true } = {}) {
   if (!file) throw new Error('eventSink file required');
@@ -15,7 +16,7 @@ function createEventSink({ file, logger = null, enabled = true } = {}) {
   function append(entry, chat = {}) {
     const on = typeof enabled === 'function' ? enabled() : enabled !== false;
     if (!on) return { skipped: true, reason: 'disabled' };
-    const id = 'chat:' + entry.chatId + ':' + entry.id;
+    const id = String(entry.chatId || 'chat') + ':' + String(entry.id || '');
     const event = {
       id,
       type: entry.role === 'assistant' ? 'message.sent' : 'message.received',
@@ -34,6 +35,7 @@ function createEventSink({ file, logger = null, enabled = true } = {}) {
       },
       evidence: [String(entry.id)],
     };
+    try { rotate(file); } catch { /* 轮转失败不影响事件 */ }
     return store.append(event);
   }
   return { append, stats: () => store.stats(), file };

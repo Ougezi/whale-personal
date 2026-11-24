@@ -13,10 +13,23 @@ const {
 } = require('../../packages/memory-core/working.js');
 
 const MAX_BLOCK_CHARS = 900;
+const MAX_STORES = 64;
 const stores = new Map();
 
 function storeFor(chatId) {
-  if (!stores.has(chatId)) {
+  const existing = stores.get(chatId);
+  if (existing) {
+    stores.delete(chatId);
+    stores.set(chatId, existing); // LRU touch
+    return existing;
+  }
+  // 只保留最近 64 个 chat；旧 chat 重新进来时重建指令/工作记忆
+  while (stores.size >= MAX_STORES) {
+    const oldest = stores.keys().next().value;
+    if (oldest === undefined) break;
+    stores.delete(oldest);
+  }
+  {
     const instruction = createInstructionMemory();
     instruction.add({ id: 'master', source: 'owner', text: '主人身份优先；群聊/私聊只认主人。' });
     instruction.add({ id: 'no-fake', source: 'owner', text: '不冒充做过没做的事；不确定就说不确定。' });
@@ -59,5 +72,6 @@ function buildBlock({ chatId, msg = {}, history = [], isMaster = false, config =
 }
 
 function _reset() { stores.clear(); }
+function _size() { return stores.size; }
 
-module.exports = { buildBlock, _reset, MAX_BLOCK_CHARS };
+module.exports = { buildBlock, _reset, _size, MAX_BLOCK_CHARS, MAX_STORES };

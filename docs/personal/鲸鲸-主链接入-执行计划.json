@@ -400,6 +400,161 @@
     "brain-audit 只投影",
     "旧字段保留"
    ]
+  },
+  {
+   "id": "I-12",
+   "phase": "I",
+   "title": "真实动作审计复测",
+   "goal": "真实 DSH 只读动作，产出 delegation_done 和 brain done 审计行。",
+   "case_ids": [
+    "EV-003",
+    "EV-004",
+    "EV-005",
+    "EV-006",
+    "EV-007",
+    "EV-008",
+    "EV-009",
+    "EV-010"
+   ],
+   "min_cases": 5,
+   "source_review": [],
+   "files": [
+    "scripts/personal/鲸鲸-主链审计真实动作.py"
+   ],
+   "actions": [
+    "真实 DSH 委托链",
+    "真实 DSH brain",
+    "action-audit 成功行"
+   ],
+   "tests": [
+    "python scripts/personal/鲸鲸-主链审计真实动作.py"
+   ],
+   "acceptance": [
+    "delegation_done",
+    "brain done",
+    "同一 action-audit"
+   ]
+  },
+  {
+   "id": "I-13",
+   "phase": "I",
+   "title": "retrieval core 接入",
+   "goal": "features.retrievalCore 默认关；开启走混合检索，失败回退旧 BM25。",
+   "case_ids": [
+    "GH-115",
+    "GH-116",
+    "GH-117",
+    "GH-118",
+    "GH-119",
+    "GH-120",
+    "GH-121",
+    "GH-122"
+   ],
+   "min_cases": 5,
+   "source_review": [],
+   "files": [
+    "src/memory/retrieval.js",
+    "src/memory/store.js",
+    "src/infra/features.js",
+    "src/infra/config.js",
+    "scripts/personal/鲸鲸-主链检索Core自测.js"
+   ],
+   "actions": [
+    "core branch",
+    "feature 默认 false",
+    "store 接线"
+   ],
+   "tests": [
+    "node scripts/personal/鲸鲸-主链检索Core自测.js"
+   ],
+   "acceptance": [
+    "默认关",
+    "开启生效",
+    "失败回退"
+   ]
+  },
+  {
+   "id": "I-14",
+   "phase": "I",
+   "title": "开关去重/LRU/轮转",
+   "goal": "features 无重复；promptMemory LRU 64；事件/回执 5MB 轮转。",
+   "case_ids": [
+    "GH-100",
+    "GH-101",
+    "GH-102",
+    "GH-103",
+    "GH-104",
+    "GH-105",
+    "GH-106",
+    "GH-107"
+   ],
+   "min_cases": 5,
+   "source_review": [],
+   "files": [
+    "src/infra/features.js",
+    "src/persona/promptMemory.js",
+    "src/memory/eventSink.js",
+    "src/infra/jsonlRetention.js",
+    "bridge/send_guard.py",
+    "scripts/personal/鲸鲸-主链结构治理自测.js",
+    "scripts/personal/鲸鲸-主链回执轮转自测.py"
+   ],
+   "actions": [
+    "去重 23 键",
+    "LRU 64",
+    "事件/回执轮转"
+   ],
+   "tests": [
+    "node scripts/personal/鲸鲸-主链结构治理自测.js",
+    "python scripts/personal/鲸鲸-主链回执轮转自测.py"
+   ],
+   "acceptance": [
+    "去重",
+    "LRU 上限",
+    "轮转"
+   ]
+  },
+  {
+   "id": "I-15",
+   "phase": "I",
+   "title": "dist 全量/P3 清理",
+   "goal": "dist 全量清单 285 文件；event id 前缀；重签；清测试文件；skill 更新。",
+   "case_ids": [
+    "GH-108",
+    "GH-109",
+    "GH-110",
+    "GH-111",
+    "GH-112",
+    "GH-113",
+    "GH-114",
+    "GH-115"
+   ],
+   "min_cases": 5,
+   "source_review": [],
+   "files": [
+    "scripts/personal/鲸鲸-dist同步检查.py",
+    "src/memory/eventSink.js",
+    "data/birth-skills/signoff.json",
+    "docs/personal/鲸鲸-出生证明.md",
+    "skills/whale-mainline-integration/SKILL.md"
+   ],
+   "actions": [
+    "全量清单+14 排除",
+    "event id 修复",
+    "signoff 26",
+    "清 i05 文件",
+    "skill I-15"
+   ],
+   "tests": [
+    "python scripts/personal/鲸鲸-dist同步检查.py --all --check",
+    "python scripts/personal/鲸鲸-出生技能自测.py"
+   ],
+   "acceptance": [
+    "285 文件",
+    "0 漂移",
+    "26/26 重签",
+    "dist 干净"
+   ]
   }
  ]
 }

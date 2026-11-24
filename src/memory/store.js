@@ -554,6 +554,7 @@ class Store {
       topK: _k,
       queryVec,
       vectors: eventVectors,
+      core: features.isOn(this.config, 'retrievalCore'),
     });
     const block = format.buildMemoryBlock({
       card,

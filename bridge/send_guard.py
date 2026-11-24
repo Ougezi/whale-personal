@@ -54,6 +54,7 @@ class SendGuard:
         if self.receipt_file:
             try:
                 os.makedirs(os.path.dirname(self.receipt_file) or '.', exist_ok=True)
+                _rotate(self.receipt_file)
                 with open(self.receipt_file, 'a', encoding='utf-8') as f:
                     f.write(json.dumps(row, ensure_ascii=False) + '\n')
             except Exception:
@@ -81,3 +82,27 @@ def get_guard(G=None):
         except Exception:
             pass
     return guard
+
+
+def _rotate(path, max_bytes=5 * 1024 * 1024, max_files=3):
+    """回执 JSONL 轮转；失败不影响发送。"""
+    try:
+        if not path or not os.path.exists(path):
+            return False
+        if os.path.getsize(path) < max_bytes:
+            return False
+        keep = max(1, min(20, int(max_files or 3)))
+        for i in range(keep, 0, -1):
+            src = path if i == 1 else '%s.%d' % (path, i - 1)
+            dst = '%s.%d' % (path, i)
+            if not os.path.exists(src):
+                continue
+            try:
+                if os.path.exists(dst):
+                    os.remove(dst)
+            except Exception:
+                pass
+            os.replace(src, dst)
+        return True
+    except Exception:
+        return False

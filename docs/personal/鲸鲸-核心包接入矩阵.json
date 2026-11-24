@@ -23,9 +23,11 @@
   {
    "id": "retrieval",
    "path": "packages/memory-core/retrieval.js",
-   "status": "not-wired",
-   "alternative": "src/memory/retrieval.js + vectorIndex.js",
-   "note": "新混合检索未替换旧召回"
+   "status": "wired",
+   "note": "core 失败回退旧 BM25",
+   "integration": "src/memory/retrieval.js core branch",
+   "flag": "features.retrievalCore（默认 false）",
+   "test": "scripts/personal/鲸鲸-主链检索Core自测.js"
   },
   {
    "id": "migrate",

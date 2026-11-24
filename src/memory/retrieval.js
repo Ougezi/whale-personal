@@ -9,6 +9,8 @@
 const { LIMITS, DAY_MS } = require('./constants');
 const { cosine } = require('../core/embed');
 const personCard = require('./personCard');
+let coreRetrieval = null;
+try { coreRetrieval = require('../../packages/memory-core/retrieval.js'); } catch { coreRetrieval = null; }
 
 // 详情展开阈值：相关度够高（_score 的 relevance 分量）或 importance ≥ 0.8
 const EXPAND_RELEVANCE = 0.45;
@@ -90,9 +92,21 @@ function recencyScore(date, now, halfLifeDays) {
 const VEC_FLOOR = 0.30;
 const VEC_RANGE = 0.32;
 
-function selectEvents(card, { query = '', recentTexts = [], activeTopic = '', now = Date.now(), topK = LIMITS.retrievalTopK, uid = '', queryVec = null, vectors = null } = {}) {
+function selectEvents(card, { query = '', recentTexts = [], activeTopic = '', now = Date.now(), topK = LIMITS.retrievalTopK, uid = '', queryVec = null, vectors = null, core = false } = {}) {
   const events = personCard.activeEvents(card);
   if (!events.length) return [];
+  if (core && coreRetrieval) {
+    try {
+      const queryText = [query, ...(recentTexts || []).slice(-2), activeTopic].filter(Boolean).join(' ');
+      const items = events.map((ev) => ({
+        id: ev.id, text: ev.text || ev.summary || '', summary: ev.summary || '',
+        date: ev.date, importance: ev.importance, confidence: ev.confidence,
+        evidence: ev.evidence, scope: ev.scope, _event: ev,
+      }));
+      const r = coreRetrieval.hybridSearch(queryText, items, { now, topK });
+      if (r && r.answerable) return r.items.map((x) => x._event).filter(Boolean);
+    } catch { /* core 失败回退旧实现 */ }
+  }
   const useVec = Boolean(queryVec && Array.isArray(vectors));
   const queryText = [query, ...(recentTexts || []).slice(-2), activeTopic].filter(Boolean).join(' ');
   const qt = tokens(queryText);
