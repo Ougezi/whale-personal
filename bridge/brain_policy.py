@@ -10,7 +10,12 @@ import threading
 import time
 
 ROOT = os.environ.get('WHALE_BRAIN_ROOT') or r'D:\dsh'
+# 允许的工作区：显式环境变量优先；否则 = 默认项目根 + 用户临时目录（委托经常在 Temp 里做验证）。
+# 还可以用 <data>/brain-roots.json 追加（一行数组，主人自己加路径，不用改代码）。
+_TEMP = os.environ.get('TEMP') or os.environ.get('TMP') or ''
 DEFAULT_ROOTS = [os.path.abspath(x.strip()) for x in (os.environ.get('WHALE_BRAIN_ROOTS') or ROOT).split(';') if x.strip()]
+if not os.environ.get('WHALE_BRAIN_ROOTS') and _TEMP:
+    DEFAULT_ROOTS.append(os.path.abspath(_TEMP))
 DENY_SEGMENTS = {'data', 'backup'}
 CRED_RE = re.compile(r'(?:^|[\\/])(?:settings|config|credentials?)\.json\b|(?:^|[\\/])\.env\b|id_rsa|api[_-]?key', re.I)
 NET_RE = re.compile(r'curl|wget|Invoke-WebRequest|Invoke-RestMethod|Test-NetConnection|Resolve-DnsName|requests\.|https?\.get|fetch\(|socket\.', re.I)
@@ -21,7 +26,14 @@ SECRET_RE = re.compile(r'sk-[A-Za-z0-9]{8,}')
 class BrainPolicy:
     def __init__(self, data_dir, roots=None):
         self.data_dir = data_dir
-        self.roots = [os.path.abspath(x) for x in (roots or DEFAULT_ROOTS)]
+        base = list(roots or DEFAULT_ROOTS)
+        try:
+            extra = json.load(open(os.path.join(data_dir, 'brain-roots.json'), encoding='utf-8'))
+            if isinstance(extra, list):
+                base += [str(x) for x in extra if str(x).strip()]
+        except Exception:
+            pass
+        self.roots = [os.path.abspath(x) for x in base if str(x).strip()]
         self.audit_file = os.path.join(data_dir, 'brain-audit.jsonl')
         self._lock = threading.RLock()
 
