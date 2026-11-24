@@ -50,9 +50,14 @@ function recentTokens(chat, opts = {}) {
  * 取最近原文（含当前消息），按 token 预算从新往旧装。
  * @returns {{messages:Array, tokens:number}}
  */
-function recentForPrompt(chat, { currentSeq = 0, maxTokens = LIMITS.recentMaxTokens, maxCount = LIMITS.recentMessages, minUser = 4 } = {}) {
+function recentForPrompt(chat, { currentSeq = 0, maxTokens = LIMITS.recentMaxTokens, maxCount = LIMITS.recentMessages, minUser = 4, keepTail = 8 } = {}) {
   const covered = Number(chat.summary && chat.summary.coveredThroughSeq) || 0;
-  const all = chat.messages.filter((m) => m.seq > covered);
+  // 即使最近几条已经被摘要覆盖，也保留最后 keepTail 条原文进 recent：
+  // 否则 episode 一关闭，recent 直接归零，只剩摘要（表现为“刚聊完就断片”）。
+  const lastSeq = chat.messages.reduce((n, m) => Math.max(n, Number(m.seq) || 0), 0);
+  const tailFloor = Math.max(0, lastSeq - Math.max(0, Number(keepTail) || 0));
+  const effectiveCovered = Math.min(covered, tailFloor);
+  const all = chat.messages.filter((m) => m.seq > effectiveCovered);
   const window = all.slice(-Math.max(1, maxCount));
   const picked = [];
   let total = 0;

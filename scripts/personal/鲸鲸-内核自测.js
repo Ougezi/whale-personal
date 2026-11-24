@@ -1170,6 +1170,18 @@ try {
   check('episode 保留尾部原文', false, String(e && e.message).slice(0, 40));
 }
 
+// 摘要覆盖后仍保留最近原文（2026-11-24 prompt 体检）
+try {
+  const compT = require(path.join(ROOT, 'src', 'memory', 'compression.js'));
+  const msgs = [];
+  for (let i = 1; i <= 20; i += 1) msgs.push({ seq: i, role: i % 2 ? 'user' : 'assistant', text: '消息' + i, ts: 1, uid: 'u1', name: 'n' });
+  const chatT = { messages: msgs, summary: { coveredThroughSeq: 20 } };
+  const rT = compT.recentForPrompt(chatT, { currentSeq: 0, maxTokens: 10000, maxCount: 40 });
+  check('最近原文保底：摘要全覆盖仍有尾部', rT.messages.length === 8 && rT.messages[0].seq === 13, String(rT.messages.length) + '/' + (rT.messages[0] && rT.messages[0].seq));
+} catch (e) {
+  check('最近原文保底', false, String(e && e.message).slice(0, 50));
+}
+
 console.log('\n通过 ' + pass + '/' + (pass + fail));
   process.exit(fail ? 1 : 0);
 })();
