@@ -11,6 +11,10 @@
  * 需要模型摘要的后台任务走 compressAsync。
  */
 const { LIMITS } = require('./constants');
+
+// 每段抽取摘要的字符上限：220 时 summary 只用 344/900 token，早期事实丢得多；
+// 420 实测保留率 13→25/200，仍低于 900 预算。
+const SUMMARY_CHUNK_CHARS = 420;
 const { estimateTokens, messageBudgetTokens } = require('./tokens');
 const extractor = require('./extractor');
 const { describeError } = require('../infra/errors');
@@ -253,7 +257,7 @@ function compressSync(chat, { currentSeq = 0, now = Date.now(), hardTrigger, rec
       // 边界对不上时旧的 pending 已经不可能再匹配，必须清掉，
       // 否则 prepareSoft 永远被它挡住，后台摘要从此不再预热。
       chat.pendingSummary = null;
-      textValue = extractor.extractiveSummary(chunk, 220);
+      textValue = extractor.extractiveSummary(chunk, SUMMARY_CHUNK_CHARS);
     }
     if (!applySegment(chat, { text: textValue, fromSeq, toSeq, now, summaryTokens })) break;
     recent = recent.slice(chunk.length);
@@ -278,7 +282,7 @@ function timedCompress(chat, { now = Date.now(), currentSeq = 0, minNew = 30, in
   const keep = Math.max(0, keepRecent);
   const chunk = pendingMsgs.slice(0, Math.max(1, pendingMsgs.length - keep));
   if (!chunk.length) return { chunks: 0 };
-  const text = extractor.extractiveSummary(chunk, 220);
+  const text = extractor.extractiveSummary(chunk, SUMMARY_CHUNK_CHARS);
   if (!applySegment(chat, { text, fromSeq: chunk[0].seq, toSeq: chunk[chunk.length - 1].seq, now, summaryTokens })) return { chunks: 0 };
   chat.meta.lastTimedSummaryAt = now;
   return { chunks: 1, messages: chunk.length, fromSeq: chunk[0].seq, toSeq: chunk[chunk.length - 1].seq };
@@ -308,7 +312,7 @@ async function compressAsync(chat, { currentSeq = 0, now = Date.now(), llm = nul
     }
     if (!textValue) {
       if (requireLlm) return { before, after: before, compressed: 0, chunks: 0, failed: true };
-      textValue = extractor.extractiveSummary(chunk, 220);
+      textValue = extractor.extractiveSummary(chunk, SUMMARY_CHUNK_CHARS);
     }
     if (!applySegment(chat, { text: textValue, fromSeq, toSeq, now, summaryTokens })) {
       return { before, after: tokens, compressed, chunks, failed: true };

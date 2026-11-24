@@ -133,7 +133,7 @@ async function closeEpisode({ chat, chatStore, llm = null, logger = null, now = 
     const extracted = await extractor.extractEpisode({ messages, llm, speakers, logger, now });
     if (chat.deleted) return { closed: false, reason: 'deleted', episodeId: ep.id };
     const summaryText = String(extracted.summary || '').replace(/\s+/g, ' ').trim().slice(0, 400)
-      || extractor.extractiveSummary(messages, 200);
+      || extractor.extractiveSummary(messages, 420);
     const messageIds = messages.filter((m) => m.role === 'user').map((m) => m.id).slice(-40);
     let writtenEvents = 0;
     let writtenRelations = 0;
