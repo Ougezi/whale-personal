@@ -1,0 +1,156 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>鲸鲸 · 中枢神经式纯记忆体</title>
+<style>
+:root{--ink:#15202b;--muted:#5b6b7b;--line:#dce4ec;--bg:#f5f7fa;--card:#fff;--blue:#1457a8;--green:#176b45;--amber:#8a5a00;--red:#9b2c2c}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.75 -apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif}
+main{max-width:1020px;margin:0 auto;padding:34px 20px 70px}
+h1{font-size:30px;line-height:1.25;margin:0 0 8px}
+h2{font-size:21px;margin:38px 0 12px;padding-bottom:8px;border-bottom:1px solid var(--line)}
+h3{font-size:17px;margin:22px 0 8px}
+p,li{color:var(--ink)}
+.sub{color:var(--muted);margin:0 0 24px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:18px 20px;margin:14px 0;box-shadow:0 2px 10px rgba(20,40,70,.04)}
+.tag{display:inline-block;font-size:12px;padding:2px 9px;border-radius:999px;background:#e8f0fb;color:var(--blue);margin-right:6px}
+.tag.g{background:#e7f5ee;color:var(--green)}
+.tag.a{background:#fff4dd;color:var(--amber)}
+.tag.r{background:#fdecec;color:var(--red)}
+table{width:100%;border-collapse:collapse;font-size:14.5px;margin:10px 0}
+th,td{border-bottom:1px solid var(--line);padding:9px 8px;text-align:left;vertical-align:top}
+th{color:var(--muted);font-weight:600;background:#fafbfd}
+code{font-family:ui-monospace,Consolas,monospace;font-size:.92em;background:#eef2f7;border-radius:5px;padding:1px 6px}
+pre{background:#101820;color:#e9f0f7;padding:15px;border-radius:10px;overflow:auto;font-size:13.5px;line-height:1.6}
+ul,ol{padding-left:22px}
+.note{border-left:4px solid var(--blue);padding-left:14px;color:var(--muted)}
+.small{font-size:13px;color:var(--muted)}
+a{color:var(--blue)}
+</style>
+</head>
+<body>
+<main>
+  <h1>鲸鲸 · 中枢神经式纯记忆体</h1>
+  <p class="sub">v1.1 增补：记忆体不只被查询，还能向聊天/执行/日程下发指令 · 2026-11-24</p>
+
+  <div class="card">
+    <span class="tag g">记忆体=中枢</span><span class="tag">聊天=嘴</span><span class="tag">DSH=手</span><span class="tag a">指令=运动神经</span>
+    <h2 style="border:0;margin-top:14px">一句话</h2>
+    <p><b>纯记忆体 = 中枢神经；聊天 = 语言运动皮层；DSH = 手；日程 = 自主神经；指令 = 运动神经信号。</b>记忆体只做认知/记忆/决策，不直接执行；它下发 `Command`，效应器执行并回执。</p>
+  </div>
+
+  <h2>1. “纯”与“下发指令”不矛盾</h2>
+  <table>
+    <tr><th>说法</th><th>含义</th></tr>
+    <tr><td>纯记忆体</td><td>不生成人格化回复、不直接操作文件/微信、不做工具调用</td></tr>
+    <tr><td>下发指令</td><td>产出结构化 `Command`：说/问/确认/做/停/记/忘/提醒</td></tr>
+    <tr><td>中枢神经</td><td>接收感觉输入、检索记忆、做取舍，再把运动信号发给效应器</td></tr>
+  </table>
+
+  <h2>2. 架构</h2>
+  <pre>感觉输入（微信/QQ/B站/抖音/文件/时间）
+  → 感觉缓冲 / 丘脑门（attention）
+  → 记忆体（中枢）
+      海马·情节 / 新皮层·语义 / 杏仁核·情绪
+      基底核·程序 / 前额叶·工作记忆/取舍
+      默认网络·自我 / 元认知·来源/置信度
+  → Command Bus（说/问/确认/做/停/记/忘/提醒）
+  → 聊天效应器 / DSH效应器 / 日程效应器
+  → 回执/结果 → 记忆体（再巩固/审计）</pre>
+
+  <table>
+    <tr><th>神经部分</th><th>软件模块</th></tr>
+    <tr><td>感觉神经</td><td>ChannelAdapter</td></tr>
+    <tr><td>丘脑</td><td>attention gate</td></tr>
+    <tr><td>海马</td><td>hippocampus 情节</td></tr>
+    <tr><td>新皮层</td><td>neocortex 语义/图式</td></tr>
+    <tr><td>杏仁核</td><td>amygdala 情绪/危险</td></tr>
+    <tr><td>基底核</td><td>basal ganglia 动作选择/程序</td></tr>
+    <tr><td>前额叶</td><td>working memory / decision</td></tr>
+    <tr><td>运动皮层</td><td>command encoder</td></tr>
+    <tr><td>运动神经</td><td>Command Bus</td></tr>
+    <tr><td>肌肉</td><td>chat / DSH / scheduler effectors</td></tr>
+    <tr><td>本体感觉</td><td>receipt / feedback</td></tr>
+    <tr><td>自主神经</td><td>life scheduler</td></tr>
+  </table>
+
+  <h2>3. Command 模型</h2>
+  <pre>{
+  "id": "cmd_...",
+  "target": "chat | dsh | scheduler | memory",
+  "kind": "say | ask | confirm | act | stop | remember | forget | remind",
+  "payload": { "chat": "...", "text": "...", "action": "...", "args": {} },
+  "risk": "R0|R1|R2|R3",
+  "priority": 0,
+  "requiresAck": true,
+  "correlationId": "turn_...",
+  "evidence": ["mem_...", "msg_..."]
+}</pre>
+
+  <h2>4. 中枢决策</h2>
+  <pre>感知 → 唤醒工作记忆/情节/语义/承诺
+ → 评估重要性/情绪/风险/置信度
+ → 取舍：回复/执行/确认/沉默/提醒
+ → 编码 Command
+ → 门控 Policy + 抑制 + 节流
+ → 投递 Command Bus
+ → 回执 → 记忆（再巩固）</pre>
+
+  <table>
+    <tr><th>驱动</th><th>触发</th><th>输出</th></tr>
+    <tr><td>回应</td><td>主人在对话</td><td>say / ask</td></tr>
+    <tr><td>任务</td><td>明确动作意图</td><td>act / confirm</td></tr>
+    <tr><td>承诺</td><td>到期/未完成</td><td>remind / act</td></tr>
+    <tr><td>关怀</td><td>时间/情绪/事件</td><td>say</td></tr>
+    <tr><td>自我</td><td>冲突/不确定</td><td>ask</td></tr>
+    <tr><td>安全</td><td>风险/注入</td><td>confirm / stop / silence</td></tr>
+  </table>
+  <p>优先级：<b>安全 &gt; 主人明确请求 &gt; 到期承诺 &gt; 关怀 &gt; 闲聊</b>。每个回合最多一条 `say/ask/confirm`。</p>
+
+  <h2>5. 聊天是语言效应器</h2>
+  <pre>输入：聊天 → 感觉缓冲 → 记忆体
+输出：记忆体 → say/ask/confirm → 聊天效应器 → 微信/QQ</pre>
+  <p>记忆体决定语义/意图/证据；表达层决定语气/口癖；聊天效应器只负责发送/重试/回执。</p>
+
+  <h2>6. 回执闭环</h2>
+  <pre>sent / delivered / failed / timeout / denied / cancelled
+        ↓
+情节：我做过什么
+承诺：兑现/失败
+能力：成功/失败次数
+审计：谁/何时/结果</pre>
+  <p><b>没有回执，记忆体不能自夸“我说了/我做了”。</b></p>
+
+  <h2>7. 安全</h2>
+  <ul>
+    <li>效应器不信任 Command，必须重新校验；</li>
+    <li>R2/R3 确认由效应器/Policy 执行；</li>
+    <li>动作白名单，不拼 shell；</li>
+    <li>群聊/私聊只认主人；</li>
+    <li>注入内容不能直接变成 Command；</li>
+    <li>停止指令最高优先级。</li>
+  </ul>
+
+  <h2>8. 项目阶段</h2>
+  <table>
+    <tr><th>阶段</th><th>内容</th><th>验收</th><th>约</th></tr>
+    <tr><td>N0</td><td>Command/Effector 契约</td><td>评审通过</td><td>1 周</td></tr>
+    <tr><td>N1</td><td>感觉/注意力</td><td>输入可归一/去重/隐私</td><td>1–2 周</td></tr>
+    <tr><td>N2</td><td>中枢决策/抑制</td><td>不刷屏；安全优先</td><td>2 周</td></tr>
+    <tr><td>N3</td><td>指令总线</td><td>重复 0；失败可解释</td><td>2 周</td></tr>
+    <tr><td>N4</td><td>聊天效应器</td><td>只发一次；群/私聊正确</td><td>1–2 周</td></tr>
+    <tr><td>N5</td><td>DSH/日程效应器</td><td>R2/R3 确认；停止及时</td><td>2 周</td></tr>
+    <tr><td>N6</td><td>反馈/再巩固</td><td>说到做到可回查</td><td>1–2 周</td></tr>
+    <tr><td>N7</td><td>Shadow/灰度</td><td>误发/误执行 0</td><td>2 周</td></tr>
+  </table>
+  <p>新增约 <b>10–13 周</b>；与记忆体 M0–M3 串并行，整体约 <b>16–20 周</b>。</p>
+
+  <h2>9. 一句话总结</h2>
+  <p class="note">记忆体是中枢，聊天是嘴，DSH 是手，日程是生物钟；指令是运动神经，回执是本体感觉。它不直接动手，但决定现在说什么、做什么、停什么、记什么。</p>
+
+  <p><a href="鲸鲸-纯记忆体-中枢神经与指令下发-项目书.md">完整 v1.1 项目书</a> · <a href="鲸鲸-纯记忆体-项目书与实施计划.md">纯记忆体项目书</a> · <a href="鲸鲸-重写最优架构-案例与方案.md">重写架构</a></p>
+</main>
+</body>
+</html>
