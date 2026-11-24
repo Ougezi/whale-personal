@@ -111,6 +111,9 @@ def main():
     clean, spec = platform_agent.extract('[[gh:repo:o/r]]')
     check('marker on', lambda: (_ for _ in ()).throw(AssertionError('bad')) if spec != 'gh:repo:o/r' or 'gh:' in clean else None)
     os.environ.pop('WHALE_PLATFORM_CALLS', None)
+    check('Douyin comment needs approval', lambda: (_ for _ in ()).throw(AssertionError('bad')) if DouyinAdapter().execute('comment', {}, approved=False).get('code') != 'approval-required' else None)
+    check('Douyin comment not-implemented', lambda: (_ for _ in ()).throw(AssertionError('bad')) if DouyinAdapter().execute('comment', {}, approved=True).get('code') != 'not-implemented' else None)
+
     check('Douyin write deny', lambda: (_ for _ in ()).throw(AssertionError('bad')) if DouyinAdapter().execute('like', {}, approved=False).get('code') != 'approval-required' else None)
     check('unknown platform', lambda: (_ for _ in ()).throw(AssertionError('bad')) if v.dispatch('nope', 'repo', {}).get('code') != 'unknown-platform' else None)
     # B站写：无登录拒绝 + 有登录 fake 成功

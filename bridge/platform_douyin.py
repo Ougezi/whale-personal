@@ -10,7 +10,7 @@ except Exception:
 
 READ_OPS = {'hot', 'watch', 'user', 'search_users', 'comments', 'download', 'live',
             'report', 'recent', 'accounts', 'collection', 'link', 'status'}
-WRITE_OPS = {'like', 'collect'}
+WRITE_OPS = {'like', 'collect', 'comment'}
 
 
 class DouyinAdapter:
@@ -28,6 +28,11 @@ class DouyinAdapter:
             return {'ok': False, 'code': 'approval-required', 'text': '抖音写操作需要 R2 审批', 'evidence': {}}
         if op not in READ_OPS | WRITE_OPS:
             return {'ok': False, 'code': 'unknown-op', 'text': '未知抖音操作', 'evidence': {}}
+        if op == 'comment':
+            # 页面适配器尚未验收；接口存在，但不拿真实账号试未验证的选择器
+            return {'ok': False, 'code': 'not-implemented',
+                    'text': '抖音评论写接口已预留；sidecar 尚无已验证的评论页面适配器，未发评论',
+                    'evidence': {}}
         if not douyin_agent:
             return {'ok': False, 'code': 'unavailable', 'text': '抖音模块没加载', 'evidence': {}}
         try:

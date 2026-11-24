@@ -1482,6 +1482,43 @@
     "fake 登录后可执行",
     "command_bus 不接"
    ]
+  },
+  {
+   "id": "I-41",
+   "phase": "I",
+   "title": "抖音评论接口",
+   "goal": "DouyinAdapter 增加 comment R2 接口；sidecar 页面适配器未验收，明确 not-implemented，不假发。",
+   "case_ids": [
+    "EV-003",
+    "EV-004",
+    "EV-005",
+    "EV-006",
+    "EV-007",
+    "EV-008",
+    "EV-009",
+    "EV-010"
+   ],
+   "min_cases": 8,
+   "source_review": [],
+   "files": [
+    "bridge/platform_douyin.py",
+    "scripts/personal/鲸鲸-真实调用方自测.py",
+    "skills/whale-platform-callers/SKILL.md"
+   ],
+   "actions": [
+    "comment R2",
+    "未批拒绝",
+    "未实现明确返回"
+   ],
+   "tests": [
+    "鲸鲸-真实调用方自测.py 34/34"
+   ],
+   "acceptance": [
+    "comment 需审批",
+    "未批准拒绝",
+    "已批准返回 not-implemented",
+    "不真实发评论"
+   ]
   }
  ]
 }

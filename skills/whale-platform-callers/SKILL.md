@@ -122,6 +122,7 @@ GitHub push/comment     不做
 B站 like/comment        可接，需登录态 + R2；默认 not-logged-in
 B站 投币/收藏          不做
 抖音 like/collect        默认关 + R2 + sidecar enableOps
+抖音 comment             R2 接口已预留；sidecar 页面适配器未验收 → not-implemented
 ```
 
 ### 2.3 token
@@ -376,7 +377,7 @@ DY-08 timeout/no-output 映射
 ## 7. 验收
 
 ```text
-离线自测 32/32
+离线自测 34/34
 P3 控制 9/9
 live 24/24（含预期错误码）
 无标记 0 网络
@@ -479,7 +480,7 @@ P3  rollout / genome / sandbox / redteam / birth_config
 ## 12. 执行记录（2026-11-25 P2）
 
 ```text
-离线自测        32/32
+离线自测        34/34
 P3 控制         9/9
 live 24 案例    24/24
 GitHub          7 个成功 + GH-09 预期 404
@@ -488,8 +489,9 @@ B站             view/comments/user 成功；search 412、无效 BV 预期
 shadow          只记录不执行
 receipt         data/platform-receipts.jsonl
 B站 WBI         search 成功
-写操作闸门       32/32 测试；默认关；未执行真实点赞
+写操作闸门       34/34 测试；默认关；未执行真实点赞
 B站写           like/comment 可接，需登录态；未真实点赞
+抖音评论        接口 + 审批已加；页面适配器未实现，返回 not-implemented
 P3 控制         9/9；rollout/genome/sandbox/redteam/birth
 run_all         P0 PASS
 证据            data/integration/evidence/I-36-live.json
