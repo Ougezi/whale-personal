@@ -237,6 +237,30 @@ module.exports = function register(router) {
     })();
   });
 
+  // 执行脑任务卡：桥接在任务完成后调用，只写一条 assistant 结果，不写 trace。
+  router.post('/api/memory/brain', (runtime, req, res) => {
+    if (!isLoopbackRequest(req)) return json(res, 403, { ok: false, error: '只允许本机' });
+    if (!bridgeTokenOk(runtime, req)) return json(res, 403, { ok: false, error: '桥接 token 不正确' });
+    return (async () => {
+      try {
+        const body = await readBody(req);
+        const chat = chatOf(runtime, body && body.chat);
+        if (!chat) return json(res, 404, { ok: false, error: '会话不存在' });
+        const goal = String((body && body.goal) || '').trim().slice(0, 120);
+        const result = String((body && body.result) || '').trim().slice(0, 1200);
+        if (!result) return json(res, 400, { ok: false, error: 'result 不能为空' });
+        const entry = runtime.store.recordAssistant(chat.chatId, {
+          text: '【执行脑】' + (goal || '任务') + '\n' + result,
+          ts: Date.now(),
+          source: 'brain',
+        });
+        return json(res, 200, { ok: true, seq: entry && entry.seq });
+      } catch (err) {
+        return json(res, 500, { ok: false, error: errorMessage(err) });
+      }
+    })();
+  });
+
   function registerList(route, field, groupsOnly) {
   router.get(route, (runtime, req, res) => {
     if (!isLoopbackRequest(req)) return json(res, 403, { ok: false, error: '记忆管理只允许在本机操作' });

@@ -2378,6 +2378,12 @@ class ReceiverMixin:
 
     def on_message(self, msg, listener):
         try:
+            # 执行脑命令优先接管；普通消息照常走原 pipeline
+            try:
+                if getattr(self, 'brain', None) and self.brain.handle_message(msg):
+                    return
+            except Exception as e:
+                G.log('执行脑处理失败（继续普通聊天）：', repr(e))
             try:
                 self._recover_delegation_once()
             except Exception as _e:

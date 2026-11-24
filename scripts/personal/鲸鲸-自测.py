@@ -483,6 +483,16 @@ def main():
     except Exception as e:
         check("语音转写提示", False, repr(e))
 
+    # 执行脑：触发词/工作区/边界（2026-11-24）
+    try:
+        import brain_agent as _ba
+        check("执行脑：触发词", bool(_ba.CMD_RE.match("脑子：查一下 D:\\x")) and not _ba.CMD_RE.match("脑子有病"), "")
+        check("执行脑：写命令", bool(_ba.CMD_RE.match("脑子写：修一下")), "")
+        check("执行脑：工作区取父目录", _ba._workspace_of("D:\\dsh\\brain-test\\test.txt").lower().endswith("brain-test"), _ba._workspace_of("D:\\dsh\\brain-test\\test.txt"))
+        check("执行脑：只读边界", "只读任务" in _ba._build_prompt("x", "read-only", "D:\\dsh"), "")
+    except Exception as e:
+        check("执行脑：触发词", False, repr(e))
+
     print("=== 鲸鲸改造自测 ===")
     bad = 0
     for name, ok, detail in results:

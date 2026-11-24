@@ -10,9 +10,10 @@ from sticker_mixin import StickerMixin
 from voice_mixin import VoiceMixin
 from receiver_mixin import ReceiverMixin
 from loop_mixin import LoopMixin
+from brain_mixin import BrainMixin
 
 
-class BridgeRuntime(AccountMixin, WindowMixin, SenderMixin, StickerMixin, VoiceMixin, ReceiverMixin, LoopMixin):
+class BridgeRuntime(AccountMixin, WindowMixin, SenderMixin, StickerMixin, VoiceMixin, ReceiverMixin, LoopMixin, BrainMixin):
 
     def start(self):
         G.boot('进入 main()')
@@ -267,6 +268,7 @@ class BridgeRuntime(AccountMixin, WindowMixin, SenderMixin, StickerMixin, VoiceM
         self.UIA_CACHE = {'u': None}
         self.BG_STATS = {'tried': 0, 'ok': 0, 'last': '', 'lastAt': 0.0, 'disabled': False, 'treeFails': 0, 'cooldownUntil': 0.0}
         self.sticker_draft_quarantine = {}
+        self.init_brain()
         self.sticker_headers = {'x-bot-token': self.token, 'x-whale-bridge': '1'}
         self.sticker_base = self.bot_url.rsplit('/webhook', 1)[0]
         if not G.wait_for_server(self.bot_url, timeout=30):
