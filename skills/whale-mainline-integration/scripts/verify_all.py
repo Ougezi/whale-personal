@@ -41,6 +41,7 @@ CASES = [
     ('出生技能', 'py', 'scripts/personal/鲸鲸-出生技能自测.py', {}),
     ('真实调用方', 'py', 'scripts/personal/鲸鲸-真实调用方自测.py', {}),
     ('平台控制', 'py', 'scripts/personal/鲸鲸-平台控制自测.py', {}),
+    ('发图声明', 'py', 'scripts/personal/鲸鲸-主链发图声明自测.py', {}),
 ]
 
 

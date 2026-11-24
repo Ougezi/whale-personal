@@ -1520,6 +1520,43 @@
     "不回读成功不记成功",
     "未真实发送"
    ]
+  },
+  {
+   "id": "I-42",
+   "phase": "I",
+   "title": "发图声明纠偏",
+   "goal": "非主人 [[pic]] 不静默丢弃；图片未执行时禁止“图发过去了”。",
+   "case_ids": [
+    "EV-003",
+    "EV-004",
+    "EV-005",
+    "EV-006",
+    "EV-007",
+    "EV-008",
+    "EV-009",
+    "EV-010"
+   ],
+   "min_cases": 8,
+   "source_review": [],
+   "files": [
+    "bridge/picture_claim.py",
+    "bridge/receiver_mixin.py",
+    "src/persona/prompt.js",
+    "scripts/personal/鲸鲸-主链发图声明自测.py"
+   ],
+   "actions": [
+    "非主人 blocked",
+    "claim scrub",
+    "prompt 规则"
+   ],
+   "tests": [
+    "鲸鲸-主链发图声明自测.py 6/6"
+   ],
+   "acceptance": [
+    "非主人不丢图",
+    "未执行不假发",
+    "否定句不改"
+   ]
   }
  ]
 }

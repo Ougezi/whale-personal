@@ -31,6 +31,10 @@ try:
     import image_fetch
 except Exception:
     image_fetch = None
+try:
+    import picture_claim
+except Exception:
+    picture_claim = None
 
 # ---------------------------------------------------------------- 回复抹除
 import re as _scrub_re
@@ -2117,6 +2121,9 @@ class ReceiverMixin:
             _plats = []
             _tasks = []
             _pics = []
+            _pic_blocked = []
+            _pic_allowed = bool(G.MASTER_WXID and (msg.get('sender_username') or '') == G.MASTER_WXID
+                                and not username.endswith('@chatroom'))
             _kept = []
             for _b in bubbles:
                 _clean = _b
@@ -2135,18 +2142,33 @@ class ReceiverMixin:
                 if image_fetch is not None:
                     _clean, _key = image_fetch.extract(_clean)
                     if _key:
-                        _pics.append(_key)
+                        if _pic_allowed:
+                            _pics.append(_key)
+                        else:
+                            _pic_blocked.append(_key)
                 if _clean and _clean.strip():
                     _kept.append(_clean)
             if _tasks:
                 G.log('她自己派活：', ' | '.join(_tasks)[:80])
             if _pics:
                 G.log('她要找图：', ' | '.join(_pics)[:80])
+            if _pic_blocked:
+                G.log('发图被拒绝（仅主人私聊）：', ' | '.join(_pic_blocked)[:80])
             if _dys:
                 G.log('她要刷抖音：', _dys[0][:60])
             if _plats:
                 G.log('她要查平台：', _plats[0][:80])
             bubbles = _kept
+            if picture_claim is not None and (bubbles or _pic_blocked):
+                _mode = 'will_send' if _pics else ('blocked' if _pic_blocked else 'no_marker')
+                _fixed = [picture_claim.scrub(_b, _mode) for _b in bubbles]
+                _fixed = [_x for _x in _fixed if _x]
+                if _pic_blocked:
+                    if _fixed:
+                        _fixed[-1] = picture_claim.append_blocked_note(_fixed[-1])
+                    else:
+                        _fixed = ['这个会话发不了图，我用文字说。']
+                bubbles = _fixed
             for line in bubbles:
                 if not line:
                     continue
@@ -2176,8 +2198,7 @@ class ReceiverMixin:
             if _patches and G.MASTER_WXID and (msg.get('sender_username') or '') == G.MASTER_WXID \
                     and not username.endswith('@chatroom'):
                 self._spawn_self_patch(_patches[0], username)
-            if _pics and G.MASTER_WXID and (msg.get('sender_username') or '') == G.MASTER_WXID \
-                    and not username.endswith('@chatroom'):
+            if _pics and _pic_allowed:
                 self._spawn_picture(_pics[0], username)
             if _tasks and G.MASTER_WXID and (msg.get('sender_username') or '') == G.MASTER_WXID \
                     and not username.endswith('@chatroom'):
