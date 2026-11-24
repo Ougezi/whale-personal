@@ -154,3 +154,19 @@ description: 鲸鲸三大出生技能（生长/说话/动手）的执行总控�
 - 动手 R2/R3 零误执行；
 - 主人可一键停机/回滚；
 - 文档/HTML/skill 同步。
+
+## 出生签收（B7-02）
+
+交付检查：
+
+```bash
+python scripts/personal/鲸鲸-出生交付自测.py --check
+```
+
+主人本人签收（只有 `ougezi`）：
+
+```bash
+python scripts/personal/鲸鲸-出生交付自测.py --sign ougezi --confirm
+```
+
+签收前 B7-02 必须保持 `blocked`，不得写 done。
