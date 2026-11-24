@@ -1109,6 +1109,42 @@
     "crossRecall false",
     "failClosed true"
    ]
+  },
+  {
+   "id": "I-31",
+   "phase": "I",
+   "title": "scopeShadow 私聊+群聊试跑",
+   "goal": "真实私聊/群聊各 2 条，确认 canRecall fail-closed。",
+   "case_ids": [
+    "EV-011",
+    "EV-012",
+    "EV-013",
+    "EV-014",
+    "EV-015",
+    "EV-018",
+    "EV-019",
+    "EV-020"
+   ],
+   "min_cases": 5,
+   "source_review": [],
+   "files": [
+    "src/services/scopeShadow.js",
+    "scripts/personal/鲸鲸-主链ScopeShadow自测.js"
+   ],
+   "actions": [
+    "2 私聊 + 2 群聊",
+    "failClosed 检查",
+    "关闭"
+   ],
+   "tests": [
+    "node scripts/personal/鲸鲸-主链ScopeShadow自测.js",
+    "live scope-shadow.jsonl"
+   ],
+   "acceptance": [
+    "private/group 各 2",
+    "failClosed 全 true",
+    "已关闭"
+   ]
   }
  ]
 }
