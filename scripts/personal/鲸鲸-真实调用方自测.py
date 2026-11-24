@@ -113,6 +113,12 @@ def main():
     os.environ.pop('WHALE_PLATFORM_CALLS', None)
     check('Douyin write deny', lambda: (_ for _ in ()).throw(AssertionError('bad')) if DouyinAdapter().execute('like', {}, approved=False).get('code') != 'approval-required' else None)
     check('unknown platform', lambda: (_ for _ in ()).throw(AssertionError('bad')) if v.dispatch('nope', 'repo', {}).get('code') != 'unknown-platform' else None)
+    # B站写：无登录拒绝 + 有登录 fake 成功
+    bw = platform_bilibili.BilibiliAdapter(fetch=bili_fetch, post=lambda path, data, sess: {'ok': True, 'data': {'code': 0}})
+    check('B站写无登录拒绝', lambda: (_ for _ in ()).throw(AssertionError('bad')) if bw.execute('like', {'bvid': 'BV1xx411c7mD'}).get('code') != 'not-logged-in' else None)
+    os.environ['BILI_SESSDATA'] = 's'; os.environ['BILI_CSRF'] = 'c'
+    check('B站写 fake 成功', lambda: (_ for _ in ()).throw(AssertionError('bad')) if not bw.execute('like', {'bvid': 'BV1xx411c7mD'}).get('ok') else None)
+    os.environ.pop('BILI_SESSDATA', None); os.environ.pop('BILI_CSRF', None)
     # P2 approval
     r2 = FakeAdapter(risk='R2')
     wb = platform_broker.PlatformBroker({'x': r2}, writes_enabled=False, owner='ougezi')

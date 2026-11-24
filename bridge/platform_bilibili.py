@@ -6,6 +6,7 @@
 """
 import hashlib
 import json
+import os
 import re
 import time
 import urllib.error
@@ -50,16 +51,37 @@ def _json(raw):
         return {}
 
 
+def _post(path, data, sess):
+    body = urllib.parse.urlencode(data).encode('utf-8')
+    req = urllib.request.Request(API + path, data=body, headers={
+        'User-Agent': UA,
+        'Referer': 'https://www.bilibili.com/',
+        'Content-Type': 'application/x-www-form-urlencoded',
+        'Cookie': 'SESSDATA=' + sess,
+    }, method='POST')
+    try:
+        with urllib.request.urlopen(req, timeout=15) as r:
+            return {'ok': True, 'data': _json(r.read().decode('utf-8', 'replace')), 'source': API + path}
+    except urllib.error.HTTPError as e:
+        raw = ''
+        try: raw = e.read().decode('utf-8', 'replace')
+        except Exception: pass
+        return {'ok': False, 'code': 'http-%s' % e.code, 'text': 'B站写请求失败', 'evidence': {}}
+    except Exception as e:
+        return {'ok': False, 'code': 'request-failed', 'text': str(e)[:160], 'evidence': {}}
+
+
 class BilibiliAdapter:
     platform = 'bilibili'
 
-    def __init__(self, fetch=None):
+    def __init__(self, fetch=None, post=None):
         self.fetch = fetch or _request
+        self.post = post or _post
         self._wbi_raw = ''
         self._wbi_at = 0
 
     def available(self):
-        return {'ok': True, 'api': API, 'login': False, 'wbi': bool(self._wbi_raw)}
+        return {'ok': True, 'api': API, 'login': bool((os.environ.get('BILI_SESSDATA') or '').strip()), 'wbi': bool(self._wbi_raw)}
 
     def capabilities(self):
         return [
@@ -67,6 +89,8 @@ class BilibiliAdapter:
             {'op': 'search', 'risk': 'R1', 'args': ['keyword', 'limit']},
             {'op': 'comments', 'risk': 'R1', 'args': ['bvid', 'limit']},
             {'op': 'user', 'risk': 'R1', 'args': ['mid']},
+            {'op': 'like', 'risk': 'R2', 'args': ['bvid', 'like']},
+            {'op': 'comment', 'risk': 'R2', 'args': ['bvid', 'message']},
         ]
 
     def _get(self, path):
@@ -153,6 +177,31 @@ class BilibiliAdapter:
                 return got
             card = (got['data'].get('data') or {}).get('card') or {}
             text = '%s（粉丝：%s）' % (card.get('name'), (got['data'].get('data') or {}).get('fans'))
+        elif op in ('like', 'comment'):
+            sess = (os.environ.get('BILI_SESSDATA') or '').strip()
+            csrf = (os.environ.get('BILI_CSRF') or '').strip()
+            if not sess or not csrf:
+                return {'ok': False, 'code': 'not-logged-in', 'text': 'B站写操作需要 BILI_SESSDATA / BILI_CSRF', 'evidence': {}}
+            bvid = str(args.get('bvid') or '').strip()
+            if not BV_RE.match(bvid):
+                return {'ok': False, 'code': 'bad-bvid', 'text': 'BV 号格式不对', 'evidence': {}}
+            v = self._get('/x/web-interface/view?bvid=' + urllib.parse.quote(bvid))
+            if not v.get('ok'):
+                return v
+            aid = (v['data'].get('data') or {}).get('aid')
+            if op == 'like':
+                got = self.post('/x/web-interface/archive/like', {'bvid': bvid, 'like': 1 if args.get('like', 1) else 0, 'csrf': csrf}, sess)
+            else:
+                msg = str(args.get('message') or '').strip()
+                if not msg:
+                    return {'ok': False, 'code': 'bad-message', 'text': '评论为空', 'evidence': {}}
+                got = self.post('/x/v2/reply/add', {'oid': aid, 'type': 1, 'message': msg, 'csrf': csrf}, sess)
+            if not got.get('ok'):
+                return got
+            data = got.get('data') or {}
+            if data.get('code') not in (0, None):
+                return {'ok': False, 'code': 'api-%s' % data.get('code'), 'text': 'B站写失败：%s' % data.get('message', ''), 'evidence': {}}
+            text = 'B站点赞成功' if op == 'like' else 'B站评论已提交'
         else:
             return {'ok': False, 'code': 'unknown-op', 'text': '未知 B站操作', 'evidence': {}}
         raw = got.get('raw') or ''

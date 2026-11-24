@@ -119,8 +119,9 @@ B站:     api.bilibili.com，只读 view/search/comments/user
 
 ```text
 GitHub push/comment     不做
-B站 点赞/评论/投币      不做
-抖音 like/collect        adapter 直接返回 approval-required
+B站 like/comment        可接，需登录态 + R2；默认 not-logged-in
+B站 投币/收藏          不做
+抖音 like/collect        默认关 + R2 + sidecar enableOps
 ```
 
 ### 2.3 token
@@ -172,7 +173,8 @@ GitHub / B 站：
 
 ```text
 GitHub 写：未接，复用 github-push 技能，不在本 adapter
-B站 写：未接
+B站 写：like/comment 已接 R2（需 BILI_SESSDATA / BILI_CSRF）
+        默认 not-logged-in；不盲点
 ```
 
 不批准时：
@@ -374,7 +376,7 @@ DY-08 timeout/no-output 映射
 ## 7. 验收
 
 ```text
-离线自测 30/30
+离线自测 32/32
 P3 控制 9/9
 live 24/24（含预期错误码）
 无标记 0 网络
@@ -477,7 +479,7 @@ P3  rollout / genome / sandbox / redteam / birth_config
 ## 12. 执行记录（2026-11-25 P2）
 
 ```text
-离线自测        30/30
+离线自测        32/32
 P3 控制         9/9
 live 24 案例    24/24
 GitHub          7 个成功 + GH-09 预期 404
@@ -486,7 +488,8 @@ B站             view/comments/user 成功；search 412、无效 BV 预期
 shadow          只记录不执行
 receipt         data/platform-receipts.jsonl
 B站 WBI         search 成功
-写操作闸门       30/30 测试；默认关；未执行真实点赞
+写操作闸门       32/32 测试；默认关；未执行真实点赞
+B站写           like/comment 可接，需登录态；未真实点赞
 P3 控制         9/9；rollout/genome/sandbox/redteam/birth
 run_all         P0 PASS
 证据            data/integration/evidence/I-36-live.json
