@@ -1,6 +1,6 @@
 ---
 name: whale-mainline-integration
-description: 鲸鲸主链接入的执行 skill：把出生技能核心模块接进真实 kernel/bridge 主链，按 I-01..I-17 逐步过案例门禁、源码/测试/证据/回滚，再分 L0-L3 做构建产物、local dry-run、真实微信、真实 R2 动作与热停验收。Use when the owner says 主链接入 / 接入主链 / 下一步接入 / 热停 / 端到端验收 / 真实微信验收, or after 出生技能 26 步完成.
+description: 鲸鲸主链接入的执行 skill：把出生技能核心模块接进真实 kernel/bridge 主链，按 I-01..I-18 逐步过案例门禁、源码/测试/证据/回滚，再分 L0-L3 做构建产物、local dry-run、真实微信、真实 R2 动作与热停验收。Use when the owner says 主链接入 / 接入主链 / 下一步接入 / 热停 / 端到端验收 / 真实微信验收, or after 出生技能 26 步完成.
 ---
 
 # whale-mainline-integration
@@ -151,7 +151,8 @@ L2 只能写“真实内核 local dry-run”，不能写“真实微信收发”
 - I-14 去重/LRU/轮转：features 23 唯一，LRU 64，事件/回执 5MB；
 - I-15 dist 全量/P3：287 文件/6 排除，0 漂移，26/26 重签；
 - I-16 job.js：委托生命周期镜像，R2 未批不能 start；
-- I-17 receipts.js：发送回执回传，pending→sent→delivered。
+- I-17 receipts.js：发送回执回传，pending→sent→delivered；
+- I-18 真实写审批：未确认 before-i18 不变，确认后 real DSH 写 i18-ok。
 
 ## 已知坑（都真实踩过）
 

@@ -630,6 +630,40 @@
     "failed 不冒充",
     "幂等"
    ]
+  },
+  {
+   "id": "I-18",
+   "phase": "I",
+   "title": "真实写任务硬审批",
+   "goal": "真实 DSH 写任务在确认前 0 执行，确认后写入并留 delegation_done。",
+   "case_ids": [
+    "GH-115",
+    "GH-116",
+    "GH-117",
+    "GH-118",
+    "GH-119",
+    "GH-120",
+    "GH-121",
+    "GH-122"
+   ],
+   "min_cases": 5,
+   "source_review": [],
+   "files": [
+    "scripts/personal/鲸鲸-主链真实写审批.py"
+   ],
+   "actions": [
+    "未确认不写",
+    "确认后真实写",
+    "审计"
+   ],
+   "tests": [
+    "python scripts/personal/鲸鲸-主链真实写审批.py"
+   ],
+   "acceptance": [
+    "before 不变",
+    "确认后 i18-ok",
+    "delegation_done"
+   ]
   }
  ]
 }
