@@ -456,7 +456,7 @@ class SenderMixin:
         G.log_throttled('send-policy-unavailable', '发言范围：内核未确认允许发送，已暂停', ttl=60)
         return False
 
-    def send_text(self, text, chat_display_name, chat_username='', force=False, quote_latest=False):
+    def _send_text_core(self, text, chat_display_name, chat_username='', force=False, quote_latest=False):
         from send_attempt import logical_operation, prepared_adapter, bind_runtime_identity
         pending = getattr(self, '_text_send_inflight', None)
         if pending is not None and pending.is_alive():
@@ -742,6 +742,30 @@ class SenderMixin:
                     self.pause_chat(chat_username, chat_display_name)
             G.log_error('发送最终失败，请把微信窗口保持在桌面、别最小化（这条 %d 字，正文不写日志）' % len(text))
             return False
+
+    def send_text(self, text, chat_display_name, chat_username='', force=False, quote_latest=False):
+        """I-03 发送口闸：默认关；开启时 target/重复拦截并写 receipt。"""
+        try:
+            from send_guard import get_guard
+            guard = get_guard()
+        except Exception:
+            guard = None
+        target = chat_username or chat_display_name
+        if guard is not None:
+            try:
+                allowed = guard.allow(target, text)
+                if not allowed.get('ok'):
+                    G.log('发送口拦截（%s）：%s' % (allowed.get('reason'), G.safe_name(chat_display_name)))
+                    return False
+            except Exception:
+                pass
+        ok = self._send_text_core(text, chat_display_name, chat_username, force=force, quote_latest=quote_latest)
+        if guard is not None:
+            try:
+                guard.receipt(target, text, ok)
+            except Exception:
+                pass
+        return ok
 
     def send_at(self, member, text, chat_display_name, chat_username=''):
         """真 @；仅已知未输入的失败可回退，进入不透明调用后按 handled 终止。"""

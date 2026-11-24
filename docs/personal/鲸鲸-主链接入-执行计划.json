@@ -96,19 +96,21 @@
    "min_cases": 5,
    "source_review": [],
    "files": [
-    "bridge/command_bus.py",
-    "bridge/receiver_mixin.py",
+    "bridge/send_guard.py",
     "bridge/sender_mixin.py",
-    "packages/memory-core/receipts.js"
+    "scripts/personal/鲸鲸-主链发送接自测.py"
    ],
    "actions": [
     "发送前 target/one-say；回执"
    ],
-   "tests": [],
+   "tests": [
+    "python scripts/personal/鲸鲸-主链发送接自测.py"
+   ],
    "acceptance": [
     "重复 0",
     "错误接收人 0",
-    "回执"
+    "每次发送有 receipt",
+    "默认关"
    ]
   },
   {
