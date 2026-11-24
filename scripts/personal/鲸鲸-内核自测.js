@@ -1412,6 +1412,15 @@ try {
   check('补答：meta 持久化', false, String(e && e.message).slice(0, 50));
 }
 
+// chat 回复预算不 TDZ（2026-11-24 真实故障）
+try {
+  const fsx = require('node:fs');
+  const chatSrc = fsx.readFileSync(path.join(ROOT, 'src', 'pipeline', 'chat.js'), 'utf8');
+  check('chat 回复预算不 TDZ', chatSrc.includes('promptBudgetCore.fitBlocks') && !/\blet\s+promptBudget\b/.test(chatSrc), '');
+} catch (e) {
+  check('chat 回复预算不 TDZ', false, String(e && e.message).slice(0, 50));
+}
+
 console.log('\n通过 ' + pass + '/' + (pass + fail));
   process.exit(fail ? 1 : 0);
 })();

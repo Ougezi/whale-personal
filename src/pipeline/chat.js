@@ -26,7 +26,7 @@ const skills = require('../core/skills');
 const nickname = require('../core/nickname');
 const coref = require('../core/coref');
 const intent = require('../core/intent');
-const promptBudget = require('../core/promptBudget');
+const promptBudgetCore = require('../core/promptBudget');
 const backlog = require('../core/backlog');
 const sessionMod = require('./session');
 const marks = require('./marks');
@@ -1053,7 +1053,7 @@ class Bot {
         backlogLine = backlog.hint(chatObj.messages, { now: nowMs, currentSeq });
       }
     } catch { /* 漏回检测失败不影响回复 */ }
-    const innerLine = promptBudget.fitBlocks([
+    const innerLine = promptBudgetCore.fitBlocks([
       { key: 'mood', text: moodLine }, { key: 'thought', text: thoughtLine },
       { key: 'notes', text: notesLine }, { key: 'empathy', text: empathyLine },
       { key: 'concern', text: concernLine }, { key: 'nick', text: nickLine },
@@ -1109,7 +1109,7 @@ class Bot {
 
     // 预算：system 只测量，不裁剪；dialogueBudget 默认 5,500，给裁剪窗口用。
     // 硬上限看**真实输入估算**（system + 实际 turns），不再拿 system + 预算上限冒充。
-    let promptBudget;
+    let budgetPlan;
     const buildBudgetFor = (turnsToUse, withRelations) => memoryBudget.buildBudget(system, {
       dialogueBudget: this.config && this.config.memory && this.config.memory.dialogueBudget,
       // 关系卡开着就从 recent 里切出 120 token，预算口径和 Store 的分片保持一致
@@ -1117,7 +1117,7 @@ class Bot {
       turns: turnsToUse,
     });
     try {
-      promptBudget = memoryBudget.assertWithinHardLimit(buildBudgetFor(turns, relationsOn));
+      budgetPlan = memoryBudget.assertWithinHardLimit(buildBudgetFor(turns, relationsOn));
     } catch (err) {
       // 超硬上限以前直接 ignore（只有一行 error 日志，用户看到的是「她突然不回话」）。
       // 现在先丢掉记忆块 + 关系块（用 recentOnlyContext）重算一次，仍超才拒绝。
@@ -1147,28 +1147,28 @@ class Bot {
         );
         return { action: 'ignore', reason: 'input_budget_exceeded', key, msg, atMe };
       }
-      promptBudget = retried;
+      budgetPlan = retried;
       this.logger && this.logger.warn('单轮输入超硬上限，已丢掉记忆块/关系块重算预算后继续');
     }
     // 只把计数挂到 decision / Bot 上，供日志和内部 status 用；不打印记忆正文
-    const applied = this.calibrationEngine().apply(promptBudget.estimatedPromptTokens, modelInfo);
-    promptBudget.calibrationScale = applied.scale;
-    promptBudget.calibratedPromptTokens = applied.calibrated;
-    promptBudget.calibrationN = applied.n;
+    const applied = this.calibrationEngine().apply(budgetPlan.estimatedPromptTokens, modelInfo);
+    budgetPlan.calibrationScale = applied.scale;
+    budgetPlan.calibratedPromptTokens = applied.calibrated;
+    budgetPlan.calibrationN = applied.n;
     this.lastBudget = {
-      ...promptBudget,
+      ...budgetPlan,
       memoryTokens: mem.memoryTokens || 0,
       summaryTokens: mem.summaryTokens || 0,
       recentTokens: mem.recentTokens || 0,
       relationsTokens: mem.relationsTokens || 0,
       tokenScale: trimScale,
     };
-    promptBudget = this.lastBudget;
+    budgetPlan = this.lastBudget;
     if (this.logger) {
       this.logger.debug(
-        `记忆预算：system=${promptBudget.systemTokens} dialogue=${promptBudget.dialogueBudget} `
-        + `input=${promptBudget.estimatedPromptTokens} calibrated=${promptBudget.calibratedPromptTokens} `
-        + `recent=${promptBudget.recentTokens}`
+        `记忆预算：system=${budgetPlan.systemTokens} dialogue=${budgetPlan.dialogueBudget} `
+        + `input=${budgetPlan.estimatedPromptTokens} calibrated=${budgetPlan.calibratedPromptTokens} `
+        + `recent=${budgetPlan.recentTokens}`
       );
     }
 
@@ -1179,7 +1179,7 @@ class Bot {
       if (first) {
         const combo = this.rng() < 0.6 ? persona.clapbackPick(['反问', '爹味'], this.rng) : '';
         const text = combo && combo !== first ? first + '，' + combo : first;
-        return { action: 'reply', key, msg, atMe, canned: text, reason: 'clapback', system, tail, turns, turnState, budget: promptBudget };
+        return { action: 'reply', key, msg, atMe, canned: text, reason: 'clapback', system, tail, turns, turnState, budget: budgetPlan };
       }
     }
 
@@ -1191,9 +1191,9 @@ class Bot {
         notes,
         rng: this.rng,
       });
-      return { action: 'reply', key, msg, atMe, system, tail, turns, mock: true, text, reason: triggerResult.reason, turnState, budget: promptBudget };
+      return { action: 'reply', key, msg, atMe, system, tail, turns, mock: true, text, reason: triggerResult.reason, turnState, budget: budgetPlan };
     }
-    return { action: 'reply', key, msg, atMe, system, tail, turns, mock: false, reason: triggerResult.reason, turnState, budget: promptBudget };
+    return { action: 'reply', key, msg, atMe, system, tail, turns, mock: false, reason: triggerResult.reason, turnState, budget: budgetPlan };
   }
 
   computeTrigger(args) {
