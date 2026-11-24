@@ -1182,6 +1182,41 @@
     "跨 scope 过滤",
     "异常回退"
    ]
+  },
+  {
+   "id": "I-33",
+   "phase": "I",
+   "title": "scopeCore 真实召回测试",
+   "goal": "私聊只带私聊暗号，群聊只带群暗号，不交叉。",
+   "case_ids": [
+    "EV-011",
+    "EV-012",
+    "EV-013",
+    "EV-014",
+    "EV-015",
+    "EV-018",
+    "EV-019",
+    "EV-020"
+   ],
+   "min_cases": 5,
+   "source_review": [],
+   "files": [
+    "src/services/scopeCore.js",
+    "src/memory/store.js"
+   ],
+   "actions": [
+    "私聊 2 条",
+    "群聊 2 条",
+    "关闭"
+   ],
+   "tests": [
+    "live private/group secrets"
+   ],
+   "acceptance": [
+    "私聊不串群",
+    "群不串私聊",
+    "已关闭"
+   ]
   }
  ]
 }
