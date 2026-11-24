@@ -742,23 +742,25 @@
     "EV-004"
    ],
    "source_review": [
-    "reef",
-    "PrimeAgent"
+    "EvoMap/evolver"
    ],
    "files": [
     "bridge/evolution/genome.py",
+    "scripts/personal/鲸鲸-出生基因组注册自测.py",
     "docs/personal/鲸鲸-出生技能-基因组.schema.json"
    ],
    "actions": [
-    "注册；版本；回滚；冻结"
+    "注册/版本只增/指纹；canary 门槛；promote；freeze；rollback；坏版本阻断",
+    "本步只做注册表，不写真实 live 配置"
    ],
    "tests": [
-    "升级/回滚",
-    "坏版本阻断"
+    "python scripts/personal/鲸鲸-出生基因组注册自测.py"
    ],
    "acceptance": [
     "变更可回滚",
-    "坏版本不进 live"
+    "坏版本不进 live",
+    "canary 不达标不提升",
+    "冻结阻断"
    ]
   },
   {
