@@ -402,22 +402,25 @@
    ],
    "source_review": [],
    "files": [
+    "packages/persona-core/affect.js",
+    "scripts/personal/鲸鲸-出生情绪主动自测.js",
     "src/core/mood.js",
     "src/services/care.js",
     "src/core/thoughts.js"
    ],
    "actions": [
-    "affect 状态；主动配额；静默；去重"
+    "affect valence/arousal 衰减+clamp；关系 0–100 档位；主动总开关/静默/小时日配额/冷却/去重",
+    "本步只做核心模块；不接现有 care 主链"
    ],
    "tests": [
-    "频率上限",
-    "静默",
-    "去重"
+    "node scripts/personal/鲸鲸-出生情绪主动自测.js"
    ],
    "acceptance": [
-    "不刷屏",
-    "不越静默",
-    "关怀可关"
+    "不刷屏（小时/日配额）",
+    "不越静默（23–08 跨午夜）",
+    "关怀可关（总开关）",
+    "冷却",
+    "去重"
    ]
   },
   {
