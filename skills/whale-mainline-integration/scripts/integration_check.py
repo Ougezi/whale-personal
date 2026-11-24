@@ -15,6 +15,12 @@ ROOT = Path(__file__).resolve().parents[3]
 PLAN = ROOT / 'docs' / 'personal' / '鲸鲸-主链接入-执行计划.json'
 STATE = ROOT / 'data' / 'integration' / 'state.json'
 EVID = ROOT / 'data' / 'integration' / 'evidence'
+# 启动器更新可能把 data 移到仓库外；只读检查自动回退，不改数据
+if not STATE.exists():
+    _backup = ROOT.parent / '_local-data-backup' / 'integration'
+    if (_backup / 'state.json').exists():
+        STATE = _backup / 'state.json'
+        EVID = _backup / 'evidence'
 CASES = ROOT / 'docs' / 'personal' / '鲸鲸-出生技能-案例库-313.json'
 
 
