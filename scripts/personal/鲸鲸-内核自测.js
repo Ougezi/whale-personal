@@ -1421,6 +1421,15 @@ try {
   check('chat 回复预算不 TDZ', false, String(e && e.message).slice(0, 50));
 }
 
+// episode close 接收 audit（2026-11-24 实际 ReferenceError）
+try {
+  const fsx = require('node:fs');
+  const srcE = fsx.readFileSync(path.join(ROOT, 'src', 'memory', 'episode.js'), 'utf8');
+  check('episode close 接收 audit', /closeEpisode\(\{[^}]*audit\s*=\s*null/.test(srcE), '');
+} catch (e) {
+  check('episode close 接收 audit', false, String(e && e.message).slice(0, 40));
+}
+
 console.log('\n通过 ' + pass + '/' + (pass + fail));
   process.exit(fail ? 1 : 0);
 })();

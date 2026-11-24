@@ -475,6 +475,14 @@ def main():
     except Exception as e:
         check("找图失败兜底", False, repr(e))
 
+    # 语音转写提示（2026-11-24 把“哎呀呀”转成“爱丫丫”）
+    try:
+        import inspect
+        import receiver_mixin as _rm
+        check("语音转写提示", "自动转写可能" in inspect.getsource(_rm), "")
+    except Exception as e:
+        check("语音转写提示", False, repr(e))
+
     print("=== 鲸鲸改造自测 ===")
     bad = 0
     for name, ok, detail in results:

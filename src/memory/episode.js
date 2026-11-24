@@ -119,7 +119,7 @@ function episodeCoverageTo(ep, keep = EPISODE_TAIL_KEEP) {
   return Math.max(from, to - k);
 }
 
-async function closeEpisode({ chat, chatStore, llm = null, logger = null, now = Date.now(), reason = 'manual', episode = null }) {
+async function closeEpisode({ chat, chatStore, llm = null, logger = null, now = Date.now(), reason = 'manual', episode = null, audit = null }) {
   const ep = episode || chat.meta.episode;
   if (!ep) return { closed: false, reason: 'no_episode' };
   if ((chat.meta.closedEpisodes || []).includes(ep.id)) return { closed: false, reason: 'already_closed', episodeId: ep.id };

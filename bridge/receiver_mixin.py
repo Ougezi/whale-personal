@@ -1509,7 +1509,7 @@ class ReceiverMixin:
                     G.log('语音没识别出内容，先不说话')
                     media_failed('语音')
                     return
-                content = '（对方发了一条语音，说的是：%s）' % said
+                content = '（对方发了一条语音，自动转写可能有错字/同音字，按上下文理解，不要顺着怪词编：%s）' % said
             # 引用回复：微信存的是 appmsg XML（类型名落到「文件/链接/卡片」），
             # 委托执行：主人私聊里以「动手：」开头，就交给 DSH headless 真去做。
             if mtype == '文本' and not username.endswith('@chatroom') and dsh_agent:
