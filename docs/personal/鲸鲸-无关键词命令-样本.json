@@ -1,0 +1,907 @@
+{
+ "version": 1,
+ "count": 100,
+ "note": "设计样本，不是真实用户日志；首批 100 条，0-200 槽位",
+ "items": [
+  {
+   "id": "INSPECT-01",
+   "category": "inspect",
+   "utterance": "看看 D:\\dsh\\whale-personal 为什么启动失败",
+   "intent": "inspect",
+   "risk": "R0",
+   "confirm": false,
+   "note": "只读"
+  },
+  {
+   "id": "INSPECT-02",
+   "category": "inspect",
+   "utterance": "查一下桥接日志最后 50 行",
+   "intent": "inspect",
+   "risk": "R0",
+   "confirm": false,
+   "note": "只读"
+  },
+  {
+   "id": "INSPECT-03",
+   "category": "inspect",
+   "utterance": "读一下 src\\bridge\\brain_agent.py 的超时逻辑",
+   "intent": "inspect",
+   "risk": "R0",
+   "confirm": false,
+   "note": "只读"
+  },
+  {
+   "id": "INSPECT-04",
+   "category": "inspect",
+   "utterance": "项目现在什么状态",
+   "intent": "inspect",
+   "risk": "R0",
+   "confirm": false,
+   "note": "只读"
+  },
+  {
+   "id": "INSPECT-05",
+   "category": "inspect",
+   "utterance": "这行为什么报错",
+   "intent": "inspect",
+   "risk": "R0",
+   "confirm": false,
+   "note": "只读"
+  },
+  {
+   "id": "INSPECT-06",
+   "category": "inspect",
+   "utterance": "看看今天鲸鲸有没有漏回",
+   "intent": "inspect",
+   "risk": "R0",
+   "confirm": false,
+   "note": "只读"
+  },
+  {
+   "id": "INSPECT-07",
+   "category": "inspect",
+   "utterance": "查一下 8787 端口是谁占的",
+   "intent": "inspect",
+   "risk": "R0",
+   "confirm": false,
+   "note": "只读"
+  },
+  {
+   "id": "INSPECT-08",
+   "category": "inspect",
+   "utterance": "看一下 data\\selfcheck-status.json",
+   "intent": "inspect",
+   "risk": "R0",
+   "confirm": false,
+   "note": "只读"
+  },
+  {
+   "id": "INSPECT-09",
+   "category": "inspect",
+   "utterance": "帮我确认一下执行脑还在不在",
+   "intent": "inspect",
+   "risk": "R0",
+   "confirm": false,
+   "note": "只读"
+  },
+  {
+   "id": "INSPECT-10",
+   "category": "inspect",
+   "utterance": "最近一次任务跑完了吗",
+   "intent": "inspect",
+   "risk": "R0",
+   "confirm": false,
+   "note": "只读"
+  },
+  {
+   "id": "INSPECT-11",
+   "category": "inspect",
+   "utterance": "看看这个目录里有哪些文件",
+   "intent": "inspect",
+   "risk": "R0",
+   "confirm": false,
+   "note": "只读"
+  },
+  {
+   "id": "INSPECT-12",
+   "category": "inspect",
+   "utterance": "读一下 README 的安装段",
+   "intent": "inspect",
+   "risk": "R0",
+   "confirm": false,
+   "note": "只读"
+  },
+  {
+   "id": "INSPECT-13",
+   "category": "inspect",
+   "utterance": "看看桥接进程还在不在",
+   "intent": "inspect",
+   "risk": "R0",
+   "confirm": false,
+   "note": "只读"
+  },
+  {
+   "id": "INSPECT-14",
+   "category": "inspect",
+   "utterance": "查一下今天的审计记录",
+   "intent": "inspect",
+   "risk": "R0",
+   "confirm": false,
+   "note": "只读"
+  },
+  {
+   "id": "INSPECT-15",
+   "category": "inspect",
+   "utterance": "看看我的兴趣画像",
+   "intent": "inspect",
+   "risk": "R0",
+   "confirm": false,
+   "note": "只读"
+  },
+  {
+   "id": "INSPECT-16",
+   "category": "inspect",
+   "utterance": "帮我找一下设置里模型配置在哪",
+   "intent": "inspect",
+   "risk": "R0",
+   "confirm": false,
+   "note": "只读"
+  },
+  {
+   "id": "INSPECT-17",
+   "category": "inspect",
+   "utterance": "看一下这个报错的上下文",
+   "intent": "inspect",
+   "risk": "R0",
+   "confirm": false,
+   "note": "只读"
+  },
+  {
+   "id": "INSPECT-18",
+   "category": "inspect",
+   "utterance": "检查一下自检有没有红",
+   "intent": "inspect",
+   "risk": "R0",
+   "confirm": false,
+   "note": "只读"
+  },
+  {
+   "id": "INSPECT-19",
+   "category": "inspect",
+   "utterance": "看看 P2 审批卡为什么刷屏",
+   "intent": "inspect",
+   "risk": "R0",
+   "confirm": false,
+   "note": "只读"
+  },
+  {
+   "id": "INSPECT-20",
+   "category": "inspect",
+   "utterance": "读一下最后一条微信消息",
+   "intent": "inspect",
+   "risk": "R0",
+   "confirm": false,
+   "note": "只读"
+  },
+  {
+   "id": "MODIFY-01",
+   "category": "modify",
+   "utterance": "把 README 里那句改短点",
+   "intent": "edit",
+   "risk": "R2",
+   "confirm": true,
+   "note": "会改文件"
+  },
+  {
+   "id": "MODIFY-02",
+   "category": "modify",
+   "utterance": "在 brain-test 新建 ok.txt，写 hello",
+   "intent": "edit",
+   "risk": "R2",
+   "confirm": true,
+   "note": "会改文件"
+  },
+  {
+   "id": "MODIFY-03",
+   "category": "modify",
+   "utterance": "把这行日志删掉",
+   "intent": "edit",
+   "risk": "R2",
+   "confirm": true,
+   "note": "会改文件"
+  },
+  {
+   "id": "MODIFY-04",
+   "category": "modify",
+   "utterance": "把配置里的额度改成 10",
+   "intent": "edit",
+   "risk": "R2",
+   "confirm": true,
+   "note": "会改文件"
+  },
+  {
+   "id": "MODIFY-05",
+   "category": "modify",
+   "utterance": "给 brain_agent 加一个注释",
+   "intent": "edit",
+   "risk": "R2",
+   "confirm": true,
+   "note": "会改文件"
+  },
+  {
+   "id": "MODIFY-06",
+   "category": "modify",
+   "utterance": "把这段代码抽成函数",
+   "intent": "edit",
+   "risk": "R2",
+   "confirm": true,
+   "note": "会改文件"
+  },
+  {
+   "id": "MODIFY-07",
+   "category": "modify",
+   "utterance": "把测试脚本里的 30 改成 40",
+   "intent": "edit",
+   "risk": "R2",
+   "confirm": true,
+   "note": "会改文件"
+  },
+  {
+   "id": "MODIFY-08",
+   "category": "modify",
+   "utterance": "删掉临时目录里的测试文件",
+   "intent": "edit",
+   "risk": "R2",
+   "confirm": true,
+   "note": "会改文件"
+  },
+  {
+   "id": "MODIFY-09",
+   "category": "modify",
+   "utterance": "把审批文案里的风险改成中文",
+   "intent": "edit",
+   "risk": "R2",
+   "confirm": true,
+   "note": "会改文件"
+  },
+  {
+   "id": "MODIFY-10",
+   "category": "modify",
+   "utterance": "把 selfcheck 的超时调大",
+   "intent": "edit",
+   "risk": "R2",
+   "confirm": true,
+   "note": "会改文件"
+  },
+  {
+   "id": "MODIFY-11",
+   "category": "modify",
+   "utterance": "把这段重复代码合并",
+   "intent": "edit",
+   "risk": "R2",
+   "confirm": true,
+   "note": "会改文件"
+  },
+  {
+   "id": "MODIFY-12",
+   "category": "modify",
+   "utterance": "改一下启动提示",
+   "intent": "edit",
+   "risk": "R2",
+   "confirm": true,
+   "note": "会改文件"
+  },
+  {
+   "id": "MODIFY-13",
+   "category": "modify",
+   "utterance": "把 data 目录里的旧日志清掉",
+   "intent": "edit",
+   "risk": "R2",
+   "confirm": true,
+   "note": "会改文件"
+  },
+  {
+   "id": "MODIFY-14",
+   "category": "modify",
+   "utterance": "把版本号升到 4.9.1",
+   "intent": "edit",
+   "risk": "R2",
+   "confirm": true,
+   "note": "会改文件"
+  },
+  {
+   "id": "MODIFY-15",
+   "category": "modify",
+   "utterance": "把这份报告里的数字更新",
+   "intent": "edit",
+   "risk": "R2",
+   "confirm": true,
+   "note": "会改文件"
+  },
+  {
+   "id": "RUN-01",
+   "category": "run",
+   "utterance": "跑一下执行脑自测",
+   "intent": "run",
+   "risk": "R2",
+   "confirm": true,
+   "note": "命令有副作用"
+  },
+  {
+   "id": "RUN-02",
+   "category": "run",
+   "utterance": "跑内核自测",
+   "intent": "run",
+   "risk": "R2",
+   "confirm": true,
+   "note": "命令有副作用"
+  },
+  {
+   "id": "RUN-03",
+   "category": "run",
+   "utterance": "重启一下桥接",
+   "intent": "run",
+   "risk": "R2",
+   "confirm": true,
+   "note": "命令有副作用"
+  },
+  {
+   "id": "RUN-04",
+   "category": "run",
+   "utterance": "安装这个插件",
+   "intent": "run",
+   "risk": "R2",
+   "confirm": true,
+   "note": "命令有副作用"
+  },
+  {
+   "id": "RUN-05",
+   "category": "run",
+   "utterance": "部署到本地",
+   "intent": "run",
+   "risk": "R2",
+   "confirm": true,
+   "note": "命令有副作用"
+  },
+  {
+   "id": "RUN-06",
+   "category": "run",
+   "utterance": "跑一下 health",
+   "intent": "run",
+   "risk": "R2",
+   "confirm": true,
+   "note": "命令有副作用"
+  },
+  {
+   "id": "RUN-07",
+   "category": "run",
+   "utterance": "把服务停下来",
+   "intent": "run",
+   "risk": "R2",
+   "confirm": true,
+   "note": "命令有副作用"
+  },
+  {
+   "id": "RUN-08",
+   "category": "run",
+   "utterance": "重新加载配置",
+   "intent": "run",
+   "risk": "R2",
+   "confirm": true,
+   "note": "命令有副作用"
+  },
+  {
+   "id": "RUN-09",
+   "category": "run",
+   "utterance": "跑一次真实 DSH 验收",
+   "intent": "run",
+   "risk": "R2",
+   "confirm": true,
+   "note": "命令有副作用"
+  },
+  {
+   "id": "RUN-10",
+   "category": "run",
+   "utterance": "清理一下日志缓存",
+   "intent": "run",
+   "risk": "R2",
+   "confirm": true,
+   "note": "命令有副作用"
+  },
+  {
+   "id": "FLOW-01",
+   "category": "flow",
+   "utterance": "接着刚才的弄",
+   "intent": "flow",
+   "risk": "inherit",
+   "confirm": false,
+   "note": "继承 pending/取消"
+  },
+  {
+   "id": "FLOW-02",
+   "category": "flow",
+   "utterance": "继续",
+   "intent": "flow",
+   "risk": "inherit",
+   "confirm": false,
+   "note": "继承 pending/取消"
+  },
+  {
+   "id": "FLOW-03",
+   "category": "flow",
+   "utterance": "刚才那个再查一下",
+   "intent": "flow",
+   "risk": "inherit",
+   "confirm": false,
+   "note": "继承 pending/取消"
+  },
+  {
+   "id": "FLOW-04",
+   "category": "flow",
+   "utterance": "把上一步做完",
+   "intent": "flow",
+   "risk": "inherit",
+   "confirm": false,
+   "note": "继承 pending/取消"
+  },
+  {
+   "id": "FLOW-05",
+   "category": "flow",
+   "utterance": "别弄了，先停",
+   "intent": "flow",
+   "risk": "inherit",
+   "confirm": false,
+   "note": "继承 pending/取消"
+  },
+  {
+   "id": "FLOW-06",
+   "category": "flow",
+   "utterance": "取消刚才的任务",
+   "intent": "flow",
+   "risk": "inherit",
+   "confirm": false,
+   "note": "继承 pending/取消"
+  },
+  {
+   "id": "FLOW-07",
+   "category": "flow",
+   "utterance": "算了，不弄了",
+   "intent": "flow",
+   "risk": "inherit",
+   "confirm": false,
+   "note": "继承 pending/取消"
+  },
+  {
+   "id": "FLOW-08",
+   "category": "flow",
+   "utterance": "停一下",
+   "intent": "flow",
+   "risk": "inherit",
+   "confirm": false,
+   "note": "继承 pending/取消"
+  },
+  {
+   "id": "FLOW-09",
+   "category": "flow",
+   "utterance": "先别动文件",
+   "intent": "flow",
+   "risk": "inherit",
+   "confirm": false,
+   "note": "继承 pending/取消"
+  },
+  {
+   "id": "FLOW-10",
+   "category": "flow",
+   "utterance": "等我确认再继续",
+   "intent": "flow",
+   "risk": "inherit",
+   "confirm": false,
+   "note": "继承 pending/取消"
+  },
+  {
+   "id": "MEMORY-01",
+   "category": "memory",
+   "utterance": "记住我不喜欢太长的回复",
+   "intent": "memory",
+   "risk": "R1",
+   "confirm": false,
+   "note": "记忆读写"
+  },
+  {
+   "id": "MEMORY-02",
+   "category": "memory",
+   "utterance": "你还记得我上次说的那个项目吗",
+   "intent": "memory",
+   "risk": "R1",
+   "confirm": false,
+   "note": "记忆读写"
+  },
+  {
+   "id": "MEMORY-03",
+   "category": "memory",
+   "utterance": "把这条忘掉",
+   "intent": "memory",
+   "risk": "R1",
+   "confirm": false,
+   "note": "记忆读写"
+  },
+  {
+   "id": "MEMORY-04",
+   "category": "memory",
+   "utterance": "以后群里别发路径",
+   "intent": "memory",
+   "risk": "R1",
+   "confirm": false,
+   "note": "记忆读写"
+  },
+  {
+   "id": "MEMORY-05",
+   "category": "memory",
+   "utterance": "我喜欢你先给结论",
+   "intent": "memory",
+   "risk": "R1",
+   "confirm": false,
+   "note": "记忆读写"
+  },
+  {
+   "id": "MEMORY-06",
+   "category": "memory",
+   "utterance": "上次那个启动问题查到哪了",
+   "intent": "memory",
+   "risk": "R1",
+   "confirm": false,
+   "note": "记忆读写"
+  },
+  {
+   "id": "MEMORY-07",
+   "category": "memory",
+   "utterance": "把今天的结论记一下",
+   "intent": "memory",
+   "risk": "R1",
+   "confirm": false,
+   "note": "记忆读写"
+  },
+  {
+   "id": "MEMORY-08",
+   "category": "memory",
+   "utterance": "别把这条记进长期记忆",
+   "intent": "memory",
+   "risk": "R1",
+   "confirm": false,
+   "note": "记忆读写"
+  },
+  {
+   "id": "MEMORY-09",
+   "category": "memory",
+   "utterance": "我们之前聊过这个吗",
+   "intent": "memory",
+   "risk": "R1",
+   "confirm": false,
+   "note": "记忆读写"
+  },
+  {
+   "id": "MEMORY-10",
+   "category": "memory",
+   "utterance": "记住这个项目的测试命令",
+   "intent": "memory",
+   "risk": "R1",
+   "confirm": false,
+   "note": "记忆读写"
+  },
+  {
+   "id": "SOCIAL-01",
+   "category": "social",
+   "utterance": "帮我在群里说一声我晚点回",
+   "intent": "send",
+   "risk": "R2",
+   "confirm": true,
+   "note": "外发消息"
+  },
+  {
+   "id": "SOCIAL-02",
+   "category": "social",
+   "utterance": "回他一句我在忙",
+   "intent": "send",
+   "risk": "R2",
+   "confirm": true,
+   "note": "外发消息"
+  },
+  {
+   "id": "SOCIAL-03",
+   "category": "social",
+   "utterance": "别在群里说这个",
+   "intent": "send",
+   "risk": "R2",
+   "confirm": true,
+   "note": "外发消息"
+  },
+  {
+   "id": "SOCIAL-04",
+   "category": "social",
+   "utterance": "把结果发给主人",
+   "intent": "send",
+   "risk": "R2",
+   "confirm": true,
+   "note": "外发消息"
+  },
+  {
+   "id": "SOCIAL-05",
+   "category": "social",
+   "utterance": "只告诉我，不要发群",
+   "intent": "send",
+   "risk": "R2",
+   "confirm": true,
+   "note": "外发消息"
+  },
+  {
+   "id": "SOCIAL-06",
+   "category": "social",
+   "utterance": "在群里说一下测试通过",
+   "intent": "send",
+   "risk": "R2",
+   "confirm": true,
+   "note": "外发消息"
+  },
+  {
+   "id": "SOCIAL-07",
+   "category": "social",
+   "utterance": "给文件传输助手发个备份",
+   "intent": "send",
+   "risk": "R2",
+   "confirm": true,
+   "note": "外发消息"
+  },
+  {
+   "id": "SOCIAL-08",
+   "category": "social",
+   "utterance": "先别回他",
+   "intent": "send",
+   "risk": "R2",
+   "confirm": true,
+   "note": "外发消息"
+  },
+  {
+   "id": "SOCIAL-09",
+   "category": "social",
+   "utterance": "帮我解释一下刚才的失败",
+   "intent": "send",
+   "risk": "R2",
+   "confirm": true,
+   "note": "外发消息"
+  },
+  {
+   "id": "SOCIAL-10",
+   "category": "social",
+   "utterance": "把这条消息撤回",
+   "intent": "send",
+   "risk": "R2",
+   "confirm": true,
+   "note": "外发消息"
+  },
+  {
+   "id": "MULTIMODAL-01",
+   "category": "multimodal",
+   "utterance": "看这张图里是什么",
+   "intent": "vision",
+   "risk": "R0",
+   "confirm": false,
+   "note": "读图/语音"
+  },
+  {
+   "id": "MULTIMODAL-02",
+   "category": "multimodal",
+   "utterance": "听一下这条语音说了什么",
+   "intent": "vision",
+   "risk": "R0",
+   "confirm": false,
+   "note": "读图/语音"
+  },
+  {
+   "id": "MULTIMODAL-03",
+   "category": "multimodal",
+   "utterance": "把这张图发给我",
+   "intent": "vision",
+   "risk": "R0",
+   "confirm": false,
+   "note": "读图/语音"
+  },
+  {
+   "id": "MULTIMODAL-04",
+   "category": "multimodal",
+   "utterance": "识别一下截图里的报错",
+   "intent": "vision",
+   "risk": "R0",
+   "confirm": false,
+   "note": "读图/语音"
+  },
+  {
+   "id": "MULTIMODAL-05",
+   "category": "multimodal",
+   "utterance": "读一下这个 PDF",
+   "intent": "vision",
+   "risk": "R0",
+   "confirm": false,
+   "note": "读图/语音"
+  },
+  {
+   "id": "MULTIMODAL-06",
+   "category": "multimodal",
+   "utterance": "把图片里的表格转成文字",
+   "intent": "vision",
+   "risk": "R0",
+   "confirm": false,
+   "note": "读图/语音"
+  },
+  {
+   "id": "MULTIMODAL-07",
+   "category": "multimodal",
+   "utterance": "看看这个视频讲了什么",
+   "intent": "vision",
+   "risk": "R0",
+   "confirm": false,
+   "note": "读图/语音"
+  },
+  {
+   "id": "MULTIMODAL-08",
+   "category": "multimodal",
+   "utterance": "把语音转成文字",
+   "intent": "vision",
+   "risk": "R0",
+   "confirm": false,
+   "note": "读图/语音"
+  },
+  {
+   "id": "MULTIMODAL-09",
+   "category": "multimodal",
+   "utterance": "这张截图里的按钮在哪",
+   "intent": "vision",
+   "risk": "R0",
+   "confirm": false,
+   "note": "读图/语音"
+  },
+  {
+   "id": "MULTIMODAL-10",
+   "category": "multimodal",
+   "utterance": "把这张图存到 brain-test",
+   "intent": "vision",
+   "risk": "R0",
+   "confirm": false,
+   "note": "读图/语音"
+  },
+  {
+   "id": "AMBIGUOUS-01",
+   "category": "ambiguous",
+   "utterance": "那个弄一下",
+   "intent": "clarify",
+   "risk": "unknown",
+   "confirm": false,
+   "note": "先问清楚，不执行"
+  },
+  {
+   "id": "AMBIGUOUS-02",
+   "category": "ambiguous",
+   "utterance": "你看着办",
+   "intent": "clarify",
+   "risk": "unknown",
+   "confirm": false,
+   "note": "先问清楚，不执行"
+  },
+  {
+   "id": "AMBIGUOUS-03",
+   "category": "ambiguous",
+   "utterance": "搞快点",
+   "intent": "clarify",
+   "risk": "unknown",
+   "confirm": false,
+   "note": "先问清楚，不执行"
+  },
+  {
+   "id": "AMBIGUOUS-04",
+   "category": "ambiguous",
+   "utterance": "随便",
+   "intent": "clarify",
+   "risk": "unknown",
+   "confirm": false,
+   "note": "先问清楚，不执行"
+  },
+  {
+   "id": "AMBIGUOUS-05",
+   "category": "ambiguous",
+   "utterance": "还是按之前那样",
+   "intent": "clarify",
+   "risk": "unknown",
+   "confirm": false,
+   "note": "先问清楚，不执行"
+  },
+  {
+   "id": "AMBIGUOUS-06",
+   "category": "ambiguous",
+   "utterance": "把那个改一下",
+   "intent": "clarify",
+   "risk": "unknown",
+   "confirm": false,
+   "note": "先问清楚，不执行"
+  },
+  {
+   "id": "AMBIGUOUS-07",
+   "category": "ambiguous",
+   "utterance": "弄好了吗",
+   "intent": "clarify",
+   "risk": "unknown",
+   "confirm": false,
+   "note": "先问清楚，不执行"
+  },
+  {
+   "id": "AMBIGUOUS-08",
+   "category": "ambiguous",
+   "utterance": "别搞了",
+   "intent": "clarify",
+   "risk": "unknown",
+   "confirm": false,
+   "note": "先问清楚，不执行"
+  },
+  {
+   "id": "AMBIGUOUS-09",
+   "category": "ambiguous",
+   "utterance": "这个不对",
+   "intent": "clarify",
+   "risk": "unknown",
+   "confirm": false,
+   "note": "先问清楚，不执行"
+  },
+  {
+   "id": "AMBIGUOUS-10",
+   "category": "ambiguous",
+   "utterance": "再来一次",
+   "intent": "clarify",
+   "risk": "unknown",
+   "confirm": false,
+   "note": "先问清楚，不执行"
+  },
+  {
+   "id": "AMBIGUOUS-11",
+   "category": "ambiguous",
+   "utterance": "你懂的",
+   "intent": "clarify",
+   "risk": "unknown",
+   "confirm": false,
+   "note": "先问清楚，不执行"
+  },
+  {
+   "id": "AMBIGUOUS-12",
+   "category": "ambiguous",
+   "utterance": "稍微调整一下",
+   "intent": "clarify",
+   "risk": "unknown",
+   "confirm": false,
+   "note": "先问清楚，不执行"
+  },
+  {
+   "id": "AMBIGUOUS-13",
+   "category": "ambiguous",
+   "utterance": "继续优化",
+   "intent": "clarify",
+   "risk": "unknown",
+   "confirm": false,
+   "note": "先问清楚，不执行"
+  },
+  {
+   "id": "AMBIGUOUS-14",
+   "category": "ambiguous",
+   "utterance": "处理一下",
+   "intent": "clarify",
+   "risk": "unknown",
+   "confirm": false,
+   "note": "先问清楚，不执行"
+  },
+  {
+   "id": "AMBIGUOUS-15",
+   "category": "ambiguous",
+   "utterance": "看着改",
+   "intent": "clarify",
+   "risk": "unknown",
+   "confirm": false,
+   "note": "先问清楚，不执行"
+  }
+ ]
+}

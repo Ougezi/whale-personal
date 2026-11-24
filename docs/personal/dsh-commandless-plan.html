@@ -1,0 +1,139 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>鲸鲸 · 无关键词命令模式与架构</title>
+<style>
+:root{--ink:#15202b;--muted:#5b6b7b;--line:#dce4ec;--bg:#f5f7fa;--card:#fff;--blue:#1457a8;--green:#176b45;--amber:#8a5a00;--red:#9b2c2c}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.75 -apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif}
+main{max-width:1000px;margin:0 auto;padding:34px 20px 70px}
+h1{font-size:30px;line-height:1.25;margin:0 0 8px}
+h2{font-size:21px;margin:38px 0 12px;padding-bottom:8px;border-bottom:1px solid var(--line)}
+h3{font-size:17px;margin:22px 0 8px}
+p,li{color:var(--ink)}
+.sub{color:var(--muted);margin:0 0 24px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:18px 20px;margin:14px 0;box-shadow:0 2px 10px rgba(20,40,70,.04)}
+.tag{display:inline-block;font-size:12px;padding:2px 9px;border-radius:999px;background:#e8f0fb;color:var(--blue);margin-right:6px}
+.tag.g{background:#e7f5ee;color:var(--green)}
+.tag.a{background:#fff4dd;color:var(--amber)}
+.tag.r{background:#fdecec;color:var(--red)}
+table{width:100%;border-collapse:collapse;font-size:14.5px;margin:10px 0}
+th,td{border-bottom:1px solid var(--line);padding:9px 8px;text-align:left;vertical-align:top}
+th{color:var(--muted);font-weight:600;background:#fafbfd}
+code,kbd{font-family:ui-monospace,Consolas,monospace;font-size:.92em;background:#eef2f7;border-radius:5px;padding:1px 6px}
+pre{background:#101820;color:#e9f0f7;padding:15px;border-radius:10px;overflow:auto;font-size:13.5px;line-height:1.6}
+ul,ol{padding-left:22px}
+.note{border-left:4px solid var(--blue);padding-left:14px;color:var(--muted)}
+.small{font-size:13px;color:var(--muted)}
+.flow{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin:10px 0}
+.flow span{background:#eef4fb;border:1px solid #cfe0f2;border-radius:8px;padding:6px 10px;font-size:13.5px}
+.flow b{color:var(--muted);font-weight:400}
+a{color:var(--blue)}
+</style>
+</head>
+<body>
+<main>
+  <h1>鲸鲸 · 不用关键词，也能在聊天里下命令</h1>
+  <p class="sub">调研 + 架构建议 · 2026-11-24 · 首批 100 条样本（0–200 槽位）</p>
+
+  <div class="card">
+    <span class="tag g">结论</span><span class="tag">意图路由</span><span class="tag">动作枚举</span><span class="tag a">R2/R3 确认</span>
+    <h2 style="border:0;margin-top:14px">一句话</h2>
+    <p><b>不要做“关键词触发”，做“意图路由 + 风险分级 + 两段确认”。</b>聊天里说“把那个改一下”也能进入执行流程，但系统要先判断：这是聊天、提问、动作、承诺，还是取消。</p>
+  </div>
+
+  <h2>1. 调研到的真实生态</h2>
+  <table>
+    <tr><th>项目</th><th>形态</th><th>关键做法</th></tr>
+    <tr><td><a href="https://github.com/crisvollerei/dsh-persona-shell">dsh-persona-shell</a></td><td>人格转述</td><td>工作会话保留原文；人格版单独生成；技术内容先打码；记忆带原话依据</td></tr>
+    <tr><td><a href="https://github.com/baishuyue/dsh-feiyu">dsh-feiyu 大肥鱼</a></td><td>多平台角色</td><td>情绪状态机 + 三层记忆 + 风控；七器官四回路；意图三态；交付账；能力自评</td></tr>
+    <tr><td><a href="https://github.com/Britneycode/dsh-fish-soul">dsh-fish-soul</a></td><td>QQ/B站/抖音</td><td>按人隔离；BM25+向量 RRF；艾宾浩斯衰减；private；群默认拒绝</td></tr>
+    <tr><td><a href="https://github.com/chenkezhen480/dsh-world">dsh-world</a></td><td>记忆/世界</td><td>原文归档；压缩只留对话；世界作用域；procedures 回放；浏览器/电脑操作</td></tr>
+    <tr><td><a href="https://www.bilibili.com/opus/1265324337823481895">哦鲸鲸 / Ondra</a></td><td>开源陪伴体</td><td>插件容器 + 144 个 ondra 插件；人格包“哦鲸鲸”</td></tr>
+    <tr><td><a href="https://www.bilibili.com/video/BV1VJnA6SEV4/">鲸鱼娘微信插件</a></td><td>微信机器人</td><td>设置页管开关；<b>对话里用工具直接指挥她</b></td></tr>
+    <tr><td><a href="https://www.bilibili.com/video/BV1U1nF6PE7e/">DSH 插件实录</a></td><td>语音/表情</td><td>“唱一段晴天”“来点表情包” = 无前缀命令</td></tr>
+    <tr><td><a href="https://www.douyin.com/shipin/7290782671008204861">大肥鱼微信接入</a></td><td>抖音教程</td><td>wechatauto 桥 + 插件 + 白名单；先关自带 AI 回话</td></tr>
+  </table>
+
+  <h2>2. 推荐模式</h2>
+  <div class="flow">
+    <span>微信消息</span><b>→</b><span>身份/范围门</span><b>→</b><span>对话状态</span><b>→</b><span>L1 意图门</span><b>→</b><span>L2 结构化规划</span><b>→</b><span>L3 风险门</span><b>→</b><span>执行</span><b>→</b><span>验证</span><b>→</b><span>记忆</span><b>→</b><span>人格表达</span>
+  </div>
+
+  <h3>L1：先分 6 类</h3>
+  <p><code>chat</code> / <code>question</code> / <code>act</code> / <code>promise</code> / <code>correct</code> / <code>cancel</code>。不是“看到动词就执行”。</p>
+
+  <h3>L2：动作是枚举，不是自由文本</h3>
+  <p><code>inspect / read / run_test / edit / create_file / delete / restart / memory_write / send_message</code>。参数走 JSON，不拼 shell。</p>
+
+  <h3>L3：置信度 + 风险</h3>
+  <table>
+    <tr><th>置信度</th><th>行为</th></tr>
+    <tr><td>≥0.85 且 R0</td><td>直接执行，回报证据</td></tr>
+    <tr><td>≥0.85 且 R2</td><td>确认一次</td></tr>
+    <tr><td>≥0.85 且 R3</td><td>二次确认 + 回滚</td></tr>
+    <tr><td>0.55–0.85</td><td>先问“你是想…还是只是聊聊？”</td></tr>
+    <tr><td>&lt;0.55</td><td>当聊天，不执行</td></tr>
+  </table>
+
+  <div class="card">
+    <span class="tag r">原则</span>
+    <b>宁可少执行，不可误执行。</b>R2/R3 的误执行率必须是 0；不确定就先问。
+  </div>
+
+  <h2>3. 七层记忆</h2>
+  <table>
+    <tr><th>层</th><th>内容</th><th>为什么需要</th></tr>
+    <tr><td>L0 工作记忆</td><td>当前话题、指代、槽位、待确认</td><td>“那个”“接着刚才”要能解析</td></tr>
+    <tr><td>L1 情节</td><td>发生了什么、谁说的、感受、重要性</td><td>长期回忆</td></tr>
+    <tr><td>L2 语义</td><td>事实、偏好、关系、边界</td><td>越聊越懂你</td></tr>
+    <tr><td>L3 程序</td><td>怎么做、走顺的步骤、失败回退</td><td>下次直接复用</td></tr>
+    <tr><td>L4 意图/承诺</td><td>答应过什么、做到哪、证据</td><td>“说到做到”</td></tr>
+    <tr><td>L5 交付/能力</td><td>真说出去什么、成功几次</td><td>防自夸、可审计</td></tr>
+    <tr><td>L6 表达/人格</td><td>语气、口癖、称呼、心情</td><td>像她，不影响执行结果</td></tr>
+  </table>
+  <p class="small">参考：feiyu 的七器官、fish-soul 的按人记忆、persona-shell 的“人格不写回工作会话”、world 的 procedure。</p>
+
+  <h2>4. 0–200 例样本库</h2>
+  <p>首批 <b>100 条</b>，8 类：inspect 20 / modify 15 / run 10 / flow 10 / memory 10 / social 10 / multimodal 10 / ambiguous 15。</p>
+  <table>
+    <tr><th>说法</th><th>意图</th><th>风险</th><th>处理</th></tr>
+    <tr><td>看看 D:\dsh\whale-personal 为什么启动失败</td><td>inspect</td><td>R0</td><td>直接执行</td></tr>
+    <tr><td>把 README 里那句改短点</td><td>edit</td><td>R2</td><td>确认</td></tr>
+    <tr><td>在 brain-test 新建 ok.txt，写 hello</td><td>create_file</td><td>R2</td><td>确认</td></tr>
+    <tr><td>重启一下桥接</td><td>restart</td><td>R3</td><td>二次确认</td></tr>
+    <tr><td>接着刚才的弄</td><td>continue</td><td>继承</td><td>用 pending</td></tr>
+    <tr><td>别弄了，先停</td><td>cancel</td><td>—</td><td>取消</td></tr>
+    <tr><td>记住我不喜欢太长的回复</td><td>memory_write</td><td>R1</td><td>写+回报</td></tr>
+    <tr><td>那个弄一下</td><td>clarify</td><td>—</td><td>先问清楚</td></tr>
+  </table>
+  <p><a href="鲸鲸-无关键词命令-样本.json">打开 100 条 JSON 样本</a> · <a href="鲸鲸-无关键词命令-模式与架构.md">完整 Markdown</a></p>
+
+  <h2>5. 怎么接进鲸鲸</h2>
+  <pre>bridge/
+  intent_router.py      # L1/L2 意图
+  action_policy.py      # R0-R3、路径、网络、额度
+  action_runner.py      # 调 DSH/插件，参数数组
+  action_memory.py      # intent/delivery/competence
+  dialog_state.py       # pending/确认/指代
+
+保留现有 脑子： 作为最高置信度快捷方式：
+  脑子：...     → 直接 act
+  普通聊天      → intent router
+  脑子写：...   → 直接 R2 确认
+  脑子继续/取消/状态 → 状态机</pre>
+
+  <h2>6. 上线顺序</h2>
+  <ol>
+    <li><b>shadow</b>：只记录“路由会怎么做”，不执行，跑 1 周真实聊天。</li>
+    <li><b>suggest</b>：R0 自动；R2/R3 只建议 + 确认。</li>
+    <li><b>live</b>：R0 自动；R2/R3 确认后执行；群聊只认主人。</li>
+  </ol>
+  <p class="note">指标：误执行率（R2/R3 必须 0）、命令召回、澄清率、确认接受率、p95 延迟、每任务成本、注入拦截率。</p>
+
+  <p class="small">完整文档、来源链接、样本字段都在同目录 Markdown 与 JSON 里。</p>
+</main>
+</body>
+</html>
