@@ -163,6 +163,23 @@ check('一条命令：证书信任 + 签名 + 打包校验', () => {
   return 'ok';
 });
 
+check('委托边界：用户 Temp 放行 + brain-roots.json 可扩展', () => {
+  const fs = require('node:fs');
+  const os = require('node:os');
+  const path2 = require('node:path');
+  const policyPath = path2.join(ROOT, 'bridge', 'brain_policy.py');
+  const code = fs.readFileSync(policyPath, 'utf8');
+  must(code.includes("os.environ.get('TEMP')"), 'brain_policy 没放行 TEMP');
+  must(code.includes('brain-roots.json'), 'brain_policy 没支持 brain-roots.json');
+  const py = path2.join(ROOT, 'dist', 'whale-personal', 'runtime', 'python', 'python.exe');
+  const script = 'import sys;sys.path.insert(0,' + JSON.stringify(path2.join(ROOT, 'bridge')) +
+    ');import brain_policy,os;p=brain_policy.BrainPolicy(' + JSON.stringify(path2.join(os.tmpdir(), 'brain-policy-test')) +
+    ");print('TEMP' if p.workspace_allowed(os.environ.get('TEMP')) else 'NO')";
+  const out = require('node:child_process').execFileSync(py, ['-c', script], { encoding: 'utf8' }).trim();
+  must(out.endsWith('TEMP'), 'TEMP 没被判为允许：' + out);
+  return 'ok';
+});
+
 check('自主上网反应只要一句（提示词与 maxTokens）', () => {
   const b = read('src/services/browse.js');
   must(/只(输出|回)[^。\n]{0,4}一句/.test(b), 'browse.js SYSTEM 里没有「只输出这一句」');
