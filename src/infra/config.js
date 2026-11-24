@@ -257,6 +257,7 @@ const DEFAULT_CONFIG = {
     fightQuoteCheck: true,
     mediaCleanup: true,
     memorySnapshot: true,
+    eventLog: false,
     // 群聊关系加载（A 提到 B）：默认开，可在「实验开关」里关
     relations: true,
   },

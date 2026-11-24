@@ -78,7 +78,7 @@ function normalizeTs(value, fallback) {
 }
 
 class Store {
-  constructor({ file, dir, limits = {}, logger = null, now = Date.now, llm = null, config = null } = {}) {
+  constructor({ file, dir, limits = {}, logger = null, now = Date.now, llm = null, config = null, eventSink = null } = {}) {
     this.file = file || path.resolve(process.cwd(), 'data', 'store.json');
     this.memoryDir = dir || path.join(path.dirname(this.file), 'memory');
     this.logger = logger;
@@ -105,7 +105,7 @@ class Store {
     this._background = new Set();
     this.chatStore = new ChatStore({
       dir: this.memoryDir, logger, now: () => this._now(),
-      maxMessages: this.limits.maxMessages,
+      maxMessages: this.limits.maxMessages, eventSink,
     });
     try {
       const result = migrate.migrateIfNeeded({ memoryDir: this.memoryDir, chatStore: this.chatStore, logger });

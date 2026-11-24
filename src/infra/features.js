@@ -120,6 +120,14 @@ const REGISTRY = [
     default: true,
   },
   {
+    key: 'eventLog',
+    path: 'features.eventLog',
+    label: '记忆事件日志（实验性）',
+    desc: '默认关闭。开启后每条聊天消息旁路写 data/memory-events.jsonl（append-only），旧 messages.jsonl 仍是主链；事件写失败只记日志，不影响聊天。',
+    default: false,
+    experimental: true,
+  },
+  {
     key: 'relations',
     path: 'features.relations',
     label: '群聊关系加载（A 提到 B）',

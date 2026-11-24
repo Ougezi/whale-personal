@@ -14,6 +14,7 @@ const features = require('./infra/features');
 const configSchema = require('./infra/configSchema');
 const { describeError } = require('./infra/errors');
 const { Store } = require('./memory/store');
+const { createEventSink } = require('./memory/eventSink');
 const memoryBackup = require('./memory/backup');
 const { recoverRestore } = require('./memory/backupRestore');
 const mediaCache = require('./adapters/mediaCache');
@@ -74,8 +75,16 @@ function createRuntime({ root = path.resolve(__dirname, '..'), env = process.env
   // 模块子日志：info 行首带 [memory] / [llm] 这种模块名，warn/error 仍由 logger 自己抓 file:line。
   // 测试里传进来的 logger 是桩对象、没有 child，这里兜一下，别让日志把启动搞挂。
   const child = (name) => (logger && typeof logger.child === 'function' ? logger.child(name) : logger);
+  let eventSink = null;
+  if (features.isOn(config, 'eventLog')) {
+    try {
+      eventSink = createEventSink({ file: path.join(config.paths.dataDir, 'memory-events.jsonl'), logger: child('events') });
+    } catch (err) {
+      logger.warn('事件日志初始化失败（不影响记忆）：' + describeError(err));
+    }
+  }
   const store = new Store({
-    file: config.paths.storeFile,
+    file: config.paths.storeFile, eventSink,
     // 关系卡份额（120 token）跟着 features.relations 走：关掉就并回 recent
     limits: { ...(config.memory || {}), relationsEnabled: features.isOn(config, 'relations') },
     logger: child('memory'),

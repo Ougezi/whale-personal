@@ -96,11 +96,12 @@ function normalizeSummary(raw, chatId) {
 }
 
 class ChatStore {
-  constructor({ dir, logger = null, now = () => Date.now(), maxMessages = LIMITS.maxMessagesPerChat }) {
+  constructor({ dir, logger = null, now = () => Date.now(), maxMessages = LIMITS.maxMessagesPerChat, eventSink = null }) {
     this.dir = dir;
     this.logger = logger;
     this.now = typeof now === 'function' ? now : () => now;
     this.maxMessages = Math.max(100, Number(maxMessages) || LIMITS.maxMessagesPerChat);
+    this.eventSink = eventSink;
     this.chats = new Map();
     this.manifest = null;
     this._saveTimers = new Map();
@@ -443,6 +444,13 @@ class ChatStore {
       if (chat.meta.state.replyTimes.length > 200) chat.meta.state.replyTimes = chat.meta.state.replyTimes.slice(-200);
     }
     this.saveMeta(chat);
+    if (this.eventSink && typeof this.eventSink.append === 'function') {
+      try {
+        this.eventSink.append(entry, chat);
+      } catch (err) {
+        if (this.logger) this.logger.warn('事件日志旁路失败（不影响聊天）：' + (err && err.message));
+      }
+    }
     if (chat.messages.length % 100 === 0) this.pruneRaw(chat, at);
     return entry;
   }

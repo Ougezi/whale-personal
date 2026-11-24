@@ -1,0 +1,173 @@
+{
+ "version": 1,
+ "name": "鲸鲸主链接入",
+ "note": "把出生技能核心模块接进真实主链；每步案例门禁、测试、证据、回滚，默认安全/可关。",
+ "steps": [
+  {
+   "id": "I-01",
+   "phase": "I",
+   "title": "记忆事件双写",
+   "goal": "ChatStore 旁路写事件日志；默认关；失败不伤旧链。",
+   "case_ids": [
+    "GH-057",
+    "GH-058",
+    "GH-059",
+    "GH-060",
+    "GH-061",
+    "GH-062",
+    "GH-063",
+    "GH-064"
+   ],
+   "min_cases": 5,
+   "source_review": [],
+   "files": [
+    "src/memory/eventSink.js",
+    "src/memory/chatStore.js",
+    "src/memory/store.js",
+    "src/app.js",
+    "src/infra/features.js",
+    "src/infra/config.js"
+   ],
+   "actions": [
+    "eventLog 开关；ChatStore 旁路；失败兜底"
+   ],
+   "tests": [
+    "node scripts/personal/鲸鲸-主链事件接自测.js"
+   ],
+   "acceptance": [
+    "旧消息仍写",
+    "事件旁路写",
+    "默认关",
+    "失败不伤旧链"
+   ]
+  },
+  {
+   "id": "I-02",
+   "phase": "I",
+   "title": "工作/会话/指令接 prompt",
+   "goal": "working/session/instruction 接入上下文，预算内、规则优先。",
+   "case_ids": [
+    "GH-001",
+    "GH-002",
+    "GH-003",
+    "GH-004",
+    "GH-005",
+    "GH-006",
+    "GH-007",
+    "GH-008"
+   ],
+   "min_cases": 5,
+   "source_review": [],
+   "files": [
+    "src/core/context.js",
+    "src/pipeline/chat.js",
+    "packages/memory-core/working.js"
+   ],
+   "actions": [
+    "prompt 注入；预算；开关"
+   ],
+   "tests": [],
+   "acceptance": [
+    "规则不被事实淹没",
+    "预算内",
+    "可关"
+   ]
+  },
+  {
+   "id": "I-03",
+   "phase": "I",
+   "title": "Command Bus/回执接发送",
+   "goal": "发送走 command bus，回执入账，重复 0。",
+   "case_ids": [
+    "GH-107",
+    "GH-108",
+    "GH-109",
+    "GH-110",
+    "GH-111",
+    "GH-112",
+    "GH-113",
+    "GH-114"
+   ],
+   "min_cases": 5,
+   "source_review": [],
+   "files": [
+    "bridge/command_bus.py",
+    "bridge/receiver_mixin.py",
+    "bridge/sender_mixin.py",
+    "packages/memory-core/receipts.js"
+   ],
+   "actions": [
+    "发送前 target/one-say；回执"
+   ],
+   "tests": [],
+   "acceptance": [
+    "重复 0",
+    "错误接收人 0",
+    "回执"
+   ]
+  },
+  {
+   "id": "I-04",
+   "phase": "I",
+   "title": "动作注册/策略/Job 接执行脑",
+   "goal": "brain_agent 只走 ActionSpec；路径/网络/审批/进程树。",
+   "case_ids": [
+    "GH-082",
+    "GH-083",
+    "GH-084",
+    "GH-085",
+    "GH-086",
+    "GH-087",
+    "GH-088",
+    "GH-089"
+   ],
+   "min_cases": 5,
+   "source_review": [],
+   "files": [
+    "bridge/brain_agent.py",
+    "bridge/brain_policy.py",
+    "packages/action-core/registry.js",
+    "packages/action-core/job.js"
+   ],
+   "actions": [
+    "动作白名单；R2/R3；取消/超时"
+   ],
+   "tests": [],
+   "acceptance": [
+    "未批 0",
+    "越界 0",
+    "无孤儿"
+   ]
+  },
+  {
+   "id": "I-05",
+   "phase": "I",
+   "title": "端到端验收",
+   "goal": "一次真实聊天 + 一次动作 + 一次回滚，全链路证据。",
+   "case_ids": [
+    "GH-001",
+    "GH-002",
+    "GH-003",
+    "GH-004",
+    "GH-005",
+    "GH-006",
+    "GH-007",
+    "GH-008"
+   ],
+   "min_cases": 5,
+   "source_review": [],
+   "files": [
+    "docs/personal/鲸鲸-主链接入-验收.md"
+   ],
+   "actions": [
+    "E2E；回滚；签收"
+   ],
+   "tests": [],
+   "acceptance": [
+    "真实链路通",
+    "可停/回滚",
+    "证据"
+   ]
+  }
+ ]
+}
