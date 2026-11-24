@@ -445,22 +445,25 @@
    ],
    "source_review": [],
    "files": [
+    "packages/persona-core/scope.js",
+    "scripts/personal/鲸鲸-出生身份隐私自测.js",
     "bridge/receiver_mixin.py",
     "src/memory/store.js",
     "src/core/identity.js"
    ],
    "actions": [
-    "scope 字段；群/私聊策略；private 不召回"
+    "Account→Persona→Scope；private/group/world 读取隔离；主人判定",
+    "未知 kind/chatType fail-closed；本步只做核心，不接主链"
    ],
    "tests": [
-    "双账号隔离",
-    "群不召回私聊",
-    "非主人不触发"
+    "node scripts/personal/鲸鲸-出生身份隐私自测.js"
    ],
    "acceptance": [
     "串号 0",
     "私聊不进群",
-    "主人确认"
+    "群不进私聊",
+    "非主人不触发",
+    "未知类型拒绝"
    ]
   },
   {
