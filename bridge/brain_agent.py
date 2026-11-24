@@ -30,6 +30,7 @@ import time
 import uuid
 
 import dsh_agent
+from brain_policy import BrainPolicy
 
 ROOT = dsh_agent.ROOT
 DATA = os.path.join(ROOT, 'data')
@@ -106,6 +107,7 @@ class BrainAgent:
         self._lock = threading.RLock()
         self._procs = {}
         self._state = {'version': 1, 'tasks': {}, 'sessions': {}, 'schedules': []}
+        self.policy = BrainPolicy(DATA)
         self._load()
         self._stop = False
 
@@ -157,6 +159,20 @@ class BrainAgent:
         except Exception as e:
             self.log('brain 发送失败：', repr(e))
             return False
+
+    def _audit(self, action, task, reason=''):
+        try:
+            self.policy.audit({
+                'taskId': task.get('id') if task else '',
+                'chat': task.get('chat') if task else '',
+                'action': action,
+                'mode': task.get('mode') if task else '',
+                'risk': task.get('risk') if task else '',
+                'goal': task.get('goal') if task else '',
+                'reason': reason,
+            })
+        except Exception:
+            pass
 
     # ------------------------------------------------------------------ 触发
     def handle_message(self, msg):
@@ -246,18 +262,26 @@ class BrainAgent:
             self._send('上一个任务还在跑，等它完再开写任务。', chat)
             return
         workspace = _workspace_of(goal)
-        if (not _allowed_workspace(workspace) or _denied_workspace(workspace)
-                or _denied_text(goal)):
-            self._send('这个工作区不在允许范围（默认只允许 D:\\dsh，且不碰 data/backup）。', chat)
+        verdict = self.policy.check(goal, workspace, 'workspace-write')
+        if not verdict.get('ok'):
+            why = {'workspace_not_allowed': '工作区不在允许范围',
+                   'denied_workspace': '不能碰 data/backup',
+                   'denied_path': '任务路径里不能有 data/backup',
+                   'credential_path': '不能碰凭据/配置文件'}.get(verdict.get('reason'), '被策略拒绝')
+            self._send('这个任务被拦了：' + why + '。', chat)
             return
-        task = self._new_task(chat, goal, 'workspace-write', workspace)
+        risk = verdict.get('risk') or 'R2'
+        task = self._new_task(chat, goal, 'workspace-write', workspace, risk=risk)
         task['status'] = 'pending_approval'
         self._save()
+        self._audit('approval_requested', task, 'risk=' + risk)
         self._send(
             '这个要动文件/跑命令，我需要你确认。\n'
             f'任务：{_short(goal, 100)}\n'
-            '风险：R2（可恢复，但会改工作区）\n'
-            '回复「可以」执行，「不要」取消。5 分钟不回复默认取消。', chat)
+            f'工作区：{workspace}\n'
+            f'风险：{risk}（{"需二次确认" if risk == "R3" else "可恢复，但会改工作区"}）\n'
+            '回滚：改前备份/失败还原，只动工作区。\n'
+            '回复「可以」执行，「不要」取消；5 分钟不回复默认取消。', chat)
 
     def approve(self, chat):
         with self._lock:
@@ -266,6 +290,7 @@ class BrainAgent:
         if not task:
             self._send('没有待确认的任务。', chat)
             return
+        self._audit('approved', task, 'owner')
         self._send('好，我开始改；会先备份/只动工作区，弄完给你证据。', chat)
         self._run(task)
 
@@ -277,6 +302,7 @@ class BrainAgent:
                 task['status'] = 'cancelled'
                 task['finishedAt'] = _now()
                 task['error'] = '主人取消'
+                self._audit('rejected', task, 'owner')
         self._save()
         self._send('好，那先不动。', chat)
 
@@ -290,6 +316,7 @@ class BrainAgent:
                     t['finishedAt'] = now
                     t['error'] = '审批超时'
                     changed.append(t)
+                    self._audit('cancelled', t, 'approval_timeout')
         if changed:
             self._save()
             for t in changed:
@@ -305,13 +332,14 @@ class BrainAgent:
                 self.log('审批超时检查失败：', repr(e))
 
     # ------------------------------------------------------------------ 任务
-    def _new_task(self, chat, goal, mode, workspace):
+    def _new_task(self, chat, goal, mode, workspace, risk='R2'):
         task = {
             'id': 'brain_' + uuid.uuid4().hex[:10],
             'chat': chat,
             'goal': goal,
             'mode': mode,
             'workspace': workspace,
+            'risk': risk,
             'status': 'queued',
             'createdAt': _now(),
             'sessionId': '',
@@ -320,6 +348,7 @@ class BrainAgent:
         }
         with self._lock:
             self._state['tasks'][task['id']] = task
+        self._audit('created', task, 'mode=' + mode)
         return task
 
     def _start(self, chat, goal, mode='read-only', resume=False):
@@ -336,11 +365,15 @@ class BrainAgent:
             self._send('执行脑手上还有 2 个任务，等一个跑完再开。', chat)
             return
         workspace = _workspace_of(goal)
-        if (not _allowed_workspace(workspace) or _denied_workspace(workspace)
-                or _denied_text(goal)):
-            self._send('这个工作区不在允许范围（默认只允许 D:\\dsh，且不碰 data/backup）。', chat)
+        verdict = self.policy.check(goal, workspace, mode)
+        if not verdict.get('ok'):
+            why = {'workspace_not_allowed': '工作区不在允许范围',
+                   'denied_workspace': '不能碰 data/backup',
+                   'denied_path': '任务路径里不能有 data/backup',
+                   'credential_path': '不能碰凭据/配置文件'}.get(verdict.get('reason'), '被策略拒绝')
+            self._send('这个任务被拦了：' + why + '。', chat)
             return
-        task = self._new_task(chat, goal, mode, workspace)
+        task = self._new_task(chat, goal, mode, workspace, risk=verdict.get('risk') or 'R0')
         if resume:
             with self._lock:
                 sess = self._state.get('sessions', {}).get(chat) or {}
@@ -400,14 +433,15 @@ class BrainAgent:
             self._send('执行脑还在忙，等一个跑完再开多代理。', chat)
             return
         workspace = _workspace_of(goal)
-        if (not _allowed_workspace(workspace) or _denied_workspace(workspace)
-                or _denied_text(goal)):
-            self._send('这个工作区不在允许范围（默认只允许 D:\\\\\\\\dsh，且不碰 data/backup）。', chat)
+        verdict = self.policy.check(goal, workspace, 'read-only')
+        if not verdict.get('ok'):
+            self._send('这个任务被拦了：工作区/路径不符合策略。', chat)
             return
-        task = self._new_task(chat, goal, 'multi-readonly', workspace)
+        task = self._new_task(chat, goal, 'multi-readonly', workspace, risk='R0')
         task['status'] = 'running'
         task['startedAt'] = _now()
         self._save()
+        self._audit('started', task, 'mode=multi-readonly')
         self._send('我拆两路只读查一下，最后汇总给你。', chat)
         threading.Thread(target=self._multi_worker, args=(task,), daemon=True,
                          name='brain-multi-' + task['id']).start()
@@ -445,6 +479,7 @@ class BrainAgent:
         task['output'] = final[:MAX_OUTPUT]
         task['scouts'] = {k: v[:800] for k, v in notes.items()}
         self._save()
+        self._audit('done', task, 'multi chars=%d' % len(final))
         self._send(final[:MAX_OUTPUT], task['chat'])
         try:
             if self.record:
@@ -472,6 +507,7 @@ class BrainAgent:
         task['startedAt'] = _now()
         self._save()
         mode = task.get('mode') or 'read-only'
+        self._audit('started', task, 'mode=' + mode)
         prompt = _build_prompt(task['goal'], mode, task['workspace'])
         cmd = [dsh_agent.EXE, dsh_agent.BIN, '--profile', 'headless', '--json',
                '--permission-mode', mode, '--approval-policy', 'never']
@@ -522,6 +558,7 @@ class BrainAgent:
                     task['error'] = '执行超时（4 分钟）'
                     task['finishedAt'] = _now()
                     self._save()
+                    self._audit('timeout', task, '4min')
                     self._send('这个任务有点久，我先停了。可以拆小一点再试。', task['chat'])
                 return
             if not warned and time.time() - started > 45:
@@ -593,6 +630,7 @@ class BrainAgent:
             task['finishedAt'] = _now()
             task['error'] = error
             self._save()
+            self._audit('failed', task, error)
             self._send('这边没跑成：' + _short(error, 120), task['chat'])
             return
         text = final_text.strip()
@@ -603,6 +641,7 @@ class BrainAgent:
         task['output'] = text[:MAX_OUTPUT]
         task['final'] = bool(got_final)
         self._save()
+        self._audit('done', task, 'chars=%d' % len(text))
         self._send(text[:MAX_OUTPUT], task['chat'])
         try:
             if self.record:
@@ -640,6 +679,7 @@ class BrainAgent:
         t['status'] = 'cancelled'
         t['finishedAt'] = _now()
         self._save()
+        self._audit('cancelled', t, 'owner')
         self._send('好，停了。', chat)
 
     # ------------------------------------------------------------------ 定时

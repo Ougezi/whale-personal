@@ -25,10 +25,13 @@ import brain_agent  # noqa: E402
 
 PASS = 0
 FAIL = 0
+RESULTS = []
+START = time.time()
 
 
 def check(name, ok, detail=''):
     global PASS, FAIL
+    RESULTS.append({'name': name, 'ok': bool(ok), 'detail': str(detail or '')[:200]})
     if ok:
         PASS += 1
         print('  ✓ %-30s %s' % (name, detail))
@@ -62,6 +65,17 @@ def unit_tests():
     check('白名单 D 允许', brain_agent._allowed_workspace(r'D:\dsh\whale-personal'))
     check('白名单 C 拒绝', not brain_agent._allowed_workspace(r'C:\Windows'))
     check('data 拒绝', brain_agent._denied_workspace(r'D:\dsh\whale-personal\data'))
+
+    print('\n[unit] BrainPolicy 策略/审计')
+    tmp = tempfile.mkdtemp(prefix='brain-policy-')
+    from brain_policy import BrainPolicy
+    pol = BrainPolicy(tmp)
+    check('策略：凭据拒绝', not pol.check('读取 D:\\dsh\\whale-personal\\data\\settings.json', r'D:\dsh', 'read-only')['ok'])
+    check('策略：写风险 R2', pol.check('改一下 README', r'D:\dsh\x', 'workspace-write')['risk'] == 'R2')
+    check('策略：删除风险 R3', pol.check('删除旧日志', r'D:\dsh\x', 'workspace-write')['risk'] == 'R3')
+    pol.audit({'taskId': 't1', 'action': 'created', 'goal': 'sk-abcdefghijklmnop'})
+    line = open(os.path.join(tmp, 'brain-audit.jsonl'), encoding='utf-8').read()
+    check('策略：审计脱敏', 'sk-***' in line and 'sk-abcdefghijklmnop' not in line)
 
     print('\n[unit] 非主人')
     b, sent = fresh_agent()
@@ -100,7 +114,7 @@ def unit_tests():
 
     b, sent = fresh_agent()
     b.handle_message(msg('脑子写：在 D:\\dsh\\whale-personal\\data\\x 写 hi'))
-    check('data 目录写入被拒', b._latest('wxid_master') is None and any('不在允许范围' in s for s in sent))
+    check('data 目录写入被拒', b._latest('wxid_master') is None and any('data/backup' in s or '任务路径' in s for s in sent))
 
     b, sent = fresh_agent()
     b.handle_message(msg('脑子写：在 C:\\Windows\\Temp\\hack.txt 写 hi'))
@@ -203,7 +217,21 @@ def main():
     unit_tests()
     if '--live' in sys.argv:
         live_tests()
-    print('\n通过 %d/%d' % (PASS, PASS + FAIL))
+    total = PASS + FAIL
+    print('\n通过 %d/%d' % (PASS, total))
+    if '--json' in sys.argv:
+        i = sys.argv.index('--json')
+        path = sys.argv[i + 1] if i + 1 < len(sys.argv) else 'brain-test-report.json'
+        try:
+            os.makedirs(os.path.dirname(os.path.abspath(path)), exist_ok=True)
+            with open(path, 'w', encoding='utf-8') as f:
+                json.dump({'pass': PASS, 'fail': FAIL, 'total': total,
+                           'live': '--live' in sys.argv,
+                           'durationMs': int((time.time() - START) * 1000),
+                           'results': RESULTS}, f, ensure_ascii=False, indent=1)
+            print('报告：' + path)
+        except Exception as e:
+            print('报告写入失败：' + repr(e))
     return 1 if FAIL else 0
 
 
