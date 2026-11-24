@@ -26,6 +26,7 @@ const skills = require('../core/skills');
 const nickname = require('../core/nickname');
 const coref = require('../core/coref');
 const intent = require('../core/intent');
+const promptBudget = require('../core/promptBudget');
 const sessionMod = require('./session');
 const marks = require('./marks');
 const persona = require('../persona');
@@ -1043,7 +1044,13 @@ class Bot {
     try {
       if (isMaster && !isGroup) intentLine = intent.hint(String(clean && clean.text || ''));
     } catch { /* 意图提示失败不影响回复 */ }
-    const innerLine = [moodLine, thoughtLine, notesLine, empathyLine, concernLine, nickLine, corefLine, intentLine, pinLine, skillLine].filter(Boolean).join('\n');
+    const innerLine = promptBudget.fitBlocks([
+      { key: 'mood', text: moodLine }, { key: 'thought', text: thoughtLine },
+      { key: 'notes', text: notesLine }, { key: 'empathy', text: empathyLine },
+      { key: 'concern', text: concernLine }, { key: 'nick', text: nickLine },
+      { key: 'coref', text: corefLine }, { key: 'intent', text: intentLine },
+      { key: 'pin', text: pinLine }, { key: 'skill', text: skillLine },
+    ]);
 
     const promptParts = persona.buildPromptParts({
       config: this.config,

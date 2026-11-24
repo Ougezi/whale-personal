@@ -62,20 +62,8 @@ module.exports = function register(router) {
     try {
       const chat = info.url.searchParams.get('chat') || '';
       const out = await careForChat(runtime, chat);
-      // care 主动消息也要入库：否则下一轮记忆里没有这条，她不知道是自己先开口（断片）
-      try {
-        if (out && out.text && chat) {
-          const isGroup = /@chatroom$/i.test(chat);
-          const key = (isGroup ? 'wechat:g:' : 'wechat:u:') + chat;
-          runtime.store.recordAssistant(key, {
-            name: (runtime.config.persona && runtime.config.persona.name) || '鲸鲸',
-            text: String(out.text),
-            ts: Date.now(),
-          });
-        }
-      } catch (err) {
-        runtime.logger?.warn?.('主动消息入库失败（不影响发送）：' + errorMessage(err));
-      }
+      // 主动搭话待发送：这里**不**写记忆，等桥接确认发送成功后
+      // 由 /api/care/sent 记录。否则发送失败也会留下“她说过”的假记录。
       runtime.logger?.debug?.(`[care] generate mock=${Boolean(out.mock)} fallback=${Boolean(out.fallback)} len=${String(out.text || '').length}`);
       return json(res, 200, out);
     } catch (err) {

@@ -135,6 +135,14 @@ function createRuntime({ root = path.resolve(__dirname, '..'), env = process.env
     });
   } catch { /* 定时器起不来不影响主流程 */ }
 
+  // 启动补跑睡眠：4 点后启动的应用不用等下一个 30 分钟 tick
+  setTimeout(() => {
+    try {
+      const r = require('./services/memorySleep').maybeRun({ dataDir: config.paths.dataDir, store, logger: child('sleep') });
+      if (r && r.ran) logger.info('记忆睡眠（启动补跑）：卡片 ' + r.cards + ' 矛盾 ' + r.conflicted + ' 巩固 ' + r.consolidated + ' 晋升 ' + r.promoted + ' 洞察 ' + r.insights);
+    } catch (err) { logger.warn('启动补跑睡眠失败（不影响聊天）：' + describeError(err)); }
+  }, 8000);
+
   runtime.llm = new DeepSeekClient({ config, logger: child('llm') });
   runtime.diary = new DiaryService(config, {
     store,

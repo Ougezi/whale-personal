@@ -186,8 +186,11 @@ console.log('=== 8. 写库变量顺序 ===');
   }
   const careFile = path.join(ROOT, 'src', 'http', 'routes', 'care.js');
   const careSrc = fs.readFileSync(careFile, 'utf8');
-  if (careSrc.includes('care 主动消息也要入库')) ok('主动搭话会入记忆');
-  else bad('主动搭话没有入记忆（会断片）');
+  // 主动搭话必须在「桥接确认发送后」由 /api/care/sent 记录，不能在生成时先记
+  const sentAt = careSrc.indexOf("router.post('/api/care/sent'");
+  const recordsAfterSend = sentAt >= 0 && careSrc.slice(sentAt).includes('recordAssistant');
+  if (recordsAfterSend) ok('主动搭话发送确认后入记忆');
+  else bad('主动搭话没有在发送确认后入记忆（会断片或假记录）');
 }
 
 console.log('=== 7. 记忆体检 ===');

@@ -355,10 +355,17 @@ class LoopMixin:
                         try:
                             if self.wechat_window_alive() and not self.selected_window_ready():
                                 _now = G.time.time()
-                                if _now - float(getattr(self, '_last_account_probe', 0) or 0) >= 60:
+                                _miss = int(getattr(self, '_account_probe_misses', 0) or 0)
+                                _wait = 60 if _miss <= 0 else (120 if _miss == 1 else 300)
+                                if _now - float(getattr(self, '_last_account_probe', 0) or 0) >= _wait:
                                     self._last_account_probe = _now
                                     self.ensure_uia_ready(force=True, wake=False)
-                                    self.pick_account_window(force=True, quiet=True)
+                                    _ok = False
+                                    try:
+                                        _ok = bool(self.pick_account_window(force=True, quiet=True))
+                                    except Exception:
+                                        _ok = False
+                                    self._account_probe_misses = 0 if _ok else min(3, _miss + 1)
                         except Exception as _probe_err:
                             G.log('账号窗口自愈失败（继续按原流程）：', repr(_probe_err))
                         if not self.selected_window_ready() or not self.wechat_window_alive():

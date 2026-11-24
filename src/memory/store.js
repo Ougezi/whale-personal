@@ -237,7 +237,10 @@ class Store {
     const chat = this.chatStore.ensureChat(key);
     const at = Number(message.ts) || this._now();
     const role = message.role === 'assistant' ? 'assistant' : 'user';
-    if (role === 'user' && message.text) {
+    // silent：补录旧消息时只落原文，不抽事实、不转 episode、不建关系边。
+    // 否则回放 26 小时历史会凭空生成事件/偏好，甚至把当前 episode 关掉。
+    const silent = message.silent === true;
+    if (role === 'user' && message.text && !silent) {
       episode.ensureEpisode(chat, { now: at });
       const rotation = episode.rotateIfNeeded({
         chat,
@@ -258,7 +261,7 @@ class Store {
     if (entry.msgId) this.markSeen(key, entry.msgId);
     if (role === 'user' && this.writeFailures) this.writeFailures.consecutive = 0;
     episode.touchEpisode(chat, entry, { now: at });
-    if (role === 'user') {
+    if (role === 'user' && !silent) {
       this._onUserMessage(chat, entry);
       // 关系边：规则即时（「我和小明是同事」这种），不调模型、不建卡
       this._onRelationMention(chat, entry);

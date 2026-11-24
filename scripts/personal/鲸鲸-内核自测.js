@@ -1098,6 +1098,34 @@ try {
   check('睡眠日期用本地时区', false, String(e && e.message).slice(0, 40));
 }
 
+// 一期/二期：silent 补录 + 动态提示预算（2026-11-24）
+try {
+  const fsx = require('node:fs');
+  const osx = require('node:os');
+  const { Store } = require(path.join(ROOT, 'src', 'memory', 'store.js'));
+  const root4 = fsx.mkdtempSync(path.join(osx.tmpdir(), 'silent-'));
+  const mk4 = () => new Store({ file: path.join(root4, 'store.json'), dir: path.join(root4, 'memory'),
+    config: { paths: { dataDir: root4 } }, logger: null });
+  const st4 = mk4();
+  const key4 = 'wechat:u:u1';
+  st4.appendMessage(key4, { role: 'user', uid: 'u1', name: 'n', text: '我住在武汉', silent: true });
+  const chat4 = st4.chatStore.chats.get(key4);
+  const card4 = chat4.people.get('u1');
+  check('silent 补录：不抽事实', !card4 || (card4.preferences || []).length === 0, String(card4 && (card4.preferences || []).length));
+  st4.appendMessage(key4, { role: 'user', uid: 'u1', name: 'n', text: '我住在武汉' });
+  check('silent 补录：正常仍抽', (chat4.people.get('u1').preferences || []).length >= 1, '');
+  const pb = require(path.join(ROOT, 'src', 'core', 'promptBudget.js'));
+  const small = pb.fitBlocks([{ key: 'mood', text: '心情' }, { key: 'pin', text: '记着' }]);
+  check('动态预算：不超不动', small.includes('心情') && small.includes('记着'), small);
+  const big = pb.fitBlocks([
+    { key: 'mood', text: '心'.repeat(400) }, { key: 'pin', text: '记'.repeat(400) },
+    { key: 'skill', text: '技'.repeat(400) }, { key: 'coref', text: '指'.repeat(400) },
+  ], { maxChars: 1000 });
+  check('动态预算：裁剪', big.length <= 1000 && !big.includes('技'), String(big.length));
+} catch (e) {
+  check('silent 补录', false, String(e && e.message).slice(0, 60));
+}
+
 console.log('\n通过 ' + pass + '/' + (pass + fail));
   process.exit(fail ? 1 : 0);
 })();

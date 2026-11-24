@@ -2321,6 +2321,11 @@ class ReceiverMixin:
                 text = '[%s]' % typ
             if not text:
                 return
+            # 每次启动最多补 50 条：长时间停机的 backlog 不要一次性灌进记忆
+            _n = int(getattr(self, '_ingest_count', 0) or 0)
+            if _n >= 50:
+                G.log_throttled('ingest-capped', '失联消息补记已达本次启动上限 50 条，其余跳过', ttl=3600)
+                return
             chat_type = 'group' if username.endswith('@chatroom') else 'private'
             chat = ('wechat:g:' if chat_type == 'group' else 'wechat:u:') + username
             base = self.bot_url.rsplit('/webhook', 1)[0]
@@ -2330,7 +2335,8 @@ class ReceiverMixin:
             G.LOCAL_HTTP.post(base + '/api/memory/ingest', json={
                 'chat': chat, 'uid': uid, 'name': str(msg.get('sender_name') or ''),
                 'text': text[:4000], 'ts': ts, 'msgId': msg_id, 'chatType': chat_type,
-            }, headers={'x-whale-bridge': '1'}, timeout=6)
+            }, headers={'x-whale-bridge': '1', 'x-whale-bridge-token': self.token or ''}, timeout=6)
+            self._ingest_count = _n + 1
         except Exception as e:
             G.log_throttled('ingest-skip-fail', '失联消息补记失败（忽略）：' + repr(e), ttl=120)
 

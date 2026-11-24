@@ -96,6 +96,10 @@ module.exports = function register(router) {
    */
   router.post('/api/memory/ingest', (runtime, req, res) => {
     if (!isLoopbackRequest(req)) return json(res, 403, { ok: false, error: '记忆写入只允许在本机操作' });
+    // 本机也要凭证：否则任意本地进程都能以主人身份写记忆
+    const want = String((((runtime.config || {}).gateway || {}).wechat || {}).inboundToken || '');
+    const got = String(req.headers['x-whale-bridge-token'] || '');
+    if (!want || got !== want) return json(res, 403, { ok: false, error: '桥接 token 不正确' });
     return (async () => {
       try {
         const body = await readBody(req);
@@ -123,8 +127,26 @@ module.exports = function register(router) {
           senderId: uid,
           senderName: String(body.name || ''),
           msgId,
-        }, text.slice(0, 4000), { ts });
+        }, text.slice(0, 4000), { ts, silent: true });
         return json(res, 200, { ok: true, seq: entry && entry.seq });
+      } catch (err) {
+        return json(res, 500, { ok: false, error: errorMessage(err) });
+      }
+    })();
+  });
+
+  // POST /api/memory/sleep  { force?: true } —— 手动触发夜间整理（只允许本机）
+  router.post('/api/memory/sleep', (runtime, req, res) => {
+    if (!isLoopbackRequest(req)) return json(res, 403, { ok: false, error: '只允许本机' });
+    return (async () => {
+      try {
+        const body = await readBody(req);
+        const ms = require('../../services/memorySleep');
+        const dataDir = runtime.config.paths.dataDir;
+        const report = body && body.force
+          ? ms.run({ dataDir, store: runtime.store, logger: runtime.logger })
+          : ms.maybeRun({ dataDir, store: runtime.store, logger: runtime.logger });
+        return json(res, 200, { ok: true, report });
       } catch (err) {
         return json(res, 500, { ok: false, error: errorMessage(err) });
       }
