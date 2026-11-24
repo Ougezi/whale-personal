@@ -22,4 +22,22 @@ module.exports = function register(router) {
       return json(res, 400, { ok: false, error: err.message });
     }
   });
+
+  // I-26：affectCore 的 chat 白名单（空 = 不生效）
+  router.post('/api/affect-core/chats', async (runtime, req, res) => {
+    const body = await readBody(req);
+    const chats = Array.isArray(body.chats) ? body.chats.map(String).filter(Boolean).slice(0, 50) : [];
+    try {
+      applyConfigPatch(runtime, { 'affectCore.chats': chats });
+      return json(res, 200, { ok: true, chats });
+    } catch (err) {
+      return json(res, 400, { ok: false, error: err.message });
+    }
+  });
+
+  router.get('/api/affect-core/status', async (runtime, req, res) => {
+    const chat = new URL(req.url, 'http://localhost').searchParams.get('chat') || '';
+    const { status } = require('../../services/affectCore');
+    return json(res, 200, { ok: true, chat, last: status(chat) });
+  });
 };

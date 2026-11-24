@@ -995,7 +995,10 @@ class Bot {
     // 念头流：跨轮携带、3 小时淡掉；每轮最多带出两条，明说「不一定要说出来」
     let affectCoreLine = '';
     if (features.isOn(this.config, 'affectCore')) {
-      try { affectCoreLine = affectCore.tick({ chatId: key, text: (clean && clean.text) || msg.text || '', now: nowMs }).line; } catch { affectCoreLine = ''; }
+      try {
+        const _acChats = (this.config && this.config.affectCore && this.config.affectCore.chats) || [];
+        affectCoreLine = affectCore.tick({ chatId: key, text: (clean && clean.text) || msg.text || '', now: nowMs, chats: _acChats }).line;
+      } catch { affectCoreLine = ''; }
     }
     let thoughtLine = '';
     if (features.isOn(this.config, 'thoughts')) {

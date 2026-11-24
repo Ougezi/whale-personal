@@ -14,6 +14,13 @@ check('label 存在', () => assert.ok(r.snapshot.label));
 check('愉悦上升', () => assert.ok(r.snapshot.valence > 0.1));
 check('chat 隔离', () => assert.notStrictEqual(A.tick({ chatId: 'c2', now: 2000 }).snapshot.valence, r.snapshot.valence));
 check('可重复', () => assert.ok(A.tick({ chatId: 'c1', now: 3000 }).line));
+check('空名单不生效', () => assert.strictEqual(A.tick({ chatId: 'c3', text: '谢谢', chats: [] }).line, ''))
+check('名单内生效', () => assert.ok(A.tick({ chatId: 'c4', text: '谢谢', chats: ['c4'] }).line.includes('Core')))
+check('名单外不生效', () => assert.strictEqual(A.tick({ chatId: 'c5', text: '谢谢', chats: ['c4'] }).line, ''))
+
+check('status 可读', () => assert.ok(A.status('c1') && A.status('c1').line.includes('Core')))
+check('status 无记录为 null', () => assert.strictEqual(A.status('nope'), null))
+
 check('feature 可开', () => assert.strictEqual(features.isOn({ features: { affectCore: true } }, 'affectCore'), true));
 console.log('\n通过 ' + pass + '/' + (pass + fail));
 process.exit(fail ? 1 : 0);

@@ -267,6 +267,7 @@ const DEFAULT_CONFIG = {
     relations: true,
   },
 
+  affectCore: { chats: [] },
   storage: {
     mediaKeepDays: 7,
     mediaMaxMB: 500,
