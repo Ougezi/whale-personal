@@ -30,6 +30,8 @@ const FILES = [
   { key: 'nicknames', name: 'nicknames.json' },
   { key: 'pins', name: 'pins.json' },
   { key: 'skills', name: 'skills.md', text: true },
+  { key: 'mood', name: 'mood.json' },
+  { key: 'thoughts', name: 'thoughts.json' },
 ];
 
 function stampMs(date = new Date()) {
@@ -242,7 +244,7 @@ function validateBundle(bundle) {
   }
   const files = bundle.files;
   if (!object(files)) throw new Error('备份里的 files 必须是对象');
-  for (const key of ['memory', 'personas', 'store', 'settings', 'persona', 'careState', 'shareState', 'inner', 'diary', 'concerns', 'nicknames', 'pins']) {
+  for (const key of ['memory', 'personas', 'store', 'settings', 'persona', 'careState', 'shareState', 'inner', 'diary', 'concerns', 'nicknames', 'pins', 'mood', 'thoughts']) {
     if (Object.hasOwn(files, key) && !object(files[key])) throw new Error('备份里的 ' + key + ' 结构不对，已取消恢复');
   }
   // 感受/教训/日记是纯文本目录：键必须是安全相对路径

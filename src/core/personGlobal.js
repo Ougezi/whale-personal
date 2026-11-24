@@ -6,6 +6,7 @@ const path = require('node:path');
 const { shortId } = require('../memory/hash');
 
 const MAX_FACTS = 50;
+const MAX_UIDS = 500;
 
 function dirOf(dataDir) { return path.join(dataDir, 'memory', 'people-global'); }
 function fileOf(dataDir, uid) { return path.join(dirOf(dataDir), shortId('global|' + String(uid || '')) + '.json'); }
@@ -31,6 +32,12 @@ function save(dataDir, uid, data) {
 function addFact(dataDir, uid, text, { at = Date.now() } = {}) {
   const body = String(text == null ? '' : text).replace(/\s+/g, ' ').trim().slice(0, 80);
   if (!body || !uid) return null;
+  const file = fileOf(dataDir, uid);
+  if (!fs.existsSync(file)) {
+    try {
+      if (fs.readdirSync(dirOf(dataDir)).filter((x) => x.endsWith('.json')).length >= MAX_UIDS) return null;
+    } catch { /* 目录还没建 */ }
+  }
   const data = load(dataDir, uid);
   if (data.facts.some((f) => f.text === body)) return null;
   data.facts = [...data.facts, { text: body, at }].slice(-MAX_FACTS);

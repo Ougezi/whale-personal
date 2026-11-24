@@ -24,6 +24,8 @@ function hint(text) {
 }
 
 /* ---- 持久化：data/nicknames.json ---- */
+const MAX_CHATS = 200;
+
 function fileOf(dataDir) { return require('node:path').join(dataDir, 'nicknames.json'); }
 
 function remember(dataDir, chatId, text, now = Date.now()) {
@@ -34,6 +36,12 @@ function remember(dataDir, chatId, text, now = Date.now()) {
   let data = {};
   try { data = JSON.parse(fs.readFileSync(fileOf(dataDir), 'utf8')) || {}; } catch { data = {}; }
   data[String(chatId)] = { name: hit.name, at: now };
+  // 只保留最近 200 个会话，避免 nicknames.json 无限长大
+  const keys = Object.keys(data);
+  if (keys.length > MAX_CHATS) {
+    keys.sort((a, b) => (Number(data[b].at) || 0) - (Number(data[a].at) || 0));
+    for (const k of keys.slice(MAX_CHATS)) delete data[k];
+  }
   try {
     fs.mkdirSync(path.dirname(fileOf(dataDir)), { recursive: true });
     const tmp = fileOf(dataDir) + '.tmp';

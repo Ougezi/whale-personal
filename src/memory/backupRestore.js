@@ -5,7 +5,7 @@ const path = require('node:path');
 
 const PREFIX = '.memory-restore-';
 const KIND = 'whale-memory-restore';
-const TARGETS = new Set(['memory', 'personas', 'inner', 'diary', 'store.json', 'persona.json', 'settings.json', 'care-state.json', 'share-state.json', 'concerns.json', 'nicknames.json', 'pins.json', 'skills.md']);
+const TARGETS = new Set(['memory', 'personas', 'inner', 'diary', 'store.json', 'persona.json', 'settings.json', 'care-state.json', 'share-state.json', 'concerns.json', 'nicknames.json', 'pins.json', 'skills.md', 'mood.json', 'thoughts.json']);
 function exists(file) {
   try { fs.lstatSync(file); return true; } catch (error) {
     if (error.code === 'ENOENT') return false;
