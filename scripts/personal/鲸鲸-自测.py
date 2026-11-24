@@ -468,6 +468,13 @@ def main():
     except Exception as e:
         check("主人迟到消息宽限", False, repr(e))
 
+    # 找图失败兜底（2026-11-24：内部异常被发到聊天）
+    try:
+        import image_fetch as _if
+        check("找图失败兜底", bool(_if.FAIL_REPLY) and "内容不符" not in _if.FAIL_REPLY and "试了" not in _if.FAIL_REPLY, _if.FAIL_REPLY)
+    except Exception as e:
+        check("找图失败兜底", False, repr(e))
+
     print("=== 鲸鲸改造自测 ===")
     bad = 0
     for name, ok, detail in results:

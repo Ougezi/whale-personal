@@ -257,6 +257,8 @@ def fetch(query, dest_dir, limit=12, verify=None, max_tries=4, avoid=None):
         raise RuntimeError("这几张都刚发过了，换个说法或加个词再试")
     raise RuntimeError("试了 %d 张都不合适（%s）" % (tried, "；".join(errors[:3]) or "未知"))
 
+FAIL_REPLY = '这张没找到合适的，等我再翻翻～'
+
 GENERIC = ("表情包", "图", "图片", "壁纸", "表情", "一张")
 REQ_RE = re.compile(r"(?:发|来|找|搜|弄)(?:我|给我)?\s*(?:一张|张|一遍|一次|个)?\s*(.{1,24})")
 

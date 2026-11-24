@@ -1317,9 +1317,10 @@ class ReceiverMixin:
                 _query, dest, max_tries=8 if _sent else 4, avoid=set(_sent),
                 verify=lambda p: self._verify_image(p, raw or keyword or _query))
         except Exception as e:
+            # 失败原因只进日志，绝不能让“试了 N 张/内容不符”这种内部话术发到聊天里
             G.log('找图失败：', repr(e))
             try:
-                self.send_text('没找到能用的图：%s' % str(e)[:60], target, username)
+                self.send_text(image_fetch.FAIL_REPLY, target, username)
             except Exception:
                 pass
             return
