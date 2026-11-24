@@ -579,21 +579,24 @@
     "OpenHands"
    ],
    "files": [
+    "packages/action-core/job.js",
+    "scripts/personal/鲸鲸-出生Job自测.js",
     "bridge/brain_agent.py",
     "docs/personal/鲸鲸-出生技能-执行计划.json"
    ],
    "actions": [
-    "审批状态机；pid/children；kill tree"
+    "审批状态机 R2/R3；job queued/running/cancelling/cancelled/timed_out；cancel ≤2s；children-first killTree；孤儿检查",
+    "本步只做核心状态机，不接真实 subprocess"
    ],
    "tests": [
-    "超时/取消",
-    "孤儿 0",
-    "重复发送 0"
+    "node scripts/personal/鲸鲸-出生Job自测.js"
    ],
    "acceptance": [
     "R2/R3 未确认执行 0",
+    "取消 ≤2s",
+    "超时 timed_out",
     "孤儿 0",
-    "停止 ≤2s"
+    "终态不可重复执行"
    ]
   },
   {
