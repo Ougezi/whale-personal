@@ -409,11 +409,21 @@ class ChatStore {
     entry.tokens = messageTokens(entry);
 
     fs.mkdirSync(chat.dir, { recursive: true });
-    const fd = this._fd(chat);
-    fs.writeSync(fd, JSON.stringify(entry) + '\n');
-    // 用户消息必须先落盘再回复；assistant 也 fsync，代价很小
-    if (MESSAGE_FSYNC_EVERY === 1 || entry.role === 'user') {
-      try { fs.fsyncSync(fd); } catch { /* 有些文件系统不支持，忽略 */ }
+    const prevNextSeq = chat.meta.nextSeq;
+    let fd;
+    try {
+      fd = this._fd(chat);
+      fs.writeSync(fd, JSON.stringify(entry) + '\n');
+      // 用户消息必须先落盘再回复；assistant 也 fsync，代价很小
+      if (MESSAGE_FSYNC_EVERY === 1 || entry.role === 'user') {
+        try { fs.fsyncSync(fd); } catch { /* 有些文件系统不支持，忽略 */ }
+      }
+    } catch (err) {
+      // 写失败时句柄可能已经指向坏文件/目录（例如 EISDIR），必须关闭并回滚 seq，
+      // 否则磁盘/权限恢复后仍会一直失败，直到重启进程。
+      this._closeFd(chat);
+      chat.meta.nextSeq = prevNextSeq;
+      throw err;
     }
 
     chat.messages.push(entry);

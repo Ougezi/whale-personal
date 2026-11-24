@@ -1297,6 +1297,35 @@ try {
   check('健壮性：坏消息行', false, String(e && e.message).slice(0, 60));
 }
 
+// 写盘失败注入（2026-11-24 健壮性）
+try {
+  const fsx = require('node:fs');
+  const osx = require('node:os');
+  const { Store } = require(path.join(ROOT, 'src', 'memory', 'store.js'));
+  const rootW = fsx.mkdtempSync(path.join(osx.tmpdir(), 'wfail-'));
+  const dataW = path.join(rootW, 'data');
+  const stW = new Store({ file: path.join(dataW, 'store.json'), dir: path.join(dataW, 'memory'), config: { paths: { dataDir: dataW } }, logger: null });
+  const keyW = 'wechat:u:u1';
+  const chatW = stW.chatStore.ensureChat(keyW);
+  const msgFile = path.join(chatW.dir, 'messages.jsonl');
+  fsx.rmSync(msgFile, { force: true });
+  fsx.mkdirSync(msgFile);
+  let failed = false;
+  try { stW.recordUser(keyW, { chatType: 'private', senderId: 'u1', senderName: 'n' }, '写不进去'); }
+  catch (e) { failed = true; stW.noteWriteFailure('user', e); }
+  check('健壮性：写盘失败计数', failed && stW.writeFailures.total === 1 && stW.writeFailures.consecutive === 1, JSON.stringify(stW.writeFailures));
+  fsx.rmdirSync(msgFile);
+  stW.recordUser(keyW, { chatType: 'private', senderId: 'u1', senderName: 'n' }, '恢复后能写');
+  check('健壮性：写盘恢复清零', stW.writeFailures.consecutive === 0 && stW.messages(keyW, 5).length >= 1, JSON.stringify(stW.writeFailures));
+  // 坏文件（目录占位）时加载不崩
+  const stW2 = new Store({ file: path.join(dataW, 'store.json'), dir: path.join(dataW, 'memory'), config: { paths: { dataDir: dataW } }, logger: null });
+  let loaded = false;
+  try { stW2.chatStore.ensureChat('wechat:u:u2'); loaded = true; } catch { loaded = false; }
+  check('健壮性：坏消息文件可加载', loaded, '');
+} catch (e) {
+  check('健壮性：写盘失败计数', false, String(e && e.message).slice(0, 60));
+}
+
 console.log('\n通过 ' + pass + '/' + (pass + fail));
   process.exit(fail ? 1 : 0);
 })();
