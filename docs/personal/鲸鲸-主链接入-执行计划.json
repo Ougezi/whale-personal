@@ -217,6 +217,115 @@
     "不重启",
     "旧消息不丢"
    ]
+  },
+  {
+   "id": "I-07",
+   "phase": "I",
+   "title": "统一动作审计",
+   "goal": "brain_agent 与 delegation 两条路径都写 data/action-audit.jsonl，同一 schema。",
+   "case_ids": [
+    "GH-133",
+    "GH-138",
+    "GH-135",
+    "GH-134",
+    "GH-132",
+    "GH-136",
+    "GH-137",
+    "GH-139"
+   ],
+   "min_cases": 5,
+   "source_review": [],
+   "files": [
+    "bridge/action_audit.py",
+    "bridge/brain_agent.py",
+    "bridge/receiver_mixin.py",
+    "scripts/personal/鲸鲸-主链动作审计自测.py",
+    "scripts/personal/鲸鲸-主链动作审计双路径自测.py"
+   ],
+   "actions": [
+    "统一 schema；brain 双写；delegation 记录 started/blocked/done/failed/cancelled；密钥脱敏"
+   ],
+   "tests": [
+    "python scripts/personal/鲸鲸-主链动作审计自测.py",
+    "python scripts/personal/鲸鲸-主链动作审计双路径自测.py"
+   ],
+   "acceptance": [
+    "两路径同文件",
+    "同一 schema",
+    "started/done 可查",
+    "密钥脱敏"
+   ]
+  },
+  {
+   "id": "I-08",
+   "phase": "I",
+   "title": "核心包接入矩阵",
+   "goal": "11 个 Node 包 + 12 个桥接契约状态机器可读，wired 必须有接入点/测试。",
+   "case_ids": [
+    "GH-001",
+    "GH-002",
+    "GH-003",
+    "GH-004",
+    "GH-005",
+    "GH-006",
+    "GH-007",
+    "GH-008"
+   ],
+   "min_cases": 5,
+   "source_review": [],
+   "files": [
+    "docs/personal/鲸鲸-核心包接入矩阵.json",
+    "docs/personal/鲸鲸-核心包接入矩阵.md",
+    "scripts/personal/鲸鲸-核心包接入检查.py",
+    "scripts/personal/鲸鲸-主链接入矩阵自测.py"
+   ],
+   "actions": [
+    "矩阵；检查器；wired/not-wired 规则"
+   ],
+   "tests": [
+    "python scripts/personal/鲸鲸-主链接入矩阵自测.py",
+    "python scripts/personal/鲸鲸-核心包接入检查.py --check"
+   ],
+   "acceptance": [
+    "11 包全列",
+    "wired 有测试",
+    "未接不冒充",
+    "检查器通过"
+   ]
+  },
+  {
+   "id": "I-09",
+   "phase": "I",
+   "title": "源码-dist 同步检查",
+   "goal": "17 个关键接入文件做 SHA256 对比，漂移非 0。",
+   "case_ids": [
+    "GH-107",
+    "GH-108",
+    "GH-109",
+    "GH-110",
+    "GH-111",
+    "GH-112",
+    "GH-113",
+    "GH-114"
+   ],
+   "min_cases": 5,
+   "source_review": [],
+   "files": [
+    "scripts/personal/鲸鲸-dist同步检查.py",
+    "scripts/personal/鲸鲸-主链dist同步自测.py"
+   ],
+   "actions": [
+    "关键文件清单；SHA256；--check"
+   ],
+   "tests": [
+    "python scripts/personal/鲸鲸-dist同步自测.py",
+    "python scripts/personal/鲸鲸-dist同步检查.py --check"
+   ],
+   "acceptance": [
+    "漂移可检测",
+    "源码=dist",
+    "检查器退出码正确"
+   ]
   }
  ]
 }

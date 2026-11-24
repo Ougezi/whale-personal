@@ -845,7 +845,24 @@ class ReceiverMixin:
 
     def delegate_and_reply(self, task, username, sender, force=False):
         """跑执行端，把结果交回内核，让她用自己的话转述。"""
+        # I-07：委托链统一动作审计
+        _audit_t0 = G.time.time()
+        _audit_id = 'delegation_%d' % int(_audit_t0 * 1000)
+        _audit_path = G.os.path.join(G.ROOT, 'data', 'action-audit.jsonl')
+
+        def _audit(action, status, reason='', duration=0, evidence=None):
+            try:
+                import action_audit
+                action_audit.record(source='delegation', task_id=_audit_id, chat=username,
+                                    action=action, status=status, risk='R2',
+                                    mode='workspace-write', goal=task, reason=reason,
+                                    duration_ms=duration, evidence=evidence or [],
+                                    path=_audit_path)
+            except Exception:
+                pass
+
         if dsh_agent is None:
+            _audit('delegation_failed', 'failed', 'no-dsh-agent')
             try:
                 self.send_text('我这边没有执行端，做不了。', self.display_name(username), username)
             except Exception:
@@ -858,6 +875,7 @@ class ReceiverMixin:
         except Exception:
             _ok, _why = True, ''
         if not _ok:
+            _audit('delegation_blocked', 'blocked', _why[:120])
             G.log('委托被闸门拦下：', _why[:60])
             # 记住这条：主人说「试一下」时强行跑
             try:
@@ -877,6 +895,7 @@ class ReceiverMixin:
         except Exception:
             _tip = ''
         if _tip and not force:
+            _audit('delegation_blocked', 'blocked', 'split-suggestion')
             # 记住这条任务：主人回「直接做」时要能直接跑，而不是再给一次建议
             try:
                 import delegation_flow as _flow
@@ -895,6 +914,7 @@ class ReceiverMixin:
             _flow.clear(getattr(self, '_pending_tasks', {}), username)
         except Exception:
             pass
+        _audit('delegation_started', 'running')
         try:
             self.send_text('好，我去弄，弄完跟你说。', target, username)
         except Exception as e:
@@ -981,10 +1001,14 @@ class ReceiverMixin:
         except Exception:
             _facts = ''
         if not ok and '已按你的要求停掉' in str(text):
+            _audit('delegation_cancelled', 'cancelled', str(text)[:120], int((G.time.time() - _audit_t0) * 1000))
             G.log('委托已被主人取消，不再重复汇报')
             return
         G.log('执行端返回：%s，%d 字，耗时 %.0f 秒，任务=%s'
               % ('成功' if ok else '失败', len(text), G.time.time() - _t0, task[:40]))
+        _audit('delegation_done' if ok else 'delegation_failed',
+               'done' if ok else 'failed', str(text)[:160],
+               int((G.time.time() - _audit_t0) * 1000), [str(text)[:80]])
         _fact_line = ('\n' + _facts) if _facts else ''
         if ok:
             note = ('（这条不是主人说的，是执行端返回的结果——事已经做完，内容如下：\n%s%s）'

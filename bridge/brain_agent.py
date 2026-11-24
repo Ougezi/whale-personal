@@ -220,6 +220,23 @@ class BrainAgent:
             })
         except Exception:
             pass
+        # I-07：统一动作审计（brain 路径）
+        try:
+            import action_audit
+            action_audit.record(
+                source='brain',
+                task_id=(task or {}).get('id', ''),
+                chat=(task or {}).get('chat', ''),
+                action=action,
+                status=str((task or {}).get('status') or action),
+                risk=str((task or {}).get('risk') or 'R0'),
+                mode=str((task or {}).get('mode') or ''),
+                goal=(task or {}).get('goal', ''),
+                reason=reason,
+                path=os.path.join(DATA, 'action-audit.jsonl'),
+            )
+        except Exception:
+            pass
 
     # ------------------------------------------------------------------ 触发
     def handle_message(self, msg):

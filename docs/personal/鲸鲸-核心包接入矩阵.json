@@ -1,0 +1,164 @@
+{
+ "version": 1,
+ "updatedAt": "2026-11-25",
+ "packages": [
+  {
+   "id": "events",
+   "path": "packages/memory-core/events.js",
+   "status": "wired",
+   "integration": "src/memory/eventSink.js -> ChatStore.appendMessage",
+   "flag": "features.eventLog",
+   "test": "scripts/personal/鲸鲸-主链事件接自测.js",
+   "note": "append-only 事件双写；I-06 热停"
+  },
+  {
+   "id": "working",
+   "path": "packages/memory-core/working.js",
+   "status": "wired",
+   "integration": "src/persona/promptMemory.js -> src/pipeline/chat.js memoryBlock",
+   "flag": "features.workingMemory",
+   "test": "scripts/personal/鲸鲸-主链Prompt接自测.js",
+   "note": "working/session/instruction 旁路块"
+  },
+  {
+   "id": "retrieval",
+   "path": "packages/memory-core/retrieval.js",
+   "status": "not-wired",
+   "alternative": "src/memory/retrieval.js + vectorIndex.js",
+   "note": "新混合检索未替换旧召回"
+  },
+  {
+   "id": "migrate",
+   "path": "packages/memory-core/migrate.js",
+   "status": "not-wired",
+   "alternative": "src/memory/migrate.js",
+   "note": "旧记忆迁移仍走原 migrate"
+  },
+  {
+   "id": "receipts",
+   "path": "packages/memory-core/receipts.js",
+   "status": "not-wired",
+   "alternative": "bridge/send_guard.py receipt JSONL",
+   "note": "回执能力存在，但未共用 JS 账本"
+  },
+  {
+   "id": "commitment",
+   "path": "packages/memory-core/commitment.js",
+   "status": "not-wired",
+   "alternative": "src/services/care.js / replies",
+   "note": "承诺/能力账本未接 care"
+  },
+  {
+   "id": "expression",
+   "path": "packages/persona-core/expression.js",
+   "status": "not-wired",
+   "alternative": "src/persona/expression.js / prompt.js",
+   "note": "表达层未替换旧实现"
+  },
+  {
+   "id": "affect",
+   "path": "packages/persona-core/affect.js",
+   "status": "not-wired",
+   "alternative": "src/core/mood.js",
+   "note": "affect 未接 mood"
+  },
+  {
+   "id": "scope",
+   "path": "packages/persona-core/scope.js",
+   "status": "not-wired",
+   "alternative": "src/core/identity.js + store scope",
+   "note": "scope 未接身份/隐私"
+  },
+  {
+   "id": "registry",
+   "path": "packages/action-core/registry.js",
+   "status": "not-wired",
+   "alternative": "bridge/action_guard.py SPECS",
+   "note": "JS ActionSpec 未接 brain_agent"
+  },
+  {
+   "id": "job",
+   "path": "packages/action-core/job.js",
+   "status": "not-wired",
+   "alternative": "bridge/brain_agent.py watchdog/taskkill",
+   "note": "JS Job 状态机未接执行脑"
+  }
+ ],
+ "bridge_contracts": [
+  {
+   "id": "send_guard",
+   "path": "bridge/send_guard.py",
+   "status": "wired",
+   "integration": "sender_mixin.py send_text wrapper",
+   "flag": "WHALE_SEND_GUARD（环境变量，需重启）"
+  },
+  {
+   "id": "action_guard",
+   "path": "bridge/action_guard.py",
+   "status": "wired",
+   "integration": "brain_agent.py _tool_guard",
+   "flag": "WHALE_ACTION_GUARD（环境变量，需重启）"
+  },
+  {
+   "id": "command_bus",
+   "path": "bridge/command_bus.py",
+   "status": "not-wired",
+   "note": "契约/测试，未接真实发送"
+  },
+  {
+   "id": "verify",
+   "path": "bridge/verify.py",
+   "status": "not-wired",
+   "note": "回执契约，未接发送链"
+  },
+  {
+   "id": "shadow",
+   "path": "bridge/shadow.py",
+   "status": "not-wired",
+   "note": "只记录不执行，未接真实流量"
+  },
+  {
+   "id": "rollout",
+   "path": "bridge/rollout.py",
+   "status": "not-wired",
+   "note": "灰度状态机，未接发布配置"
+  },
+  {
+   "id": "redteam",
+   "path": "bridge/redteam.py",
+   "status": "not-wired",
+   "note": "静态样本，未接自动变体"
+  },
+  {
+   "id": "birth_config",
+   "path": "bridge/birth_config.py",
+   "status": "not-wired",
+   "note": "三技能配置，未接 app 启动"
+  },
+  {
+   "id": "approval",
+   "path": "bridge/evolution/approval.py",
+   "status": "not-wired",
+   "note": "进化审批，未接真实进化链"
+  },
+  {
+   "id": "genome",
+   "path": "bridge/evolution/genome.py",
+   "status": "not-wired",
+   "note": "基因组注册，未接 live 配置"
+  },
+  {
+   "id": "sandbox",
+   "path": "bridge/evolution/sandbox.py",
+   "status": "not-wired",
+   "note": "沙箱，未接提案执行"
+  },
+  {
+   "id": "action_audit",
+   "path": "bridge/action_audit.py",
+   "status": "wired",
+   "integration": "brain_agent.py _audit + receiver_mixin.delegate_and_reply",
+   "flag": "-"
+  }
+ ]
+}
