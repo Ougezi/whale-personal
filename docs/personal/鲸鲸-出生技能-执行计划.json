@@ -985,23 +985,24 @@
     "GH-139"
    ],
    "source_review": [
-    "AgentBench",
-    "SkillEvaluator"
+    "AgentBench"
    ],
    "files": [
-    "scripts/personal/鲸鲸-出生技能自测.py",
-    "data/birth-skills/state.json"
+    "bridge/shadow.py",
+    "scripts/personal/鲸鲸-出生Shadow自测.py",
+    "scripts/personal/鲸鲸-出生技能自测.py"
    ],
    "actions": [
-    "shadow 日志；指标；人工标注"
+    "shadow 只记录不执行；人工标注；precision/recall/clarifyRate；3–7 天窗口"
    ],
    "tests": [
-    "误执行 0",
-    "召回"
+    "python scripts/personal/鲸鲸-出生Shadow自测.py"
    ],
    "acceptance": [
-    "shadow 3-7 天",
-    "误执行 0"
+    "shadow 3–7 天",
+    "误执行 0",
+    "precision/recall 可算",
+    "澄清率可算"
    ]
   },
   {
