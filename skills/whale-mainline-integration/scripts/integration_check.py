@@ -49,7 +49,7 @@ def check():
         evp = EVID / (sid + '.json')
         ev = load(evp)
         row = {'id': sid, 'title': step.get('title', ''), 'status': status,
-               'evidence': str(evp.relative_to(ROOT)) if evp.exists() else '',
+               'evidence': (str(evp.relative_to(ROOT)) if evp.exists() and evp.is_relative_to(ROOT) else str(evp)) if evp.exists() else '',
                'tests': (ev or {}).get('tests', {}), 'errors': []}
         if status == 'done':
             done += 1
