@@ -99,6 +99,14 @@ const REGISTRY = [
     default: true,
   },
   {
+    key: 'commitment',
+    path: 'features.commitment',
+    label: '承诺记录（实验性，record-only）',
+    desc: '开启后只在主人说「明天/回头/晚点再说」时记录承诺；不改回复、不自动判定 kept。',
+    default: false,
+    experimental: true,
+  },
+  {
     key: 'retrievalCore',
     path: 'features.retrievalCore',
     label: '混合检索 Core（实验性）',

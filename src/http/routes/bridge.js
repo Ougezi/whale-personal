@@ -71,4 +71,18 @@ module.exports = function register(router) {
     const r = runtime.actionJobs.apply(body);
     return json(res, r.ok ? 200 : 400, r);
   });
+
+  // I-21：只读 ActionSpec 目录；不替代 Python action_guard 的执行策略
+  router.get('/api/actions/registry', async (runtime, req, res) => {
+    const { catalog } = require('../../services/actionRegistry');
+    return json(res, 200, { ok: true, actions: catalog() });
+  });
+
+  router.post('/api/actions/validate', async (runtime, req, res) => {
+    const body = await readBody(req);
+    const gw = runtime.gateways.get('wechat');
+    if (!gw || !gw.verifyToken(req, body)) return json(res, 403, { ok: false, error: 'token 不对' });
+    const { validate } = require('../../services/actionRegistry');
+    return json(res, 200, validate(body.action, body.args || {}));
+  });
 };

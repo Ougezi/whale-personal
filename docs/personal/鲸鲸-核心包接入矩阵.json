@@ -48,9 +48,11 @@
   {
    "id": "commitment",
    "path": "packages/memory-core/commitment.js",
-   "status": "not-wired",
-   "alternative": "src/services/care.js / replies",
-   "note": "承诺/能力账本未接 care"
+   "status": "wired",
+   "note": "只记录，不自动判定 kept",
+   "integration": "src/pipeline/chat.js promise hook -> commitmentLedger",
+   "flag": "features.commitment（默认 false，record-only）",
+   "test": "scripts/personal/鲸鲸-主链承诺账本自测.js"
   },
   {
    "id": "expression",
@@ -76,9 +78,11 @@
   {
    "id": "registry",
    "path": "packages/action-core/registry.js",
-   "status": "not-wired",
-   "alternative": "bridge/action_guard.py SPECS",
-   "note": "JS ActionSpec 未接 brain_agent"
+   "status": "wired",
+   "note": "只读目录，不替代策略",
+   "integration": "/api/actions/registry + /api/actions/validate（只读）",
+   "flag": "无（Python action_guard 仍是执行策略）",
+   "test": "scripts/personal/鲸鲸-主链动作目录自测.js"
   },
   {
    "id": "job",

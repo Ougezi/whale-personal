@@ -21,6 +21,8 @@ CASES = [
     ('Job 账本', 'node', 'scripts/personal/鲸鲸-主链Job账本自测.js', {}),
     ('回执账本', 'node', 'scripts/personal/鲸鲸-主链回执账本自测.js', {}),
     ('回执轮转', 'py', 'scripts/personal/鲸鲸-主链回执轮转自测.py', {}),
+    ('承诺账本', 'node', 'scripts/personal/鲸鲸-主链承诺账本自测.js', {}),
+    ('动作目录', 'node', 'scripts/personal/鲸鲸-主链动作目录自测.js', {}),
     ('委托审批', 'py', 'scripts/personal/鲸鲸-主链委托审批自测.py', {}),
     ('动作审计', 'py', 'scripts/personal/鲸鲸-主链动作审计自测.py', {}),
     ('双路径审计', 'py', 'scripts/personal/鲸鲸-主链动作审计双路径自测.py', {}),

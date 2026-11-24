@@ -701,6 +701,79 @@
     "delegation_done",
     "taskId 连续"
    ]
+  },
+  {
+   "id": "I-20",
+   "phase": "I",
+   "title": "commitment 记录接入",
+   "goal": "承诺只记录（默认关），持久化、可查、record-only。",
+   "case_ids": [
+    "GH-115",
+    "GH-116",
+    "GH-117",
+    "GH-118",
+    "GH-119",
+    "GH-120",
+    "GH-121",
+    "GH-122"
+   ],
+   "min_cases": 5,
+   "source_review": [],
+   "files": [
+    "src/services/commitmentLedger.js",
+    "src/pipeline/chat.js",
+    "src/infra/features.js",
+    "scripts/personal/鲸鲸-主链承诺账本自测.js"
+   ],
+   "actions": [
+    "promise hook",
+    "持久化",
+    "默认关"
+   ],
+   "tests": [
+    "node scripts/personal/鲸鲸-主链承诺账本自测.js"
+   ],
+   "acceptance": [
+    "默认关",
+    "记录落盘",
+    "record-only"
+   ]
+  },
+  {
+   "id": "I-21",
+   "phase": "I",
+   "title": "registry 只读目录接入",
+   "goal": "ActionSpec 只读目录/校验接 HTTP；Python action_guard 仍是执行策略。",
+   "case_ids": [
+    "EV-011",
+    "EV-012",
+    "EV-013",
+    "EV-014",
+    "EV-015",
+    "EV-018",
+    "EV-019",
+    "EV-020"
+   ],
+   "min_cases": 5,
+   "source_review": [],
+   "files": [
+    "src/services/actionRegistry.js",
+    "src/http/routes/bridge.js",
+    "scripts/personal/鲸鲸-主链动作目录自测.js"
+   ],
+   "actions": [
+    "/api/actions/registry",
+    "/api/actions/validate"
+   ],
+   "tests": [
+    "node scripts/personal/鲸鲸-主链动作目录自测.js",
+    "live GET /api/actions/registry"
+   ],
+   "acceptance": [
+    "8 个 ActionSpec",
+    "R2 校验",
+    "不替代策略"
+   ]
   }
  ]
 }

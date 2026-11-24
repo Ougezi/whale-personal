@@ -44,8 +44,6 @@ def sha(path):
 
 
 EXCLUDED = {
-    'packages/action-core/registry.js': '能力储备，未部署到 dist',
-    'packages/memory-core/commitment.js': '能力储备，未部署到 dist',
     'packages/memory-core/migrate.js': '旧迁移，未部署到 dist',
     'packages/persona-core/affect.js': '能力储备，未部署到 dist',
     'packages/persona-core/expression.js': '能力储备，未部署到 dist',

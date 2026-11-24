@@ -20,6 +20,7 @@
 const path = require('node:path');
 const innerNotes = require('../core/innerNotes');
 const concerns = require('../core/concerns');
+const commitmentLedger = require('../services/commitmentLedger');
 const empathy = require('../core/empathy');
 const antiRepeat = require('../core/antiRepeat');
 const skills = require('../core/skills');
@@ -817,6 +818,14 @@ class Bot {
       if (isMaster && /(明天|回头|改天|等会|晚点).{0,8}(再说|聊|弄|说|处理)|先这样/.test(_t)) {
         concerns.add((this.config && this.config.paths && this.config.paths.dataDir) || path.join(process.cwd(), 'data'),
           { text: _t.slice(0, 60), kind: 'promise', now: nowMs });
+        if (features.isOn(this.config, 'commitment')) {
+          try {
+            commitmentLedger.recordPromise({
+              dataDir: (this.config && this.config.paths && this.config.paths.dataDir) || path.join(process.cwd(), 'data'),
+              text: _t.slice(0, 200), now: nowMs,
+            });
+          } catch { /* 记录失败不影响回复 */ }
+        }
       }
     } catch { /* 牵挂失败不影响回复 */ }
 
