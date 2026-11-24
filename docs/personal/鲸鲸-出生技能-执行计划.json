@@ -789,18 +789,20 @@
    "source_review": [],
    "files": [
     "bridge/evolution/approval.py",
+    "scripts/personal/鲸鲸-出生审批灰度自测.py",
     "docs/personal/鲸鲸-出生技能-执行计划.json"
    ],
    "actions": [
-    "审批；灰度；指标门槛"
+    "R2 一批/R3 两批；shadow→canary→live；无证据不能 canary；指标不达标回滚；stop"
    ],
    "tests": [
-    "未批不 live",
-    "指标不达标回滚"
+    "python scripts/personal/鲸鲸-出生审批灰度自测.py"
    ],
    "acceptance": [
     "误执行 0",
-    "灰度可停"
+    "灰度可停",
+    "指标不达标回滚",
+    "R3 两批"
    ]
   },
   {
