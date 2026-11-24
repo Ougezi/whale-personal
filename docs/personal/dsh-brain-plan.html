@@ -50,7 +50,7 @@ a{color:var(--blue)}
     <tr><td>并发</td><td>每会话 1 个；全局 2 个</td><td>防打爆电脑</td></tr>
     <tr><td>审批超时</td><td>5 分钟默认拒绝</td><td>安全优先</td></tr>
     <tr><td>任务上限</td><td>4 分钟；保留最近 80 条任务卡</td><td>防挂死/无限增长</td></tr>
-    <tr><td>P4</td><td>定时只读 + 静默 23:00–08:00；多代理暂不启用</td><td>先稳主动汇报；多代理另开阶段</td></tr>
+    <tr><td>P4</td><td>定时只读 + 静默 23:00–08:00；<b>多代理只读</b>（两路侦察+汇总）已启用；多代理写不启用</td><td>先稳主动汇报；写操作仍走 P2</td></tr>
     <tr><td>记忆边界</td><td>只写任务卡（目标/结果/证据），不写 tool trace</td><td>不污染鲸鲸长期记忆</td></tr>
   </table>
 
@@ -72,7 +72,7 @@ a{color:var(--blue)}
     <tr><td>P1</td><td>只读诊断：读文件/日志/代码，不改、不联网</td><td><code>whale-brain-p1-readonly</code></td><td><span class="tag g">已装</span></td></tr>
     <tr><td>P2</td><td>可写：主人审批后改工作区，验证/回滚</td><td><code>whale-brain-p2-write-approval</code></td><td><span class="tag g">已装</span></td></tr>
     <tr><td>P3</td><td>续跑：sessionId、状态、取消、重启恢复</td><td><code>whale-brain-p3-resume</code></td><td><span class="tag g">已装</span></td></tr>
-    <tr><td>P4</td><td>定时只读 + 主动汇报（静默时段/配额）</td><td><code>whale-brain-p4-proactive</code></td><td><span class="tag g">已装</span></td></tr>
+    <tr><td>P4</td><td>定时只读 + 主动汇报 + 多代理只读（<code>脑子深查</code>）</td><td><code>whale-brain-p4-proactive</code></td><td><span class="tag g">已装</span></td></tr>
   </table>
 
   <h2>4. 已实测的证据</h2>
@@ -81,7 +81,7 @@ a{color:var(--blue)}
       <li><b>P1</b>：读 <code>D:\dsh\brain-test\test.txt</code> 返回 42；不写文件、不联网。</li>
       <li><b>P2</b>：<code>脑子写</code> 先进入 <code>pending_approval</code>；回「可以」后用 workspace-write 创建 <code>ok.txt</code>，内容 hello。</li>
       <li><b>P3</b>：同一 <code>session-id</code> 续问“刚才回答的是哪两个字”，返回“可以”；session 相同。</li>
-      <li><b>P4</b>：定时解析/静默/配额已实现；多代理暂不启用。</li>
+      <li><b>P4</b>：定时解析/静默/配额已实现；<code>脑子深查</code> 两路只读 Scout + Manager 汇总已实测。</li>
     </ul>
     <p class="small">测试任务只用了 <code>D:\dsh\brain-test*</code> 临时目录；没有改鲸鲸仓库。</p>
   </div>
@@ -93,7 +93,7 @@ a{color:var(--blue)}
     <li>代码：<code>bridge/brain_agent.py</code>、<code>bridge/brain_mixin.py</code>、<code>src/http/routes/memory.js</code></li>
   </ul>
 
-  <p class="note">P4 多代理（Scout/Manager）按计划暂不启用，避免多个 Agent 同时写；需要时再按 skill 开。</p>
+  <p class="note">多代理只做只读侦察+汇总；多代理写不启用，写操作仍走 P2 主人审批。</p>
 </main>
 </body>
 </html>

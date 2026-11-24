@@ -490,6 +490,8 @@ def main():
         check("执行脑：写命令", bool(_ba.CMD_RE.match("脑子写：修一下")), "")
         check("执行脑：工作区取父目录", _ba._workspace_of("D:\\dsh\\brain-test\\test.txt").lower().endswith("brain-test"), _ba._workspace_of("D:\\dsh\\brain-test\\test.txt"))
         check("执行脑：只读边界", "只读任务" in _ba._build_prompt("x", "read-only", "D:\\dsh"), "")
+        check("执行脑：多代理触发", bool(_ba.CMD_RE.match("脑子深查：查一下 D:\\dsh")) and _ba.CMD_RE.match("脑子深查：查一下 D:\\dsh").group(1) == "深查", "")
+        check("执行脑：工作区白名单", _ba._allowed_workspace("D:\\dsh\\x") and not _ba._allowed_workspace("C:\\Windows") and _ba._denied_workspace("D:\\dsh\\data"), "")
     except Exception as e:
         check("执行脑：触发词", False, repr(e))
 

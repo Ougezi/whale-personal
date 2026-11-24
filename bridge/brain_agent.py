@@ -14,6 +14,7 @@ r"""鲸鲸的 DSH 执行脑（bridge 侧）。
   脑子状态
   脑子取消
   脑子定时：每天 09:00 汇总...
+  脑子深查：两路只读侦察 + 一路汇总
 
 设计约束：
 - 只有主人私聊能触发；非主人一律不处理。
@@ -38,9 +39,10 @@ MAX_OUTPUT = 1400
 APPROVE_WORDS = {'可以', '行', '好', '批准', '执行', '同意', '嗯'}
 REJECT_WORDS = {'不要', '不行', '取消', '拒绝', '算了', '不'}
 WRITE_HINTS = ('改', '修', '写', '删', '安装', '部署', '重启', '替换', '创建', '生成文件', 'patch')
-CMD_RE = re.compile(r'^(?:/brain|脑子)(写|继续|状态|进度|取消|定时)?\s*[：:，,]\s*(.*)$', re.S)
+CMD_RE = re.compile(r'^(?:/brain|脑子)(写|继续|状态|进度|取消|定时|深查|多查|多代理)?\s*[：:，,]\s*(.*)$', re.S)
 SPACE_RE = re.compile(r'^(?:/brain|脑子)\s+(.+)$', re.S)
 SCHED_RE = re.compile(r'^每天\s*(\d{1,2}:\d{2})\s*(.*)$', re.S)
+ALLOWED_ROOTS = [os.path.abspath(x.strip()) for x in (os.environ.get('WHALE_BRAIN_ROOTS') or r'D:\dsh').split(';') if x.strip()]
 
 
 def _now():
@@ -79,6 +81,16 @@ def _build_prompt(goal, mode, workspace):
         '输出要求：最后用简短、自然的中文汇报；先给结论，再给关键证据（路径/行号/命令）；'
         '不要贴大段日志、不要输出 JSON、不要用助手腔。'
     )
+
+
+def _allowed_workspace(path):
+    p = os.path.abspath(path)
+    return any(p == r or p.startswith(r + os.sep) for r in ALLOWED_ROOTS)
+
+
+def _denied_workspace(path):
+    parts = os.path.abspath(path).lower().split(os.sep)
+    return 'data' in parts or 'backup' in parts
 
 
 class BrainAgent:
@@ -202,9 +214,15 @@ class BrainAgent:
                 return True
             self._start(username, body, mode='read-only', resume=True)
             return True
+        if sub in ('深查', '多查', '多代理'):
+            if not body:
+                self._send('多代理用法：脑子深查：查一下 D:\\...（两路只读侦察 + 汇总）', username)
+                return True
+            self._start_multi(username, body)
+            return True
         # 脑子 / 脑子写
         if not body:
-            self._send('执行脑用法：脑子：查一下 D:\\...；脑子写：修一下 ...；脑子状态；脑子取消。', username)
+            self._send('执行脑用法：脑子：查一下 D:\\...；脑子写：修一下 ...；脑子深查：...；脑子状态；脑子取消。', username)
             return True
         write_mode = sub == '写'
         if not write_mode:
@@ -224,7 +242,11 @@ class BrainAgent:
         if running:
             self._send('上一个任务还在跑，等它完再开写任务。', chat)
             return
-        task = self._new_task(chat, goal, 'workspace-write', _workspace_of(goal))
+        workspace = _workspace_of(goal)
+        if not _allowed_workspace(workspace) or _denied_workspace(workspace):
+            self._send('这个工作区不在允许范围（默认只允许 D:\\dsh，且不碰 data/backup）。', chat)
+            return
+        task = self._new_task(chat, goal, 'workspace-write', workspace)
         task['status'] = 'pending_approval'
         self._save()
         self._send(
@@ -302,6 +324,9 @@ class BrainAgent:
             self._send('执行脑手上还有 2 个任务，等一个跑完再开。', chat)
             return
         workspace = _workspace_of(goal)
+        if not _allowed_workspace(workspace) or _denied_workspace(workspace):
+            self._send('这个工作区不在允许范围（默认只允许 D:\\dsh，且不碰 data/backup）。', chat)
+            return
         task = self._new_task(chat, goal, mode, workspace)
         if resume:
             with self._lock:
@@ -309,6 +334,104 @@ class BrainAgent:
             if sess.get('sessionId'):
                 task['sessionId'] = sess['sessionId']
         self._run(task)
+
+    def _collect_once(self, prompt, workspace, timeout=150):
+        """同步跑一次只读 DSH，返回 final 文本；供多代理侦察/汇总使用。"""
+        key = dsh_agent._api_key()
+        if not key:
+            return '（没有可用 API key）'
+        cmd = [dsh_agent.EXE, dsh_agent.BIN, '--profile', 'headless', '--json',
+               '--permission-mode', 'read-only', '--approval-policy', 'never', prompt]
+        env = dict(os.environ)
+        env['DEEPSEEK_API_KEY'] = key
+        flags = getattr(subprocess, 'CREATE_NEW_PROCESS_GROUP', 0)
+        try:
+            p = subprocess.Popen(cmd, cwd=workspace, env=env, stdout=subprocess.PIPE,
+                                 stderr=subprocess.PIPE, text=True, encoding='utf-8',
+                                 errors='replace', creationflags=flags)
+        except Exception as e:
+            return '（启动失败：%s）' % _short(repr(e), 80)
+        try:
+            out, err = p.communicate(timeout=timeout)
+        except subprocess.TimeoutExpired:
+            try:
+                subprocess.run(['taskkill', '/PID', str(p.pid), '/T', '/F'],
+                               capture_output=True, timeout=15)
+            except Exception:
+                try: p.kill()
+                except Exception: pass
+            return '（超时）'
+        text = ''
+        error = ''
+        for line in (out or '').splitlines():
+            try:
+                ev = json.loads(line)
+            except Exception:
+                continue
+            if ev.get('type') == 'text':
+                text += str(ev.get('text') or '')
+            elif ev.get('type') == 'final':
+                text = str(ev.get('text') or text)
+                reason = ev.get('reason') or {}
+                if reason.get('kind') == 'error':
+                    error = str((reason.get('error') or {}).get('message') or '')[:200]
+        return (text.strip() or (('（失败：%s）' % error) if error else '（没有结果）'))[:1800]
+
+    def _start_multi(self, chat, goal):
+        with self._lock:
+            running = [t for t in self._state['tasks'].values()
+                       if t.get('chat') == chat and t.get('status') in ('running', 'queued')]
+            all_running = [t for t in self._state['tasks'].values()
+                           if t.get('status') in ('running', 'queued')]
+        if running or len(all_running) >= 2:
+            self._send('执行脑还在忙，等一个跑完再开多代理。', chat)
+            return
+        workspace = _workspace_of(goal)
+        if not _allowed_workspace(workspace) or _denied_workspace(workspace):
+            self._send('这个工作区不在允许范围（默认只允许 D:\\\\\\\\dsh，且不碰 data/backup）。', chat)
+            return
+        task = self._new_task(chat, goal, 'multi-readonly', workspace)
+        task['status'] = 'running'
+        task['startedAt'] = _now()
+        self._save()
+        self._send('我拆两路只读查一下，最后汇总给你。', chat)
+        threading.Thread(target=self._multi_worker, args=(task,), daemon=True,
+                         name='brain-multi-' + task['id']).start()
+
+    def _multi_worker(self, task):
+        goal = task['goal']
+        ws = task['workspace']
+        pa = ('只读侦察 A（项目结构/入口/配置/依赖）：' + goal +
+              '\n只列 5-8 条事实 + 证据路径，不要建议、不要写文件、不要联网。')
+        pb = ('只读侦察 B（日志/报错/测试/最近改动）：' + goal +
+              '\n只列 5-8 条事实 + 证据路径，不要建议、不要写文件、不要联网。')
+        notes = {}
+        def scout(name, prompt):
+            notes[name] = self._collect_once(prompt, ws, 150)
+        ts = [threading.Thread(target=scout, args=('A', pa), daemon=True),
+              threading.Thread(target=scout, args=('B', pb), daemon=True)]
+        for t in ts: t.start()
+        for t in ts: t.join()
+        self._send('两路查完了，我汇总一下。', task['chat'])
+        manager = ('你是鲸鲸的执行脑。下面是两路只读侦察报告。\n'
+                   '请合并成一份简短结论：先给结论，再给关键证据；不要贴日志、不要写文件。\n\n'
+                   '侦察 A：\n' + notes.get('A', '（无）') +
+                   '\n\n侦察 B：\n' + notes.get('B', '（无）'))
+        final = self._collect_once(manager, ws, 150)
+        if not final or final.startswith('（'):
+            final = '两路侦察：\nA：%s\nB：%s' % (notes.get('A', '（无）')[:500], notes.get('B', '（无）')[:500])
+        task['status'] = 'done'
+        task['finishedAt'] = _now()
+        task['output'] = final[:MAX_OUTPUT]
+        task['scouts'] = {k: v[:800] for k, v in notes.items()}
+        self._save()
+        self._send(final[:MAX_OUTPUT], task['chat'])
+        try:
+            if self.record:
+                self.record({'chat': task['chat'], 'taskId': task['id'], 'goal': goal,
+                             'status': 'done', 'result': final[:800], 'mode': 'multi-readonly'})
+        except Exception as e:
+            self.log('brain 多代理入记忆失败：', repr(e))
 
     def _run(self, task):
         key = dsh_agent._api_key()
