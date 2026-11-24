@@ -326,6 +326,80 @@
     "源码=dist",
     "检查器退出码正确"
    ]
+  },
+  {
+   "id": "I-10",
+   "phase": "I",
+   "title": "委托硬审批 + 策略复用",
+   "goal": "委托写任务必须先过 R2/R3 硬审批；路径/凭据/网络复用 brain_policy。",
+   "case_ids": [
+    "GH-115",
+    "GH-116",
+    "GH-117",
+    "GH-118",
+    "GH-119",
+    "GH-120",
+    "GH-121",
+    "GH-122"
+   ],
+   "min_cases": 5,
+   "source_review": [],
+   "files": [
+    "bridge/delegation_approval.py",
+    "bridge/receiver_mixin.py",
+    "scripts/personal/鲸鲸-主链委托审批自测.py",
+    "docs/personal/鲸鲸-核心包接入矩阵.json"
+   ],
+   "actions": [
+    "5 分钟挂起；R2 一次/R3 两次；拒绝取消；brain_policy 前置检查"
+   ],
+   "tests": [
+    "python scripts/personal/鲸鲸-主链委托审批自测.py",
+    "python scripts/personal/鲸鲸-自测.py",
+    "python scripts/personal/鲸鲸-执行脑自测.py"
+   ],
+   "acceptance": [
+    "未确认不执行",
+    "R2 一次确认",
+    "R3 两次确认",
+    "越界先拦"
+   ]
+  },
+  {
+   "id": "I-11",
+   "phase": "I",
+   "title": "审计事实源收敛",
+   "goal": "action-audit 唯一事实源；brain-audit 只由 action-audit 投影。",
+   "case_ids": [
+    "EV-003",
+    "EV-004",
+    "EV-005",
+    "EV-006",
+    "EV-007",
+    "EV-008",
+    "EV-009",
+    "EV-010"
+   ],
+   "min_cases": 5,
+   "source_review": [],
+   "files": [
+    "bridge/action_audit.py",
+    "bridge/brain_agent.py",
+    "scripts/personal/鲸鲸-主链动作审计自测.py",
+    "scripts/personal/鲸鲸-主链动作审计双路径自测.py"
+   ],
+   "actions": [
+    "record 唯一写入口；project_brain_audit；移除 policy.audit 直写"
+   ],
+   "tests": [
+    "python scripts/personal/鲸鲸-主链动作审计自测.py",
+    "python scripts/personal/鲸鲸-主链动作审计双路径自测.py"
+   ],
+   "acceptance": [
+    "action-audit 唯一事实源",
+    "brain-audit 只投影",
+    "旧字段保留"
+   ]
   }
  ]
 }

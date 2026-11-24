@@ -65,3 +65,28 @@ def read(path, limit=100):
     except Exception:
         return []
     return rows[-max(1, int(limit)):]
+
+
+def project_brain_audit(action_path, brain_path, limit=2000):
+    """把 action-audit 里 source=brain 的行投影成旧 brain-audit 兼容格式。"""
+    rows = [r for r in read(action_path, limit) if r.get('source') == 'brain']
+    out = []
+    for r in rows:
+        out.append({
+            'taskId': r.get('taskId', ''), 'chat': r.get('chat', ''),
+            'action': r.get('action', ''), 'mode': r.get('mode', ''),
+            'risk': r.get('risk', ''), 'goal': r.get('goal', ''),
+            'reason': r.get('reason', ''), 'at': r.get('at', 0),
+            'projection': True,
+        })
+    try:
+        os.makedirs(os.path.dirname(brain_path) or '.', exist_ok=True)
+        with _LOCK:
+            tmp = brain_path + '.tmp'
+            with open(tmp, 'w', encoding='utf-8') as f:
+                for row in out:
+                    f.write(json.dumps(row, ensure_ascii=False) + '\n')
+            os.replace(tmp, brain_path)
+    except Exception:
+        pass
+    return len(out)

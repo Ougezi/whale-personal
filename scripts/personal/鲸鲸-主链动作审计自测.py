@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 """I-07 统一动作审计自测。"""
+import json
 import os
 import sys
 import tempfile
@@ -38,6 +39,20 @@ check('密钥脱敏', lambda: (_ for _ in ()).throw(AssertionError()) if 'sk-ABC
 check('时长非负', lambda: (_ for _ in ()).throw(AssertionError()) if rec(source='brain', duration_ms=-5)['durationMs'] != 0 else None)
 check('证据截断', lambda: (_ for _ in ()).throw(AssertionError()) if len(rec(source='delegation', evidence=['x'] * 30)['evidence']) > 20 else None)
 check('读取最近 N 条', lambda: (_ for _ in ()).throw(AssertionError()) if len(action_audit.read(p, 1)) != 1 else None)
+
+def projection():
+    bp = os.path.join(os.path.dirname(p), 'brain-audit.jsonl')
+    rec(source='brain', task_id='b1', action='started', status='running')
+    rec(source='delegation', task_id='d1', action='delegation_done', status='done')
+    n = action_audit.project_brain_audit(p, bp)
+    rows = [json.loads(x) for x in open(bp, encoding='utf-8') if x.strip()]
+    assert n >= 1
+    assert any(r.get('taskId') == 'b1' for r in rows)
+    assert not any(r.get('taskId') == 'd1' for r in rows)
+    assert all(r.get('projection') is True for r in rows)
+
+
+check('投影 brain-audit 只含 brain', projection)
 
 print('\n通过 %d/%d' % (pass_n, pass_n + fail_n))
 sys.exit(0 if fail_n == 0 else 1)

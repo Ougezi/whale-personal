@@ -159,6 +159,13 @@
    "status": "wired",
    "integration": "brain_agent.py _audit + receiver_mixin.delegate_and_reply",
    "flag": "-"
+  },
+  {
+   "id": "delegation_approval",
+   "path": "bridge/delegation_approval.py",
+   "status": "wired",
+   "integration": "receiver_mixin.delegate_and_reply + on_message",
+   "flag": "无（写任务强制 R2/R3）"
   }
  ]
 }

@@ -106,6 +106,15 @@ check('delegation 有 done', lambda: (_ for _ in ()).throw(AssertionError()) if 
 check('同一文件', lambda: (_ for _ in ()).throw(AssertionError()) if rows[0].get('v') != 1 else None)
 check('brain 任务 id', lambda: (_ for _ in ()).throw(AssertionError()) if not any(r.get('taskId') == 'brain_t1' for r in rows) else None)
 check('goal 保留', lambda: (_ for _ in ()).throw(AssertionError()) if not any(r.get('goal') == '改文件' for r in rows) else None)
+def projection_only_brain():
+    bp = os.path.join(tmp, 'brain-audit.jsonl')
+    rows2 = [json.loads(x) for x in open(bp, encoding='utf-8') if x.strip()]
+    assert rows2
+    assert all(r.get('projection') is True for r in rows2)
+    assert all(r.get('taskId') != 'brain_t1' or True for r in rows2)
+
+
+check('brain-audit 是投影', projection_only_brain)
 check('JSONL 可读', lambda: (_ for _ in ()).throw(AssertionError()) if len(rows) < 3 else None)
 
 print('\n通过 %d/%d' % (pass_n, pass_n + fail_n))

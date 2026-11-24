@@ -1,6 +1,6 @@
 ---
 name: whale-mainline-integration
-description: 鲸鲸主链接入的执行 skill：把出生技能核心模块接进真实 kernel/bridge 主链，按 I-01..I-06 逐步过案例门禁、源码/测试/证据/回滚，再分 L0-L3 做构建产物、local dry-run、真实微信、真实 R2 动作与热停验收。Use when the owner says 主链接入 / 接入主链 / 下一步接入 / 热停 / 端到端验收 / 真实微信验收, or after 出生技能 26 步完成.
+description: 鲸鲸主链接入的执行 skill：把出生技能核心模块接进真实 kernel/bridge 主链，按 I-01..I-11 逐步过案例门禁、源码/测试/证据/回滚，再分 L0-L3 做构建产物、local dry-run、真实微信、真实 R2 动作与热停验收。Use when the owner says 主链接入 / 接入主链 / 下一步接入 / 热停 / 端到端验收 / 真实微信验收, or after 出生技能 26 步完成.
 ---
 
 # whale-mainline-integration
@@ -143,7 +143,9 @@ L2 只能写“真实内核 local dry-run”，不能写“真实微信收发”
 - I-06 热停/热开：7/7，live 27→27 / 27→29；
 - I-07 统一动作审计：brain + delegation 双写 action-audit；
 - I-08 核心包接入矩阵：11 Node 包 + 12 桥接契约，wired 才允许说接入；
-- I-09 源码-dist 同步检查：17 个关键文件 SHA256，漂移非 0。
+- I-09 源码-dist 同步检查：18 个关键文件 SHA256，漂移非 0；
+- I-10 委托硬审批 + brain_policy 复用：9/9，未确认 run_task=0；
+- I-11 审计事实源收敛：action-audit 唯一源，brain-audit 只投影。
 
 ## 已知坑（都真实踩过）
 

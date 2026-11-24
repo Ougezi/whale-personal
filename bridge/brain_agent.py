@@ -208,21 +208,10 @@ class BrainAgent:
         return self._daily_count() < max(1, MAX_PER_DAY)
 
     def _audit(self, action, task, reason=''):
-        try:
-            self.policy.audit({
-                'taskId': task.get('id') if task else '',
-                'chat': task.get('chat') if task else '',
-                'action': action,
-                'mode': task.get('mode') if task else '',
-                'risk': task.get('risk') if task else '',
-                'goal': task.get('goal') if task else '',
-                'reason': reason,
-            })
-        except Exception:
-            pass
-        # I-07：统一动作审计（brain 路径）
+        # P1：action-audit 是唯一事实源；brain-audit 只是兼容投影
         try:
             import action_audit
+            action_path = os.path.join(DATA, 'action-audit.jsonl')
             action_audit.record(
                 source='brain',
                 task_id=(task or {}).get('id', ''),
@@ -233,8 +222,9 @@ class BrainAgent:
                 mode=str((task or {}).get('mode') or ''),
                 goal=(task or {}).get('goal', ''),
                 reason=reason,
-                path=os.path.join(DATA, 'action-audit.jsonl'),
+                path=action_path,
             )
+            action_audit.project_brain_audit(action_path, os.path.join(DATA, 'brain-audit.jsonl'))
         except Exception:
             pass
 

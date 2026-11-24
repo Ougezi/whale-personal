@@ -32,7 +32,7 @@ def by_id(i):
 
 
 check('11 个 Node 包', lambda: (_ for _ in ()).throw(AssertionError()) if len(d['packages']) != 11 else None)
-check('11 个桥接契约', lambda: (_ for _ in ()).throw(AssertionError()) if len(d['bridge_contracts']) != 12 else None)
+check('11 个桥接契约', lambda: (_ for _ in ()).throw(AssertionError()) if len(d['bridge_contracts']) != 13 else None)
 check('events wired', lambda: (_ for _ in ()).throw(AssertionError()) if by_id('events')['status'] != 'wired' else None)
 check('working wired', lambda: (_ for _ in ()).throw(AssertionError()) if by_id('working')['status'] != 'wired' else None)
 check('retrieval not-wired', lambda: (_ for _ in ()).throw(AssertionError()) if by_id('retrieval')['status'] != 'not-wired' else None)

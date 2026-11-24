@@ -29,6 +29,7 @@ FILES = [
     'bridge/sender_mixin.py',
     'bridge/action_guard.py',
     'bridge/action_audit.py',
+    'bridge/delegation_approval.py',
     'bridge/brain_agent.py',
     'bridge/receiver_mixin.py',
 ]

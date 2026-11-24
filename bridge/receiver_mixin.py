@@ -825,7 +825,7 @@ class ReceiverMixin:
             G.log_throttled('doc-extract:' + type(e).__name__, '文档解析失败：', repr(e))
             return ''
 
-    def _spawn_delegation(self, task, username, sender, force=False):
+    def _spawn_delegation(self, task, username, sender, force=False, approved=False):
         """委托放后台线程，别堵住会话 worker。"""
         # 记住最后一次委托：主人说「继续」时直接接着做，不用重述任务
         try:
@@ -836,14 +836,14 @@ class ReceiverMixin:
             pass
         try:
             import threading as _th
-            _t = _th.Thread(target=self.delegate_and_reply, args=(task, username, sender, force),
+            _t = _th.Thread(target=self.delegate_and_reply, args=(task, username, sender, force, approved),
                             name='dsh-delegate', daemon=True)
             _t.start()
         except Exception as e:
             G.log('委托线程启动失败，改为同步：', repr(e))
-            self.delegate_and_reply(task, username, sender, force)
+            self.delegate_and_reply(task, username, sender, force, approved)
 
-    def delegate_and_reply(self, task, username, sender, force=False):
+    def delegate_and_reply(self, task, username, sender, force=False, approved=False):
         """跑执行端，把结果交回内核，让她用自己的话转述。"""
         # I-07：委托链统一动作审计
         _audit_t0 = G.time.time()
@@ -914,6 +914,39 @@ class ReceiverMixin:
             _flow.clear(getattr(self, '_pending_tasks', {}), username)
         except Exception:
             pass
+        # P0：复用 brain_policy 的路径/凭据/网络边界；写任务硬审批
+        try:
+            import brain_policy
+            write = bool(dsh_agent.needs_write(task))
+            mode = 'workspace-write' if write else 'read-only'
+            workspace = dsh_agent.pick_cwd(task)
+            for _m in re.finditer(r'([A-Za-z]:\\[^\s，,。；;]+)', str(task or '')):
+                _p = _m.group(1).rstrip('\\/')
+                if os.path.isdir(_p):
+                    workspace = os.path.abspath(_p); break
+                _parent = os.path.dirname(_p)
+                if os.path.isdir(_parent):
+                    workspace = os.path.abspath(_parent); break
+            _policy = brain_policy.BrainPolicy(os.path.join(G.ROOT, 'data'))
+            _v = _policy.check_action(task, workspace, mode)
+            if not _v.get('ok'):
+                _audit('delegation_policy_blocked', 'blocked', str(_v.get('reason')))
+                self.send_text('这个委托被边界拦了：%s。' % _v.get('reason'), target, username)
+                return
+            risk = _v.get('risk') or ('R2' if write else 'R0')
+            if write and not approved:
+                import delegation_approval
+                if delegation_approval.pending(username):
+                    self.send_text('还在等你确认上一条委托，先回复「可以」或「不要」。', target, username)
+                    return
+                delegation_approval.ask(username, task, sender=sender, workspace=workspace, risk=risk,
+                                        send=lambda t: self.send_text(t, target, username))
+                _audit('approval_requested', 'pending_approval', 'risk=' + risk)
+                return
+            if write and approved:
+                _audit('approved', 'approved', 'risk=' + risk)
+        except Exception as _e:
+            G.log('委托策略/审批检查失败（按原逻辑继续）：', repr(_e))
         _audit('delegation_started', 'running')
         try:
             self.send_text('好，我去弄，弄完跟你说。', target, username)
@@ -2408,6 +2441,21 @@ class ReceiverMixin:
                     return
             except Exception as e:
                 G.log('执行脑处理失败（继续普通聊天）：', repr(e))
+            # P0：委托硬审批（只认当前会话，只消费明确可以/不要）
+            try:
+                import delegation_approval
+                _d = delegation_approval.consume(msg.get('username') or '', msg.get('content') or '')
+                if _d:
+                    _it = _d['item']
+                    if _d['action'] == 'reject':
+                        self.send_text('好，那先不动。', self.display_name(msg.get('username') or ''), msg.get('username') or '')
+                    elif _d['action'] == 'more':
+                        self.send_text('还差一次确认：回复「可以」才会执行。', self.display_name(msg.get('username') or ''), msg.get('username') or '')
+                    else:
+                        self._spawn_delegation(_it['task'], msg.get('username') or '', _it.get('sender') or '', force=True, approved=True)
+                    return
+            except Exception as _e:
+                G.log('委托审批处理失败（继续普通聊天）：', repr(_e))
             try:
                 self._recover_delegation_once()
             except Exception as _e:
