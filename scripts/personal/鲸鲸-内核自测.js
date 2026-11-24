@@ -1235,6 +1235,19 @@ try {
   check('日志保留策略', false, String(e && e.message).slice(0, 50));
 }
 
+// 摘要单段超限保留最近内容（2026-11-24 摘要体检）
+try {
+  const compT2 = require(path.join(ROOT, 'src', 'memory', 'compression.js'));
+  const chatT2 = { summary: { segments: [
+    { text: '旧'.repeat(1000) + '最近的关键事：主人换了工作', fromSeq: 1, toSeq: 100, tokens: 1000 },
+  ], coveredThroughSeq: 100 } };
+  compT2.trimSummary(chatT2, { summaryTokens: 100 });
+  const out = chatT2.summary.segments[0].text;
+  check('摘要超限保留最近', out.includes('最近的关键事') && !out.startsWith('旧旧'), out.slice(0, 30));
+} catch (e) {
+  check('摘要超限保留最近', false, String(e && e.message).slice(0, 40));
+}
+
 console.log('\n通过 ' + pass + '/' + (pass + fail));
   process.exit(fail ? 1 : 0);
 })();

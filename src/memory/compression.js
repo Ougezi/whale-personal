@@ -188,8 +188,12 @@ function trimSummary(chat, { now = Date.now(), summaryTokens = LIMITS.summaryTok
       if (estimateTokens(body.slice(0, mid)) <= limit) lo = mid;
       else hi = mid - 1;
     }
-    const textValue = body.slice(0, Math.max(1, lo)).trim();
-    segments[0].text = textValue || body.slice(0, 1);
+    // 单段超限时保留**尾部**（最近的内容），不要把最新的细节截掉。
+    // 段内顺序是「旧 → 新」；以前 slice(0, lo) 会保留最旧、丢掉刚发生的事。
+    const prefix = body.length > lo ? '更早：' : '';
+    const keep = Math.max(1, lo - prefix.length);
+    const textValue = (prefix + body.slice(Math.max(0, body.length - keep))).trim();
+    segments[0].text = textValue || body.slice(-1);
     segments[0].tokens = estimateTokens(segments[0].text);
   }
   chat.summary.segments = segments;
