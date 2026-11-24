@@ -213,7 +213,7 @@ async function closeEpisode({ chat, chatStore, llm = null, logger = null, now = 
           participants: allUids,
           importance: 0.5,
           confidence: extracted.fallback ? 0.55 : 0.7,
-          source: { chatId: chat.chatId, messageIds },
+          source: { chatId: chat.chatId, messageIds, kind: /@chatroom$/i.test(chat.chatId) ? 'group' : 'owner' },
         }, { chatId: chat.chatId, now });
         writtenEvents += 1;
       }
