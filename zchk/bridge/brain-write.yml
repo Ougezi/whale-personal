@@ -1,9 +1,0 @@
-# P2 可写任务：禁 web 工具，shell 保留做验证；联网命令由 BrainAgent 运行时代理拦截
-- id: web
-  disabled: true
-- id: tool-web
-  disabled: true
-- id: web-search-deepseek
-  disabled: true
-- id: web-deepseek-api
-  disabled: true
