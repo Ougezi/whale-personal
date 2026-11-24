@@ -38,6 +38,7 @@ TASKS_FILE = os.path.join(DATA, 'brain-tasks.json')
 PATCH_READONLY = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'brain-readonly.yml')
 MAX_TASKS = 80
 MAX_OUTPUT = 1400
+MAX_PER_DAY = int(os.environ.get('WHALE_BRAIN_MAX_PER_DAY') or 20)
 APPROVE_WORDS = {'可以', '行', '好', '批准', '执行', '同意', '嗯'}
 REJECT_WORDS = {'不要', '不行', '取消', '拒绝', '算了', '不'}
 WRITE_HINTS = ('改', '修', '写', '删', '安装', '部署', '重启', '替换', '创建', '生成文件', 'patch')
@@ -161,6 +162,20 @@ class BrainAgent:
             self.log('brain 发送失败：', repr(e))
             return False
 
+    def _daily_count(self):
+        prefix = time.strftime('%Y-%m-%d')
+        n = 0
+        for t in self._state.get('tasks', {}).values():
+            try:
+                if time.strftime('%Y-%m-%d', time.localtime((t.get('createdAt') or 0) / 1000)) == prefix:
+                    n += 1
+            except Exception:
+                pass
+        return n
+
+    def _quota_ok(self):
+        return self._daily_count() < max(1, MAX_PER_DAY)
+
     def _audit(self, action, task, reason=''):
         try:
             self.policy.audit({
@@ -262,6 +277,9 @@ class BrainAgent:
         if running:
             self._send('上一个任务还在跑，等它完再开写任务。', chat)
             return
+        if not self._quota_ok():
+            self._send('今天执行脑任务到上限了（%d 个），明天再试。' % MAX_PER_DAY, chat)
+            return
         workspace = _workspace_of(goal)
         verdict = self.policy.check(goal, workspace, 'workspace-write')
         if not verdict.get('ok'):
@@ -359,6 +377,9 @@ class BrainAgent:
         if running:
             self._send('上一个任务还在跑，等它完再开新的。', chat)
             return
+        if not self._quota_ok():
+            self._send('今天执行脑任务到上限了（%d 个），明天再试。' % MAX_PER_DAY, chat)
+            return
         with self._lock:
             all_running = [t for t in self._state['tasks'].values()
                            if t.get('status') in ('running', 'queued')]
@@ -433,6 +454,9 @@ class BrainAgent:
                            if t.get('status') in ('running', 'queued')]
         if running or len(all_running) >= 2:
             self._send('执行脑还在忙，等一个跑完再开多代理。', chat)
+            return
+        if not self._quota_ok():
+            self._send('今天执行脑任务到上限了（%d 个），明天再试。' % MAX_PER_DAY, chat)
             return
         workspace = _workspace_of(goal)
         verdict = self.policy.check(goal, workspace, 'read-only')

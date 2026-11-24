@@ -19,7 +19,11 @@ import tempfile
 import time
 
 REPO = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-BRIDGE = os.path.join(REPO, 'dist', 'whale-personal', 'bridge')
+BRIDGE = None
+for cand in (os.path.join(REPO, 'bridge'), os.path.join(REPO, 'dist', 'whale-personal', 'bridge')):
+    if os.path.isdir(cand):
+        BRIDGE = cand
+        break
 sys.path.insert(0, BRIDGE)
 import brain_agent  # noqa: E402
 
@@ -151,6 +155,13 @@ def unit_tests():
     b._save()
     b.handle_message(msg('脑子：再查一个'))
     check('全局 2 个时拒绝新任务', any('2 个任务' in s or '还在跑' in s for s in sent), sent[-1][:30] if sent else '')
+
+    b, _ = fresh_agent()
+    old_cap = brain_agent.MAX_PER_DAY
+    brain_agent.MAX_PER_DAY = 1
+    b._new_task('wxid_master', 'quota', 'read-only', r'D:\dsh')
+    check('每日配额', b._quota_ok() is False)
+    brain_agent.MAX_PER_DAY = old_cap
 
     print('\n[unit] P4 多代理')
     b, sent = fresh_agent()

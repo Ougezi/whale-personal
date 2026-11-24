@@ -86,6 +86,7 @@ def run_checks():
     # 文档漂着时它们会连带判红（踩过）
     rest = [
         ("内核自测", [NODE, os.path.join(SCRIPTS, "鲸鲸-内核自测.js")], 180),
+        ("执行脑自测", [PY, "-B", os.path.join(SCRIPTS, "鲸鲸-执行脑自测.py")], 180),
         ("桥接自测", [PY, "-B", os.path.join(SCRIPTS, "鲸鲸-自测.py")], 300),
         ("冲突审查", [PY, "-B", os.path.join(SCRIPTS, "鲸鲸-冲突审查.py")], 180),
     ]
