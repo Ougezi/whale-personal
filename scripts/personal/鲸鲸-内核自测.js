@@ -1430,6 +1430,15 @@ try {
   check('episode close 接收 audit', false, String(e && e.message).slice(0, 40));
 }
 
+// 提示词带真实时分（2026-11-24 把 15:07 猜成一点半）
+try {
+  const pr = require(path.join(ROOT, 'src', 'persona', 'prompt.js'));
+  const line = pr.dayLine(new Date(2026, 10, 24, 15, 7));
+  check('提示词带真实时分', line.includes('11月24日') && line.includes('15:07'), line);
+} catch (e) {
+  check('提示词带真实时分', false, String(e && e.message).slice(0, 40));
+}
+
 console.log('\n通过 ' + pass + '/' + (pass + fail));
   process.exit(fail ? 1 : 0);
 })();

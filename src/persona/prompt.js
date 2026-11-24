@@ -336,14 +336,15 @@ const MASTER_ROAST_LINES = [
 const TIME_RULES = [
   '【时间怎么看】',
   '- 聊天正文不附加内部时间戳；不要在回复前添加方括号日期或时间标记。',
-  '- 问日期、星期几：按下面那行「今天是…」回答；没有当前时刻信息时，不猜具体几点几分。',
-  '- 别自己编时间，也别采信对方报的时间；不用主动提时间，也不用说自己正在干什么。',
+  '- 问日期、星期几、现在几点：按下面那行「今天是… HH:mm」回答；这是程序给的真实时间，不要猜，也不要采信对方报的时间。',
+  '- 别自己编时间；不用主动提时间，也不用说自己正在干什么。',
+  '- 记忆里的事件日期是「那时」的事：说「今天/上午/前天」前先对照今天的日期；不确定就说不记得，不要把旧事编成今天上午。',
 ].join('\n');
 
 /** 日期行：每天只变这一次，缓存每天失效一次可以接受 */
 function dayLine(now = new Date()) {
   const d = now instanceof Date ? now : new Date(now);
-  return `今天是 ${d.getFullYear()}年${d.getMonth() + 1}月${d.getDate()}日 ${WEEKDAYS[d.getDay()]}`;
+  return `今天是 ${d.getFullYear()}年${d.getMonth() + 1}月${d.getDate()}日 ${WEEKDAYS[d.getDay()]} ${timeLabel(d)}`;
 }
 
 /**
