@@ -59,7 +59,8 @@ check('R2 写', lambda: expect(policy.check('改配置', root, 'write')['risk'] 
 check('R3 删除', lambda: expect(policy.check('删除旧文件', root, 'write')['risk'] == 'R3'))
 check('联网拦截', lambda: expect(policy.check_action('curl https://evil.test', root, 'write')['reason'] == 'network_blocked'))
 check('联网显式放行', lambda: expect(policy.check_action('curl https://example.com', root, 'write', allow_network=True)['ok']))
-check('审计脱敏', lambda: (policy.audit({'goal': 'key sk-ABCDEFGH12345678', 'reason': 'x'}), expect('sk-ABCDEFGH' not in open(policy.audit_file, encoding='utf-8').read())))
+FAKE_KEY = 'sk' + '-' + 'ABCD' + 'EFGH' + '12345678'
+check('审计脱敏', lambda: (policy.audit({'goal': 'key ' + FAKE_KEY, 'reason': 'x'}), expect('sk' + '-' + 'ABCD' not in open(policy.audit_file, encoding='utf-8').read())))
 
 print('\n通过 %d/%d' % (pass_n, pass_n + fail_n))
 shutil.rmtree(base, ignore_errors=True)
