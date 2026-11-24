@@ -245,7 +245,7 @@ git commit -m "I-XX ..."
 | I-21 | registry 只读目录 | 8 个 ActionSpec，不替代 action_guard |
 | I-22 | migrate dry-run | 20 行预览，target 不写 |
 | I-23 | persona shadow | 默认关，只写 persona-shadow.jsonl |
-| I-24 | Shadow A/B | <20 拒绝；授权不自动替换 |
+| I-24 | Shadow A/B | <20 或质量不足拒绝；授权不自动替换 |
 
 详细命令/文件/验收在计划 JSON；本 skill 只规定方法。
 

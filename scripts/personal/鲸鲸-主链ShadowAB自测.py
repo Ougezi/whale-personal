@@ -10,7 +10,7 @@ def check(name, fn):
     try: fn(); pass_n += 1; print('  ✓ ' + name)
     except Exception as e: fail_n += 1; print('  ✗ ' + name + '  ' + str(e))
 tmp = tempfile.mkdtemp(); shadow = os.path.join(tmp, 'shadow.jsonl'); approval = os.path.join(tmp, 'approval.json')
-open(shadow, 'w', encoding='utf-8').write('\n'.join(json.dumps({'at': i, 'chatId': 'c', 'scope': 'wechat:default:default:private:u', 'affect': {'label': '日常'}, 'expression': {'literals': 1, 'markers': 0}, 'shadow': True}) for i in range(20)) + '\n')
+open(shadow, 'w', encoding='utf-8').write('\n'.join(json.dumps({'at': i, 'chatId': 'c', 'scope': 'wechat:default:default:private:u', 'affect': {'label': '日常' if i % 2 else '高兴'}, 'expression': {'literals': 1, 'markers': 0}, 'shadow': True}) for i in range(20)) + '\n')
 def run(*args):
     p = subprocess.run([PY, SCRIPT] + list(args), capture_output=True, text=True, encoding='utf-8', errors='replace')
     return p.returncode, (p.stdout or '') + (p.stderr or '')
@@ -33,6 +33,14 @@ def insufficient():
     small = os.path.join(tmp, 'small.jsonl'); open(small, 'w', encoding='utf-8').write('{}\n')
     code, out = run('--shadow', small, '--owner', 'ougezi', '--approve', '--approval', os.path.join(tmp, 'no.json'))
     assert code == 3 and '样本不足' in out
+def low_quality():
+    bad = os.path.join(tmp, 'bad.jsonl')
+    open(bad, 'w', encoding='utf-8').write('\n'.join(json.dumps({'at': i, 'chatId': 'c', 'scope': 'private:u', 'affect': {'label': '日常'}, 'expression': {'literals': 0, 'markers': 0}}) for i in range(20)) + '\n')
+    code, out = run('--shadow', bad, '--json')
+    data = json.loads(out[out.index('{'):])
+    assert code == 0 and data['enough'] is False
+check('质量不足不 enough', low_quality)
+
 check('样本不足拒绝', insufficient)
 check('审批记录样本数', lambda: (_ for _ in ()).throw(AssertionError()) if json.load(open(approval, encoding='utf-8'))['samples'] != 20 else None)
 check('审批不自动替换', lambda: (_ for _ in ()).throw(AssertionError()) if '自动替换' not in json.load(open(approval, encoding='utf-8'))['note'] else None)

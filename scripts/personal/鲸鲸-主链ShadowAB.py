@@ -32,9 +32,10 @@ def report(path):
     scopes = Counter('group' if 'group:' in str(r.get('scope') or '') else 'private' for r in rows)
     lit = sum(int((r.get('expression') or {}).get('literals') or 0) for r in rows)
     mk = sum(int((r.get('expression') or {}).get('markers') or 0) for r in rows)
+    quality = {'labels>=2': len(labels) >= 2, 'literals>0': lit > 0}
     return {'ok': len(rows) > 0, 'samples': len(rows), 'labels': dict(labels),
             'scopes': dict(scopes), 'literals': lit, 'markers': mk,
-            'enough': len(rows) >= 20, 'path': path}
+            'quality': quality, 'enough': len(rows) >= 20 and all(quality.values()), 'path': path}
 
 
 def main():
@@ -51,7 +52,7 @@ def main():
             print('拒绝：必须写 --owner <主人>')
             return 2
         if not r['enough']:
-            print('拒绝：样本不足 20，不能批')
+            print('拒绝：样本不足 20 或质量门槛未过，不能批')
             return 3
         target = a.approval
         os.makedirs(os.path.dirname(target), exist_ok=True)

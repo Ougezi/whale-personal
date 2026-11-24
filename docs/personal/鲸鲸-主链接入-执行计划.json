@@ -867,7 +867,8 @@
    "source_review": [],
    "files": [
     "scripts/personal/鲸鲸-主链ShadowAB.py",
-    "scripts/personal/鲸鲸-主链ShadowAB自测.py"
+    "scripts/personal/鲸鲸-主链ShadowAB自测.py",
+    "scripts/personal/鲸鲸-主链Shadow取样.js"
    ],
    "actions": [
     "A/B 报告",
