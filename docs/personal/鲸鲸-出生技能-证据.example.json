@@ -1,0 +1,85 @@
+{
+ "version": 1,
+ "step": "B0-03",
+ "status": "done",
+ "case_ids": [
+  "GH-132",
+  "GH-133",
+  "GH-134",
+  "GH-135",
+  "GH-136",
+  "GH-137",
+  "GH-138",
+  "GH-139"
+ ],
+ "source_reviews": [],
+ "changes": [
+  "docs/personal/鲸鲸-出生技能-证据.schema.json",
+  "docs/personal/鲸鲸-出生技能-证据.example.json",
+  "scripts/personal/鲸鲸-出生技能证据校验.py",
+  "docs/personal/鲸鲸-出生技能-执行计划.json",
+  "data/birth-skills/audit.jsonl"
+ ],
+ "tests": {
+  "pass": 3,
+  "fail": 0,
+  "commands": [
+   "鲸鲸-出生技能证据校验.py --check",
+   "鲸鲸-出生技能证据校验.py --tamper-test",
+   "鲸鲸-出生技能证据校验.py --audit-check data/birth-skills/audit.jsonl"
+  ]
+ },
+ "acceptance": [
+  {
+   "item": "无证据不能完成",
+   "ok": true,
+   "evidence": "missing cases/empty audit 被拒绝"
+  },
+  {
+   "item": "审计 100% 字段齐全",
+   "ok": true,
+   "evidence": "audit-check 3 条：at/step/action/actor/risk/evidence"
+  },
+  {
+   "item": "回滚命令非空",
+   "ok": true,
+   "evidence": "rollback 指向本步 docs/scripts"
+  },
+  {
+   "item": "非法证据 5/5 拒绝",
+   "ok": true,
+   "evidence": "tamper-test 5/5"
+  }
+ ],
+ "rollback": "git checkout -- docs/personal/鲸鲸-出生技能-证据.schema.json docs/personal/鲸鲸-出生技能-证据.example.json scripts/personal/鲸鲸-出生技能证据校验.py docs/personal/鲸鲸-出生技能-执行计划.json data/birth-skills/audit.jsonl",
+ "audit": [
+  {
+   "at": 1795527376946,
+   "step": "B0-01",
+   "action": "constitution.freeze",
+   "actor": "owner",
+   "risk": "R0",
+   "evidence": "data/birth-skills/evidence/B0-01.json",
+   "prev": ""
+  },
+  {
+   "at": 1795527376946,
+   "step": "B0-02",
+   "action": "genome.schema.validate",
+   "actor": "owner",
+   "risk": "R0",
+   "evidence": "data/birth-skills/evidence/B0-02.json",
+   "prev": "7a5c6dc98f7b10c90b5000b19a9f66bb0d7d466825f086ffd1036d5f6c5a8bda"
+  },
+  {
+   "at": 1795527376946,
+   "step": "B0-03",
+   "action": "evidence.contract.freeze",
+   "actor": "owner",
+   "risk": "R0",
+   "evidence": "data/birth-skills/evidence/B0-03.json",
+   "prev": "bc9e148d1209432f026d0e50dd06f00f5fc1d916c1731ca8e77b6e7cecf0355e"
+  }
+ ],
+ "finishedAt": 1795527376946
+}

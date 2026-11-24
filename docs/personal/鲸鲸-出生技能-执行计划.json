@@ -136,20 +136,25 @@
    ],
    "source_review": [],
    "files": [
-    "bridge/brain_policy.py",
-    "docs/personal/鲸鲸-出生技能-执行计划.json"
+    "docs/personal/鲸鲸-出生技能-证据.schema.json",
+    "docs/personal/鲸鲸-出生技能-证据.example.json",
+    "scripts/personal/鲸鲸-出生技能证据校验.py",
+    "data/birth-skills/audit.jsonl"
    ],
    "actions": [
-    "定义 evidence 格式；审计事件；回滚字段"
+    "定义 evidence/audit/rollback 契约；审计字段与脱敏；回滚字段",
+    "校验器：缺失/密钥/空回滚/失败验收全部拒绝"
    ],
    "tests": [
-    "证据缺失拒绝",
-    "审计脱敏"
+    "python scripts/personal/鲸鲸-出生技能证据校验.py --check",
+    "python scripts/personal/鲸鲸-出生技能证据校验.py --tamper-test",
+    "python scripts/personal/鲸鲸-出生技能证据校验.py --audit-check data/birth-skills/audit.jsonl"
    ],
    "acceptance": [
     "无证据不能完成",
-    "审计 100%",
-    "回滚可执行"
+    "审计 100% 字段齐全",
+    "回滚命令非空",
+    "非法证据 5/5 拒绝"
    ]
   },
   {
