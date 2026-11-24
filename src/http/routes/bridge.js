@@ -85,4 +85,14 @@ module.exports = function register(router) {
     const { validate } = require('../../services/actionRegistry');
     return json(res, 200, validate(body.action, body.args || {}));
   });
+
+  // I-22：迁移 dry-run（只读预览，不写目标）
+  router.post('/api/memory/migrate-preview', async (runtime, req, res) => {
+    const body = await readBody(req);
+    const gw = runtime.gateways.get('wechat');
+    if (!gw || !gw.verifyToken(req, body)) return json(res, 403, { ok: false, error: 'token 不对' });
+    const { preview } = require('../../services/migrationPreview');
+    const r = preview(body);
+    return json(res, r.ok ? 200 : 400, r);
+  });
 };

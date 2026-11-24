@@ -21,6 +21,7 @@ const path = require('node:path');
 const innerNotes = require('../core/innerNotes');
 const concerns = require('../core/concerns');
 const commitmentLedger = require('../services/commitmentLedger');
+const personaShadow = require('../services/personaShadow');
 const empathy = require('../core/empathy');
 const antiRepeat = require('../core/antiRepeat');
 const skills = require('../core/skills');
@@ -2179,6 +2180,16 @@ class Bot {
       else if (bubbles.length) bubbles[bubbles.length - 1] = (bubbles[bubbles.length - 1] + ' ' + extra).trim();
     }
     if (bubbles.length) persist();
+    if (bubbles.length && features.isOn(this.config, 'personaShadow')) {
+      try {
+        const _m = decision.msg || {};
+        personaShadow.observe({
+          dataDir: (this.config && this.config.paths && this.config.paths.dataDir) || path.join(process.cwd(), 'data'),
+          chatId: _m.chatId || decision.key || '', chatType: _m.chatType || 'private',
+          senderId: _m.senderId || '', text: _m.cleanText || _m.text || '', reply: bubbles.join('\n'),
+        });
+      } catch { /* shadow 失败不影响回复 */ }
+    }
     return bubbles;
   }
 

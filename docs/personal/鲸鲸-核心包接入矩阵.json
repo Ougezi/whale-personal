@@ -32,9 +32,11 @@
   {
    "id": "migrate",
    "path": "packages/memory-core/migrate.js",
-   "status": "not-wired",
-   "alternative": "src/memory/migrate.js",
-   "note": "旧记忆迁移仍走原 migrate"
+   "status": "staged",
+   "note": "dry-run only；真实迁移需主人授权",
+   "integration": "/api/memory/migrate-preview（dry-run，不写目标）",
+   "flag": "无（只读预览）",
+   "test": "scripts/personal/鲸鲸-主链迁移预演自测.js"
   },
   {
    "id": "receipts",
@@ -57,23 +59,29 @@
   {
    "id": "expression",
    "path": "packages/persona-core/expression.js",
-   "status": "not-wired",
-   "alternative": "src/persona/expression.js / prompt.js",
-   "note": "表达层未替换旧实现"
+   "status": "staged",
+   "note": "shadow only；不替换正式回复",
+   "integration": "src/services/personaShadow.js（shadow，仅日志）",
+   "flag": "features.personaShadow（默认 false）",
+   "test": "scripts/personal/鲸鲸-主链人格Shadow自测.js"
   },
   {
    "id": "affect",
    "path": "packages/persona-core/affect.js",
-   "status": "not-wired",
-   "alternative": "src/core/mood.js",
-   "note": "affect 未接 mood"
+   "status": "staged",
+   "note": "shadow only；不替换正式回复",
+   "integration": "src/services/personaShadow.js（shadow，仅日志）",
+   "flag": "features.personaShadow（默认 false）",
+   "test": "scripts/personal/鲸鲸-主链人格Shadow自测.js"
   },
   {
    "id": "scope",
    "path": "packages/persona-core/scope.js",
-   "status": "not-wired",
-   "alternative": "src/core/identity.js + store scope",
-   "note": "scope 未接身份/隐私"
+   "status": "staged",
+   "note": "shadow only；不替换正式回复",
+   "integration": "src/services/personaShadow.js（shadow，仅日志）",
+   "flag": "features.personaShadow（默认 false）",
+   "test": "scripts/personal/鲸鲸-主链人格Shadow自测.js"
   },
   {
    "id": "registry",

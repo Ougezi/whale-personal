@@ -260,6 +260,7 @@ const DEFAULT_CONFIG = {
     eventLog: false,
     workingMemory: false,
     retrievalCore: false,
+    personaShadow: false,
     commitment: false,
     // 群聊关系加载（A 提到 B）：默认开，可在「实验开关」里关
     relations: true,

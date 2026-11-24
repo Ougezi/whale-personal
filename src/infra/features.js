@@ -107,6 +107,14 @@ const REGISTRY = [
     experimental: true,
   },
   {
+    key: 'personaShadow',
+    path: 'features.personaShadow',
+    label: '人格 Shadow（实验性）',
+    desc: '开启后只计算 affect/expression/scope 影子并写 persona-shadow.jsonl；不替换正式回复，供 A/B。',
+    default: false,
+    experimental: true,
+  },
+  {
     key: 'retrievalCore',
     path: 'features.retrievalCore',
     label: '混合检索 Core（实验性）',

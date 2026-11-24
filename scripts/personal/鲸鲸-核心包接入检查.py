@@ -10,7 +10,7 @@ import sys
 
 ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 MATRIX = os.path.join(ROOT, 'docs', 'personal', '鲸鲸-核心包接入矩阵.json')
-STATUS = {'wired', 'not-wired'}
+STATUS = {'wired', 'not-wired', 'staged'}
 
 
 def load():

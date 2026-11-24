@@ -44,10 +44,6 @@ def sha(path):
 
 
 EXCLUDED = {
-    'packages/memory-core/migrate.js': '旧迁移，未部署到 dist',
-    'packages/persona-core/affect.js': '能力储备，未部署到 dist',
-    'packages/persona-core/expression.js': '能力储备，未部署到 dist',
-    'packages/persona-core/scope.js': '能力储备，未部署到 dist',
     'bridge/birth_config.py': '能力储备，未部署到 dist',
     'bridge/command_bus.py': '能力储备，未部署到 dist',
     'bridge/redteam.py': '能力储备，未部署到 dist',
