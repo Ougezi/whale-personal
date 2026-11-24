@@ -62,6 +62,7 @@ function cleanup(dir, { maxAgeDays = 7, maxTotalMB = 500, now = Date.now() } = {
 
   // 年龄清完还超标，就按最旧优先删
   const capBytes = Math.max(1, Number(maxTotalMB) || 500) * 1024 * 1024;
+  let remaining = keep.length;
   let total = keep.reduce((s, f) => s + f.size, 0);
   if (total > capBytes) {
     keep.sort((a, b) => a.mtime - b.mtime);
@@ -72,13 +73,14 @@ function cleanup(dir, { maxAgeDays = 7, maxTotalMB = 500, now = Date.now() } = {
         removed += 1;
         freed += f.size;
         total -= f.size;
+        remaining -= 1;
       } catch {
         /* ignore */
       }
     }
   }
 
-  return { removed, freedMB: Math.round((freed / 1024 / 1024) * 10) / 10, kept: keep.length };
+  return { removed, freedMB: Math.round((freed / 1024 / 1024) * 10) / 10, kept: remaining };
 }
 
 module.exports = { cleanup, listFiles };

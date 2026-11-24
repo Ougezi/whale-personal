@@ -1182,6 +1182,36 @@ try {
   check('最近原文保底', false, String(e && e.message).slice(0, 50));
 }
 
+// 媒体缓存 kept 统计（2026-11-24）
+try {
+  const fsx = require('node:fs');
+  const osx = require('node:os');
+  const mc = require(path.join(ROOT, 'src', 'adapters', 'mediaCache.js'));
+  const dir = fsx.mkdtempSync(path.join(osx.tmpdir(), 'mc-'));
+  for (let i = 0; i < 5; i += 1) fsx.writeFileSync(path.join(dir, 'f' + i + '.bin'), 'x'.repeat(400 * 1024));
+  const r = mc.cleanup(dir, { maxAgeDays: 3650, maxTotalMB: 1, now: Date.now() });
+  const left = fsx.readdirSync(dir).length;
+  check('媒体缓存：kept 统计', r.kept === left && r.removed + left === 5, JSON.stringify(r) + '/left=' + left);
+} catch (e) {
+  check('媒体缓存：kept 统计', false, String(e && e.message).slice(0, 50));
+}
+
+// summary 裁剪折叠后 coverage 不留洞（2026-11-24）
+try {
+  const compS = require(path.join(ROOT, 'src', 'memory', 'compression.js'));
+  const long = '甲'.repeat(400);
+  const chatS = { summary: { segments: [
+    { text: long, fromSeq: 1, toSeq: 100, tokens: 400 },
+    { text: long, fromSeq: 101, toSeq: 200, tokens: 400 },
+    { text: long, fromSeq: 201, toSeq: 300, tokens: 400 },
+  ], coveredThroughSeq: 300 } };
+  compS.trimSummary(chatS, { summaryTokens: 120 });
+  const seg = chatS.summary.segments[0];
+  check('summary 裁剪不留洞', chatS.summary.coveredThroughSeq === 300 && seg.fromSeq === 1 && seg.toSeq === 300, JSON.stringify({ covered: chatS.summary.coveredThroughSeq, from: seg.fromSeq, to: seg.toSeq }));
+} catch (e) {
+  check('summary 裁剪不留洞', false, String(e && e.message).slice(0, 50));
+}
+
 console.log('\n通过 ' + pass + '/' + (pass + fail));
   process.exit(fail ? 1 : 0);
 })();
