@@ -621,19 +621,22 @@
    ],
    "source_review": [],
    "files": [
+    "bridge/verify.py",
+    "scripts/personal/鲸鲸-出生验证回执自测.py",
     "bridge/brain_agent.py",
     "src/http/routes/memory.js"
    ],
    "actions": [
-    "verify；receipt 状态；审计；任务卡"
+    "读回/测试/diff 证据；success/failed/timeout receipt；失败 reason；任务卡；审计"
    ],
    "tests": [
-    "成功/失败/超时回执",
-    "证据覆盖"
+    "python scripts/personal/鲸鲸-出生验证回执自测.py"
    ],
    "acceptance": [
     "动作 100% 有回执",
-    "失败可解释"
+    "失败可解释",
+    "缺证据 failed",
+    "超时回执"
    ]
   },
   {
