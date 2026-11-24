@@ -120,6 +120,14 @@ const REGISTRY = [
     default: true,
   },
   {
+    key: 'workingMemory',
+    path: 'features.workingMemory',
+    label: '工作记忆（实验性）',
+    desc: '默认关闭。开启后按 chat 隔离维护 working 7 槽 / session 最近会话 / instruction 行为规则，作为旁路块拼进 prompt；失败返回空，不影响主链。',
+    default: false,
+    experimental: true,
+  },
+  {
     key: 'eventLog',
     path: 'features.eventLog',
     label: '记忆事件日志（实验性）',

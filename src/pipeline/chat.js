@@ -56,6 +56,7 @@ const { ReplyQuota, recentReplyCount } = require('../core/replyQuota');
 const replyDecision = require('../core/replyDecision');
 const { stripSilenceMark, stripStickerMarks } = require('../core/replyMarks');
 const context = require('../core/context');
+const promptMemory = require('../persona/promptMemory');
 const { isEcho } = require('../core/echo');
 const { extractMentionNames } = require('../core/mentions');
 const { cannedReply, dismissReply } = require('./stages/canned');
@@ -1104,7 +1105,14 @@ class Bot {
     if (this.moments && isMaster && !isGroup && momentsIntent(clean.text)) {
       try { momentsBlock = this.moments.contextBlock(); } catch { momentsBlock = ''; }
     }
-    const memoryBlock = [mem.block, mem.relationsBlock, momentsBlock].filter(Boolean).join('\n\n');
+    let workingBlock = '';
+    try {
+      workingBlock = promptMemory.buildBlock({
+        chatId: msg.chatId || session.chatId, msg: { ...msg, ts: nowMs },
+        history: historyForTurns, isMaster, config: this.config,
+      });
+    } catch { /* 旁路失败不伤主链 */ }
+    const memoryBlock = [mem.block, mem.relationsBlock, momentsBlock, workingBlock].filter(Boolean).join('\n\n');
     const turns = this.buildTurns({ ...msg, ts: nowMs }, historyForTurns, memoryBlock, tail);
 
     // 预算：system 只测量，不裁剪；dialogueBudget 默认 5,500，给裁剪窗口用。

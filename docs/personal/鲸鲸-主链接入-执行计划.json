@@ -59,18 +59,23 @@
    "min_cases": 5,
    "source_review": [],
    "files": [
-    "src/core/context.js",
+    "src/persona/promptMemory.js",
     "src/pipeline/chat.js",
-    "packages/memory-core/working.js"
+    "src/infra/features.js",
+    "src/infra/config.js",
+    "scripts/personal/鲸鲸-主链Prompt接自测.js"
    ],
    "actions": [
     "prompt 注入；预算；开关"
    ],
-   "tests": [],
+   "tests": [
+    "node scripts/personal/鲸鲸-主链Prompt接自测.js"
+   ],
    "acceptance": [
     "规则不被事实淹没",
     "预算内",
-    "可关"
+    "按 chat 隔离",
+    "默认关"
    ]
   },
   {
