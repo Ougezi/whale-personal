@@ -1,0 +1,46 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://whale.local/schemas/鲸鲸-出生技能-进化提案.schema.json",
+  "title": "鲸鲸进化提案",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schemaVersion", "id", "status", "hypothesis", "targetLayer", "diff", "files", "tests", "expected", "rollback", "evidence", "risk", "createdAt"],
+  "properties": {
+    "schemaVersion": { "const": 1 },
+    "id": { "type": "string", "pattern": "^EVO-[0-9]{4,}$" },
+    "status": { "type": "string", "enum": ["draft", "review", "sandbox", "promoted", "rejected"] },
+    "hypothesis": { "type": "string", "minLength": 10, "maxLength": 2000 },
+    "targetLayer": {
+      "type": "string",
+      "enum": ["prompt", "skill", "parameter", "memory-policy", "persona"]
+    },
+    "diff": { "type": "string", "minLength": 20, "maxLength": 50000 },
+    "files": {
+      "type": "array",
+      "minItems": 1,
+      "maxItems": 20,
+      "items": { "type": "string", "minLength": 1, "maxLength": 260 }
+    },
+    "tests": {
+      "type": "array",
+      "minItems": 1,
+      "items": { "type": "string", "minLength": 1, "maxLength": 500 }
+    },
+    "expected": { "type": "string", "minLength": 5, "maxLength": 1000 },
+    "rollback": { "type": "string", "minLength": 5, "maxLength": 1000 },
+    "evidence": {
+      "type": "array",
+      "minItems": 1,
+      "items": { "type": "string", "minLength": 1, "maxLength": 500 }
+    },
+    "risk": { "type": "string", "enum": ["R0", "R1", "R2", "R3"] },
+    "createdAt": { "type": "integer", "minimum": 0 },
+    "notes": { "type": "string", "maxLength": 500 }
+  },
+  "x-whale-forbidden-targets": [
+    "docs/personal/鲸鲸-出生技能-宪法.md",
+    "bridge/brain_policy.py",
+    "bridge/audit",
+    "data/birth-skills/audit.jsonl"
+  ]
+}

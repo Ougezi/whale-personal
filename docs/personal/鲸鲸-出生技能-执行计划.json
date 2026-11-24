@@ -657,23 +657,25 @@
     "EV-004"
    ],
    "source_review": [
-    "GenericAgent",
     "EvoMap/evolver"
    ],
    "files": [
-    "docs/personal/鲸鲸-出生技能-基因组.schema.json",
-    "bridge/evolution/proposal.py"
+    "docs/personal/鲸鲸-出生技能-进化提案.schema.json",
+    "bridge/evolution/proposal.py",
+    "scripts/personal/鲸鲸-出生进化提案自测.py",
+    "docs/personal/鲸鲸-出生技能-基因组.schema.json"
    ],
    "actions": [
-    "提案结构；diff；测试清单"
+    "提案结构 hypothesis/diff/files/tests/expected/rollback/evidence/risk；diff 解析；禁改宪法/策略/审计；无证据不进沙箱"
    ],
    "tests": [
-    "缺证据拒绝",
-    "diff 可读"
+    "python scripts/personal/鲸鲸-出生进化提案自测.py"
    ],
    "acceptance": [
     "提案 100% 带测试/回滚",
-    "无证据不进沙箱"
+    "无证据不进沙箱",
+    "diff 可读",
+    "禁改安全层"
    ]
   },
   {
