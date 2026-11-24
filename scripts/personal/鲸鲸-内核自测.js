@@ -1212,6 +1212,29 @@ try {
   check('summary 裁剪不留洞', false, String(e && e.message).slice(0, 50));
 }
 
+// 日志/追踪保留策略（2026-11-24）
+try {
+  const fsx = require('node:fs');
+  const osx = require('node:os');
+  const ret = require(path.join(ROOT, 'src', 'infra', 'retention.js'));
+  const dir = fsx.mkdtempSync(path.join(osx.tmpdir(), 'ret-'));
+  const logs = path.join(dir, 'logs'); const trace = path.join(dir, 'trace');
+  fsx.mkdirSync(path.join(logs, 'run-old'), { recursive: true });
+  fsx.mkdirSync(path.join(logs, 'run-new'), { recursive: true });
+  fsx.mkdirSync(trace, { recursive: true });
+  fsx.writeFileSync(path.join(trace, 'old.jsonl'), 'x');
+  fsx.writeFileSync(path.join(trace, 'new.jsonl'), 'x');
+  const old = (Date.now() - 20 * 86400000) / 1000;
+  fsx.utimesSync(path.join(logs, 'run-old'), old, old);
+  fsx.utimesSync(path.join(trace, 'old.jsonl'), old, old);
+  const r1 = ret.pruneOldDirs(logs, { prefix: 'run-', maxAgeDays: 14 });
+  const r2 = ret.pruneOldFiles(trace, { maxAgeDays: 14 });
+  check('日志保留策略：旧目录删', r1 === 1 && !fsx.existsSync(path.join(logs, 'run-old')) && fsx.existsSync(path.join(logs, 'run-new')), String(r1));
+  check('日志保留策略：旧追踪删', r2 === 1 && !fsx.existsSync(path.join(trace, 'old.jsonl')) && fsx.existsSync(path.join(trace, 'new.jsonl')), String(r2));
+} catch (e) {
+  check('日志保留策略', false, String(e && e.message).slice(0, 50));
+}
+
 console.log('\n通过 ' + pass + '/' + (pass + fail));
   process.exit(fail ? 1 : 0);
 })();

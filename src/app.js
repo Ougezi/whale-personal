@@ -112,6 +112,16 @@ function createRuntime({ root = path.resolve(__dirname, '..'), env = process.env
     logger.warn('媒体缓存清理失败（不影响使用）：' + describeError(err));
   }
 
+  // 日志/追踪保留 14 天，长期挂机不无限增长
+  try {
+    const retention = require('./infra/retention');
+    const logsRemoved = retention.pruneOldDirs(path.join(root, 'data', 'logs'), { prefix: 'run-', maxAgeDays: 14 });
+    const traceRemoved = retention.pruneOldFiles(path.join(root, 'data', 'trace'), { maxAgeDays: 14 });
+    if (logsRemoved || traceRemoved) logger.info(`运行日志/追踪清理：日志目录 ${logsRemoved} 个、追踪 ${traceRemoved} 个`);
+  } catch (err) {
+    logger.warn('日志保留清理失败（不影响使用）：' + describeError(err));
+  }
+
   // 浏览器缓存清理：只删可再生成的缓存，登录态/Cookies 不动
   try {
     const bpc = require('./adapters/browserProfileCleanup');
