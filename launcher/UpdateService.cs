@@ -335,9 +335,14 @@ namespace WhaleLauncher
             {
                 var total = await ProbeLengthAsync(url, startup);
                 if (total >= SegmentMinBytes && await DownloadSegmentsAsync(url, path, total, progress, label, startup))
+                {
+                    Motw.Remove(path);   // 下载完立刻去掉 MOTW，免得替换后双击弹「无法验证发布者」
                     return true;
+                }
                 startup.Token.ThrowIfCancellationRequested();
-                return await DownloadSingleAsync(url, path, progress, label, startup);
+                var ok = await DownloadSingleAsync(url, path, progress, label, startup);
+                if (ok) Motw.Remove(path);
+                return ok;
             }
             catch
             {
