@@ -107,6 +107,14 @@ const REGISTRY = [
     experimental: true,
   },
   {
+    key: 'scopeShadow',
+    path: 'features.scopeShadow',
+    label: 'Scope Shadow（实验性）',
+    desc: '开启后只记录 viewer/memory 的 canRecall 与 fail-closed，不改变真实记忆召回。',
+    default: false,
+    experimental: true,
+  },
+  {
     key: 'expressionCore',
     path: 'features.expressionCore',
     label: '表达 Core（实验性，技术 literal 保护）',

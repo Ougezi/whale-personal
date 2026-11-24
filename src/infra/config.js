@@ -269,6 +269,7 @@ const DEFAULT_CONFIG = {
 
   affectCore: { chats: [] },
   expressionCore: { chats: [] },
+  scopeShadow: { chats: [] },
   storage: {
     mediaKeepDays: 7,
     mediaMaxMB: 500,

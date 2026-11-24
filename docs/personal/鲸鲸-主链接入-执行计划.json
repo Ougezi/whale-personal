@@ -1071,6 +1071,44 @@
     "技术回复存在",
     "已关闭"
    ]
+  },
+  {
+   "id": "I-30",
+   "phase": "I",
+   "title": "scopeShadow 接入",
+   "goal": "只记录 canRecall/fail-closed，不改变真实记忆召回。",
+   "case_ids": [
+    "EV-011",
+    "EV-012",
+    "EV-013",
+    "EV-014",
+    "EV-015",
+    "EV-018",
+    "EV-019",
+    "EV-020"
+   ],
+   "min_cases": 5,
+   "source_review": [],
+   "files": [
+    "src/services/scopeShadow.js",
+    "src/pipeline/chat.js",
+    "src/infra/features.js",
+    "src/http/routes/features.js",
+    "scripts/personal/鲸鲸-主链ScopeShadow自测.js"
+   ],
+   "actions": [
+    "scope shadow 日志",
+    "空名单不生效",
+    "默认关"
+   ],
+   "tests": [
+    "node scripts/personal/鲸鲸-主链ScopeShadow自测.js"
+   ],
+   "acceptance": [
+    "selfRecall true",
+    "crossRecall false",
+    "failClosed true"
+   ]
   }
  ]
 }

@@ -1,6 +1,6 @@
 ---
 name: whale-mainline-integration
-description: 鲸鲸主链接入与结构治理的可执行 runbook：按 I-01..I-29 过案例/源码/测试/证据/回滚门禁，接 kernel/bridge、job/receipts、动作硬审批、action-audit、dist 全量同步，并分 L0-L5 做真实微信/真实动作/热停验收。Use when the owner says 主链接入 / 接入主链 / 结构治理 / 下一步接入 / 热停 / 端到端验收 / 真实微信验收 / 核心包接入.
+description: 鲸鲸主链接入与结构治理的可执行 runbook：按 I-01..I-30 过案例/源码/测试/证据/回滚门禁，接 kernel/bridge、job/receipts、动作硬审批、action-audit、dist 全量同步，并分 L0-L5 做真实微信/真实动作/热停验收。Use when the owner says 主链接入 / 接入主链 / 结构治理 / 下一步接入 / 热停 / 端到端验收 / 真实微信验收 / 核心包接入.
 ---
 
 # whale-mainline-integration
@@ -251,6 +251,7 @@ git commit -m "I-XX ..."
 | I-27 | affectCore 黑盒试跑 | 5 轮无报错/无泄漏；质量结论待主人 |
 | I-28 | expressionCore | 默认关；技术 literal 保护；不重写风格 |
 | I-29 | expression 试跑 | 15 回复，0 占位符泄漏；已关闭 |
+| I-30 | scopeShadow | 只记录 canRecall/fail-closed，不改召回 |
 
 详细命令/文件/验收在计划 JSON；本 skill 只规定方法。
 

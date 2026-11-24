@@ -24,6 +24,7 @@ const commitmentLedger = require('../services/commitmentLedger');
 const personaShadow = require('../services/personaShadow');
 const affectCore = require('../services/affectCore');
 const expressionCore = require('../services/expressionCore');
+const scopeShadow = require('../services/scopeShadow');
 const empathy = require('../core/empathy');
 const antiRepeat = require('../core/antiRepeat');
 const skills = require('../core/skills');
@@ -2409,6 +2410,17 @@ class Bot {
       return { action: 'ignore', reason: decision.reason };
     }
     if (!this.activateReply(decision)) return { action: 'ignore', reason: decision.reason };
+    if (features.isOn(this.config, 'scopeShadow')) {
+      try {
+        const _sm = decision.msg || {};
+        const _scChats = (this.config && this.config.scopeShadow && this.config.scopeShadow.chats) || [];
+        scopeShadow.observe({
+          dataDir: (this.config && this.config.paths && this.config.paths.dataDir) || path.join(process.cwd(), 'data'),
+          chatId: decision.key || _sm.chatId || '', chatType: _sm.chatType || 'private',
+          senderId: _sm.senderId || '', chats: _scChats,
+        });
+      } catch { /* shadow 失败不影响回复 */ }
+    }
     if (decision.action === 'command') {
       const result = this.finalizeReply(decision, decision.text);
       return { action: result.action, reply: result.text, bubbles: [...result.bubbles], reason: 'command', commandType: decision.commandType };
