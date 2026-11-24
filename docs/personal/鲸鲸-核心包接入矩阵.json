@@ -160,8 +160,10 @@
   {
    "id": "approval",
    "path": "bridge/evolution/approval.py",
-   "status": "not-wired",
-   "note": "进化审批，未接真实进化链"
+   "status": "wired",
+   "integration": "PlatformBroker.request_write / approve_write",
+   "flag": "WHALE_PLATFORM_WRITES=1",
+   "note": "R2 需 owner 批准；默认写关闭"
   },
   {
    "id": "genome",

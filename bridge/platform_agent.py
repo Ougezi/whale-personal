@@ -31,7 +31,9 @@ def broker():
     data = os.environ.get('WHALE_PLATFORM_DATA_DIR') or os.path.join(root, 'data')
     sh = Shadow() if str(os.environ.get('WHALE_PLATFORM_SHADOW') or '') == '1' else None
     return PlatformBroker({'github': GitHubAdapter(), 'bilibili': BilibiliAdapter()},
-                          shadow=sh, receipt_path=os.path.join(data, 'platform-receipts.jsonl'))
+                          shadow=sh, receipt_path=os.path.join(data, 'platform-receipts.jsonl'),
+                          writes_enabled=str(os.environ.get('WHALE_PLATFORM_WRITES') or '') == '1',
+                          owner=os.environ.get('WHALE_PLATFORM_OWNER') or 'ougezi')
 
 
 def extract(text):

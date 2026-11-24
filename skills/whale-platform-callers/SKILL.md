@@ -3,11 +3,12 @@ name: whale-platform-callers
 description: 鲸鲸真实平台调用方 runbook：GitHub/抖音/B站只读 adapter、PlatformBroker、24 案例、标记入口与 9 个桥接契约落点。Use when the owner says 真实调用方 / 平台调用 / GitHub 查询 / B站查询 / 抖音只读 / 24 案例 / 接 command_bus 等.
 ---
 
-# 鲸鲸 · 真实平台调用方（P0/P1）
+# 鲸鲸 · 真实平台调用方（P0/P1/P2）
 
 > 目标：不是再写 9 个类，而是让 GitHub / 抖音 / B站有**真实调用链**，再把 9 个契约挂到该挂的位置。
 > 默认：只读、默认关、无标记不联网。
 > P1：shadow 只记录不执行、receipt 落盘、B站 WBI 搜索。
+> P2：写操作 R2 审批；默认关；抖音 like/collect 才走真实 adapter。
 
 ---
 
@@ -132,6 +133,55 @@ B站默认无登录 cookie
 
 ---
 
+## 2.4 P2 写操作审批
+
+默认：
+
+```text
+WHALE_PLATFORM_WRITES 未设置
+→ 所有 R2/R3 直接返回 write-disabled
+```
+
+打开写入口：
+
+```powershell
+$env:WHALE_PLATFORM_WRITES = '1'
+$env:WHALE_PLATFORM_OWNER = 'ougezi'
+```
+
+流程：
+
+```python
+b = platform_agent.broker()
+req = b.request_write('douyin', 'like', {'modalId': '...'})
+# req.state == 'pending'
+b.approve_write(req['id'], 'ougezi')       # 只有 owner 能批
+out = b.dispatch('douyin', 'like', {'modalId': '...'},
+                 approved=True, approval_id=req['id'])
+```
+
+真实执行还有第二道闸：
+
+```text
+抖音 sidecar 的 enableOps 必须开
+否则 adapter 会拒绝，不会假装点赞成功
+```
+
+GitHub / B 站：
+
+```text
+GitHub 写：未接，复用 github-push 技能，不在本 adapter
+B站 写：未接
+```
+
+不批准时：
+
+```text
+write-disabled / approval-required / wrong-approver
+```
+
+---
+
 ## 3. 调用链
 
 ```text
@@ -222,6 +272,7 @@ execute(op, args) -> dict
 | `command_bus` | 未接 | 出站回复/写动作 outbox；不是平台读总线 |
 | `verify` | **已接** | Broker 每个成功结果都必须有 readback/tests |
 | `shadow` | **已接（opt-in）** | `WHALE_PLATFORM_SHADOW=1` 只记录，不执行 |
+| `evolution.approval` | **已接（opt-in）** | PlatformBroker.request_write / approve_write |
 | `rollout` | 未接 | adapter 版本 10/50/100 |
 | `redteam` | 未接 | 平台注入/路径/凭据测试 |
 | `birth_config` | 未接 | 启动/设置页三技能开关 |
@@ -281,7 +332,7 @@ DY-08 timeout/no-output 映射
 ## 7. 验收
 
 ```text
-离线自测 26/26
+离线自测 30/30
 live 24/24（含预期错误码）
 无标记 0 网络
 只读 0 写
@@ -380,10 +431,10 @@ P3  rollout / genome / sandbox / redteam / birth_config
 
 ---
 
-## 12. 执行记录（2026-11-25 P1）
+## 12. 执行记录（2026-11-25 P2）
 
 ```text
-离线自测        26/26
+离线自测        30/30
 live 24 案例    24/24
 GitHub          7 个成功 + GH-09 预期 404
 B站             view/comments/user 成功；search 412、无效 BV 预期
@@ -391,6 +442,7 @@ B站             view/comments/user 成功；search 412、无效 BV 预期
 shadow          只记录不执行
 receipt         data/platform-receipts.jsonl
 B站 WBI         search 成功
+写操作闸门       30/30 测试；默认关；未执行真实点赞
 run_all         P0 PASS
 证据            data/integration/evidence/I-36-live.json
 ```

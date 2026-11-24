@@ -11,9 +11,11 @@ import time
 try:
     from .verify import Verifier
     from .shadow import Shadow
+    from .evolution.approval import Approval
 except Exception:
     from verify import Verifier
     from shadow import Shadow
+    from evolution.approval import Approval
 
 
 class BrokerError(Exception):
@@ -21,13 +23,17 @@ class BrokerError(Exception):
 
 
 class PlatformBroker:
-    def __init__(self, adapters=None, verifier=None, audit=None, shadow=None, receipt_path=None):
+    def __init__(self, adapters=None, verifier=None, audit=None, shadow=None, receipt_path=None,
+                 writes_enabled=False, owner='ougezi'):
         self.adapters = dict(adapters or {})
         self.verifier = verifier if verifier is not None else Verifier(audit=audit)
         self.audit = audit
         # P1：传 Shadow 时只记录，不执行（真正的 shadow）
         self.shadow = shadow
         self.receipt_path = receipt_path
+        self.writes_enabled = bool(writes_enabled)
+        self.owner = str(owner or 'ougezi')
+        self.approvals = {}
 
     def available(self):
         out = {}
@@ -53,6 +59,42 @@ class PlatformBroker:
                 return c
         return None
 
+    def request_write(self, platform, op, args=None):
+        cap = self._cap(platform, op) if platform in self.adapters else None
+        if not cap or cap.get('risk') not in ('R2', 'R3'):
+            return {'ok': False, 'code': 'not-write', 'text': '不是可写操作'}
+        if not self.writes_enabled:
+            return {'ok': False, 'code': 'write-disabled', 'text': '平台写操作未开启（WHALE_PLATFORM_WRITES=1）'}
+        import time as _t
+        rid = 'pw-%d' % int(_t.time() * 1000)
+        ap = Approval(rid, risk=cap.get('risk'), action='%s.%s' % (platform, op), evidence=[json.dumps(args or {}, ensure_ascii=False)])
+        self.approvals[rid] = {'approval': ap, 'platform': platform, 'op': op, 'args': args or {}}
+        return {'ok': True, 'id': rid, 'required': ap.required, 'state': ap.state,
+                'approval': ap.snapshot()}
+
+    def approve_write(self, approval_id, approver):
+        rec = self.approvals.get(str(approval_id or ''))
+        if not rec:
+            return {'ok': False, 'code': 'not-found', 'text': '没有这个审批'}
+        who = str(approver or '').strip()
+        if who != self.owner:
+            return {'ok': False, 'code': 'wrong-approver', 'text': '只有主人可以批准'}
+        rec['approval'].approve(who)
+        return {'ok': True, 'id': approval_id, 'state': rec['approval'].state, 'approval': rec['approval'].snapshot()}
+
+    def pending_writes(self):
+        return [{'id': k, 'platform': v['platform'], 'op': v['op'],
+                 'state': v['approval'].state, 'required': v['approval'].required}
+                for k, v in self.approvals.items() if v['approval'].state != 'approved']
+
+    def _approved(self, approval_id, platform, op):
+        rec = self.approvals.get(str(approval_id or ''))
+        if not rec:
+            return False
+        if rec['platform'] != platform or rec['op'] != op:
+            return False
+        return rec['approval'].state == 'approved'
+
     def _receipt(self, row):
         if not self.receipt_path:
             return
@@ -63,7 +105,7 @@ class PlatformBroker:
         except Exception:
             pass
 
-    def dispatch(self, platform, op, args=None, *, approved=False, action_id=None, chat=''):
+    def dispatch(self, platform, op, args=None, *, approved=False, action_id=None, chat='', approval_id=None):
         platform = str(platform or '').strip()
         op = str(op or '').strip()
         if platform not in self.adapters:
@@ -73,8 +115,11 @@ class PlatformBroker:
         if not cap:
             return {'ok': False, 'code': 'unknown-op', 'text': '未知操作：%s.%s' % (platform, op)}
         risk = str(cap.get('risk') or 'R1')
-        if risk in ('R2', 'R3') and not approved:
-            return {'ok': False, 'code': 'approval-required', 'text': '%s.%s 需要 %s 审批' % (platform, op, risk)}
+        if risk in ('R2', 'R3'):
+            if not self.writes_enabled:
+                return {'ok': False, 'code': 'write-disabled', 'text': '平台写操作未开启（WHALE_PLATFORM_WRITES=1）'}
+            if not (approved and self._approved(approval_id, platform, op)):
+                return {'ok': False, 'code': 'approval-required', 'text': '%s.%s 需要 %s 审批' % (platform, op, risk)}
         if self.shadow is not None:
             try:
                 self.shadow.record(chat=chat, text=json.dumps(args or {}, ensure_ascii=False)[:500],

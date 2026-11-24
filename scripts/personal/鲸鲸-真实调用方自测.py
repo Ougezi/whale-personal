@@ -105,9 +105,6 @@ def main():
     check('broker unknown', lambda: (_ for _ in ()).throw(AssertionError('bad')) if v.dispatch('github', 'nope', {}).get('code') != 'unknown-op' else None)
     check('broker spec', lambda: (_ for _ in ()).throw(AssertionError('bad')) if not v.dispatch_spec('gh:repo:o/r').get('ok') else None)
     print('Risk / marker')
-    rb = platform_broker.PlatformBroker({'x': FakeAdapter(risk='R2')})
-    check('R2 deny', lambda: (_ for _ in ()).throw(AssertionError('bad')) if rb.dispatch('x', 'x', {}).get('code') != 'approval-required' else None)
-    check('R2 approved', lambda: (_ for _ in ()).throw(AssertionError('bad')) if not rb.dispatch('x', 'x', {}, approved=True).get('ok') else None)
     os.environ.pop('WHALE_PLATFORM_CALLS', None)
     check('marker off', lambda: (_ for _ in ()).throw(AssertionError('bad')) if platform_agent.extract('[[gh:repo:o/r]]')[1] else None)
     os.environ['WHALE_PLATFORM_CALLS'] = '1'
@@ -116,6 +113,17 @@ def main():
     os.environ.pop('WHALE_PLATFORM_CALLS', None)
     check('Douyin write deny', lambda: (_ for _ in ()).throw(AssertionError('bad')) if DouyinAdapter().execute('like', {}, approved=False).get('code') != 'approval-required' else None)
     check('unknown platform', lambda: (_ for _ in ()).throw(AssertionError('bad')) if v.dispatch('nope', 'repo', {}).get('code') != 'unknown-platform' else None)
+    # P2 approval
+    r2 = FakeAdapter(risk='R2')
+    wb = platform_broker.PlatformBroker({'x': r2}, writes_enabled=False, owner='ougezi')
+    check('P2 write disabled', lambda: (_ for _ in ()).throw(AssertionError('bad')) if wb.dispatch('x', 'x', {}).get('code') != 'write-disabled' else None)
+    wb2 = platform_broker.PlatformBroker({'x': r2}, writes_enabled=True, owner='ougezi')
+    req = wb2.request_write('x', 'x', {})
+    check('P2 request pending', lambda: (_ for _ in ()).throw(AssertionError('bad')) if req.get('state') != 'pending' else None)
+    check('P2 no approval deny', lambda: (_ for _ in ()).throw(AssertionError('bad')) if wb2.dispatch('x', 'x', {}).get('code') != 'approval-required' else None)
+    check('P2 wrong approver', lambda: (_ for _ in ()).throw(AssertionError('bad')) if wb2.approve_write(req['id'], 'nope').get('code') != 'wrong-approver' else None)
+    check('P2 approve', lambda: (_ for _ in ()).throw(AssertionError('bad')) if wb2.approve_write(req['id'], 'ougezi').get('state') != 'approved' else None)
+    check('P2 approved execute', lambda: (_ for _ in ()).throw(AssertionError('bad')) if not wb2.dispatch('x', 'x', {}, approved=True, approval_id=req['id']).get('ok') else None)
     # P1 shadow / receipt
     fs = FakeAdapter(risk='R1')
     sh = Shadow()
