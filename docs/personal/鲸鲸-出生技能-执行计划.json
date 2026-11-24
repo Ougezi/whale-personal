@@ -905,20 +905,22 @@
     "dsh-feiyu"
    ],
    "files": [
+    "packages/memory-core/commitment.js",
+    "scripts/personal/鲸鲸-出生承诺能力自测.js",
     "src/services/care.js",
     "bridge/command_bus.py"
    ],
    "actions": [
-    "三态承诺；证据；能力 3 次"
+    "三态 open/kept/failed；证据必填；到期无证据 failed；同类 kept≥3 才写能力；到期提醒"
    ],
    "tests": [
-    "到期",
-    "无证据失败",
-    "能力不虚标"
+    "node scripts/personal/鲸鲸-出生承诺能力自测.js"
    ],
    "acceptance": [
     "说到做到可查",
-    "无证据 failed"
+    "无证据 failed",
+    "能力 3 次才写",
+    "到期提醒"
    ]
   },
   {
