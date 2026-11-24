@@ -1,0 +1,190 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>鲸鲸 · 无关键词命令项目书</title>
+<style>
+:root{--ink:#15202b;--muted:#5b6b7b;--line:#dce4ec;--bg:#f5f7fa;--card:#fff;--blue:#1457a8;--green:#176b45;--amber:#8a5a00;--red:#9b2c2c}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.75 -apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif}
+main{max-width:1040px;margin:0 auto;padding:34px 20px 72px}
+h1{font-size:31px;line-height:1.25;margin:0 0 8px}
+h2{font-size:21px;margin:40px 0 12px;padding-bottom:8px;border-bottom:1px solid var(--line)}
+h3{font-size:17px;margin:22px 0 8px}
+p,li{color:var(--ink)}
+.sub{color:var(--muted);margin:0 0 24px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:18px 20px;margin:14px 0;box-shadow:0 2px 10px rgba(20,40,70,.04)}
+.tag{display:inline-block;font-size:12px;padding:2px 9px;border-radius:999px;background:#e8f0fb;color:var(--blue);margin-right:6px}
+.tag.g{background:#e7f5ee;color:var(--green)}
+.tag.a{background:#fff4dd;color:var(--amber)}
+.tag.r{background:#fdecec;color:var(--red)}
+table{width:100%;border-collapse:collapse;font-size:14.5px;margin:10px 0}
+th,td{border-bottom:1px solid var(--line);padding:9px 8px;text-align:left;vertical-align:top}
+th{color:var(--muted);font-weight:600;background:#fafbfd}
+code{font-family:ui-monospace,Consolas,monospace;font-size:.92em;background:#eef2f7;border-radius:5px;padding:1px 6px}
+pre{background:#101820;color:#e9f0f7;padding:15px;border-radius:10px;overflow:auto;font-size:13.5px;line-height:1.6}
+ul,ol{padding-left:22px}
+.note{border-left:4px solid var(--blue);padding-left:14px;color:var(--muted)}
+.small{font-size:13px;color:var(--muted)}
+.flow{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin:10px 0}
+.flow span{background:#eef4fb;border:1px solid #cfe0f2;border-radius:8px;padding:6px 10px;font-size:13.5px}
+.flow b{color:var(--muted);font-weight:400}
+a{color:var(--blue)}
+</style>
+</head>
+<body>
+<main>
+  <h1>鲸鲸 · 无关键词命令项目书</h1>
+  <p class="sub">基于现有 Launcher → Kernel(8787) → Bridge → DSH 架构 · 2026-11-24 · v1.0 规划稿</p>
+
+  <div class="card">
+    <span class="tag g">不重写</span><span class="tag">旁路意图路由</span><span class="tag">复用 BrainAgent</span><span class="tag a">R2/R3 确认</span>
+    <h2 style="border:0;margin-top:14px">一句话</h2>
+    <p><b>不把执行塞进聊天模型。</b>新增一条旁路：Bridge 快速门 → Kernel 意图路由 → 风险/确认 → Bridge 执行（复用 DSH 执行脑）→ 任务卡+审计。聊天仍是聊天，只有被判定为“动作”的消息才执行。</p>
+  </div>
+
+  <h2>1. 现状基线</h2>
+  <table>
+    <tr><th>项</th><th>现状</th></tr>
+    <tr><td>三层</td><td>Launcher（WPF）/ Kernel（Node 8787）/ Bridge（Python + wechatauto/UIA）</td></tr>
+    <tr><td>执行脑</td><td>P1 只读、P2 审批写、P3 续跑、P4 定时/多代理只读；`脑子：` 入口已上线</td></tr>
+    <tr><td>安全</td><td>工作区 D:\dsh、data/backup 拒绝、只读禁 web/shell、P2 网络运行时拦截、审计</td></tr>
+    <tr><td>记忆</td><td>原文/摘要/人物卡/事件/BM25+向量；DSH 任务卡</td></tr>
+    <tr><td>测试</td><td>执行脑 47/47、内核 287/287、桥接 110/110、selfcheck true</td></tr>
+    <tr><td>缺口</td><td>只有显式前缀；没有意图/指代/shadow/动作白名单/承诺账本</td></tr>
+  </table>
+
+  <h2>2. 目标与非目标</h2>
+  <h3>目标</h3>
+  <ul>
+    <li>主人说人话，鲸鲸判断：聊天 / 提问 / 动作 / 承诺 / 取消。</li>
+    <li>无前缀执行低风险只读；有副作用先确认。</li>
+    <li>群聊/私聊都只认主人；群成员不能借自然语言触发。</li>
+    <li>动作可审计、可回滚、可解释。</li>
+  </ul>
+  <h3>非目标</h3>
+  <p>不做全自动 Agent、不让模型拼 shell、不做多代理写、不做 OS 级沙箱、不替换现有 `脑子：`。</p>
+
+  <h2>3. 总体架构</h2>
+  <div class="flow">
+    <span>Bridge 快速门</span><b>→</b><span>Kernel /api/intent/route</span><b>→</b><span>IntentDecision</span><b>→</b><span>风险/确认</span><b>→</b><span>BrainAgent / DSH</span><b>→</b><span>任务卡+审计</span>
+  </div>
+
+  <pre>Bridge on_message
+  ├─ 自己发出的消息 → 丢弃
+  ├─ 非主人 → 普通聊天
+  ├─ 显式「脑子…」 → 直接 BrainAgent
+  └─ 其他 → 本地快速门
+        ├─ 明显聊天 → 普通 /webhook/wechat
+        └─ 候选 → POST /api/intent/route
+Kernel
+  ├─ 取 pending/最近任务/人物卡/关系/偏好
+  ├─ 规则特征 + LLM 结构化输出
+  └─ {kind, action, args, confidence, risk, needConfirm}
+Bridge
+  ├─ chat → 正常聊天
+  ├─ clarify → 发澄清句
+  ├─ act/R0 → 执行
+  ├─ act/R2/R3 → 确认后执行
+  └─ cancel → 杀进程树</pre>
+
+  <h2>4. 为什么路由放 Kernel</h2>
+  <ul>
+    <li>Kernel 已有记忆、人物卡、关系、LLM、提示词；意图判断需要“最近说过什么/承诺过什么”。</li>
+    <li>Bridge 只做微信 I/O 和执行，不应再维护一套记忆。</li>
+    <li>Bridge 保留快速门，避免每条消息都打模型。</li>
+  </ul>
+
+  <h2>5. 动作与确认</h2>
+  <table>
+    <tr><th>action</th><th>风险</th><th>执行器</th></tr>
+    <tr><td>inspect / read</td><td>R0</td><td>BrainAgent P1</td></tr>
+    <tr><td>run_test</td><td>R0/R2</td><td>BrainAgent</td></tr>
+    <tr><td>edit / create_file</td><td>R2</td><td>BrainAgent P2</td></tr>
+    <tr><td>delete / restart</td><td>R3</td><td>BrainAgent P2 / Launcher</td></tr>
+    <tr><td>memory_write</td><td>R1</td><td>Kernel memory</td></tr>
+    <tr><td>send_message</td><td>R2</td><td>Bridge sender</td></tr>
+  </table>
+  <p class="small">不做：shell、任意 HTTP、任意路径、多代理写。</p>
+
+  <table>
+    <tr><th>置信度</th><th>行为</th></tr>
+    <tr><td>≥0.85 且 R0</td><td>直接执行</td></tr>
+    <tr><td>≥0.85 且 R2</td><td>确认一次</td></tr>
+    <tr><td>≥0.85 且 R3</td><td>二次确认 + 回滚</td></tr>
+    <tr><td>0.55–0.85</td><td>先问“你是想…还是只是聊聊？”</td></tr>
+    <tr><td>&lt;0.55</td><td>当聊天，不执行</td></tr>
+  </table>
+
+  <h2>6. 与现有执行脑共存</h2>
+  <table>
+    <tr><th>输入</th><th>路径</th></tr>
+    <tr><td>`脑子：…`</td><td>跳过路由，直接只读 act</td></tr>
+    <tr><td>`脑子写：…`</td><td>直接 R2 确认</td></tr>
+    <tr><td>`脑子继续/取消/状态`</td><td>现有状态机</td></tr>
+    <tr><td>普通“看看…”</td><td>快速门 → intent route</td></tr>
+    <tr><td>普通聊天</td><td>不经过执行</td></tr>
+  </table>
+
+  <h2>7. 记忆：在现有之上加，不推翻</h2>
+  <table>
+    <tr><th>层</th><th>现有</th><th>新增</th></tr>
+    <tr><td>工作记忆</td><td>最近消息/摘要</td><td>data/intent/state.json：pending/confirm/ref</td></tr>
+    <tr><td>情节</td><td>episode/人物卡</td><td>动作结果作为 episode source=brain</td></tr>
+    <tr><td>语义</td><td>人物卡/偏好</td><td>偏好必须带 evidence</td></tr>
+    <tr><td>程序</td><td>无</td><td>data/intent/procedures.jsonl</td></tr>
+    <tr><td>意图/承诺</td><td>无</td><td>data/intent/commitments.jsonl（三态+证据）</td></tr>
+    <tr><td>交付/能力</td><td>brain-tasks / 能力台账</td><td>actionId/成功次数</td></tr>
+    <tr><td>表达</td><td>persona</td><td>不变</td></tr>
+  </table>
+
+  <h2>8. 分阶段计划</h2>
+  <table>
+    <tr><th>阶段</th><th>内容</th><th>验收</th><th>估算</th></tr>
+    <tr><td>S0</td><td>契约/样本/基线</td><td>文档评审；200 样本</td><td>1–2 人日</td></tr>
+    <tr><td>S1</td><td>Shadow 路由，不执行</td><td>真实聊天 3–7 天；误触发可解释</td><td>3–5</td></tr>
+    <tr><td>S2</td><td>R0 自动</td><td>R0 成功率 ≥85%；R2/R3 不执行</td><td>3–4</td></tr>
+    <tr><td>S3</td><td>R2/R3 确认</td><td>误执行 0；确认接受率 ≥70%</td><td>4–6</td></tr>
+    <tr><td>S4</td><td>记忆/承诺</td><td>说到做到可回查；无证据 failed</td><td>3–4</td></tr>
+    <tr><td>S5</td><td>群聊/多模态/灰度</td><td>群成员不能触发；回滚可用</td><td>2–3</td></tr>
+  </table>
+  <p>合计约 <b>16–24 人日</b>（不含真实聊天观察期）。</p>
+
+  <h2>9. 测试与发布门禁</h2>
+  <ul>
+    <li>单元：schema、动作白名单、置信度分档、pending/confirm/cancel、指代、路径/网络、群聊身份、注入。</li>
+    <li>场景：100→200 条样本逐条断言；20 条真实聊天 shadow；10 条对抗样本。</li>
+    <li>真实 DSH：P1/P2/P3/P4 回归；确认/取消/超时；群聊/私聊主人。</li>
+  </ul>
+  <pre>执行脑自测 47/47
+意图样本 200/200
+内核 287/287
+桥接 110/110
+selfcheck true
+shadow 误执行 0</pre>
+
+  <h2>10. 主要风险</h2>
+  <table>
+    <tr><th>风险</th><th>缓解</th></tr>
+    <tr><td>聊天误触发动作</td><td>阈值 + clarify + R2/R3 确认</td></tr>
+    <tr><td>指代错</td><td>多候选必须问；显示路径</td></tr>
+    <tr><td>注入</td><td>内容不直接转动作；白名单；确认</td></tr>
+    <tr><td>延迟/成本</td><td>规则先筛；只候选走模型；缓存</td></tr>
+    <tr><td>群聊泄露</td><td>主人确认；敏感路径脱敏</td></tr>
+    <tr><td>依赖 DSH</td><td>失败兜底回聊天；现有入口保留</td></tr>
+  </table>
+
+  <h2>11. 交付物</h2>
+  <ul>
+    <li><a href="鲸鲸-无关键词命令-项目书与实施计划.md">完整项目书（Markdown）</a></li>
+    <li><a href="鲸鲸-无关键词命令-模式与架构.md">模式与架构</a></li>
+    <li><a href="鲸鲸-无关键词命令-样本.json">100 条样本（扩到 200）</a></li>
+    <li>`bridge/intent_gate.py`、`action_runner.py`；`src/services/intent.js`、`src/http/routes/intent.js`</li>
+    <li>`鲸鲸-意图路由自测.py`、Shadow 报告、发布记录</li>
+  </ul>
+
+  <p class="note">本页是项目书摘要；完整细节、接口 JSON、数据模型、验收和回滚在同目录 Markdown 里。</p>
+</main>
+</body>
+</html>
