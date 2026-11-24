@@ -13,6 +13,7 @@ ROOT = os.environ.get('WHALE_BRAIN_ROOT') or r'D:\dsh'
 DEFAULT_ROOTS = [os.path.abspath(x.strip()) for x in (os.environ.get('WHALE_BRAIN_ROOTS') or ROOT).split(';') if x.strip()]
 DENY_SEGMENTS = {'data', 'backup'}
 CRED_RE = re.compile(r'(?:^|[\\/])(?:settings|config|credentials?)\.json\b|(?:^|[\\/])\.env\b|id_rsa|api[_-]?key', re.I)
+NET_RE = re.compile(r'curl|wget|Invoke-WebRequest|Invoke-RestMethod|Test-NetConnection|Resolve-DnsName|requests\.|https?\.get|fetch\(|socket\.', re.I)
 R3_RE = re.compile(r'删除|删掉|清空|kill|结束进程|安装|卸载|管理员|注册表|git\s+push|外发|上传|发送.*(?:密码|密钥|token)', re.I)
 SECRET_RE = re.compile(r'sk-[A-Za-z0-9]{8,}')
 
@@ -40,6 +41,17 @@ class BrainPolicy:
         if CRED_RE.search(s):
             return 'credential_path'
         return ''
+
+    def network_denied(self, text):
+        return bool(NET_RE.search(str(text or '')))
+
+    def check_action(self, goal, workspace, mode, allow_network=False):
+        base = self.check(goal, workspace, mode)
+        if not base.get('ok'):
+            return base
+        if self.network_denied(goal) and not allow_network:
+            return {'ok': False, 'reason': 'network_blocked', 'risk': base.get('risk', 'R2')}
+        return base
 
     def risk_of(self, goal, mode):
         if mode == 'read-only':

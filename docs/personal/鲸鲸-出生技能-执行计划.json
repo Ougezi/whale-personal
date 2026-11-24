@@ -533,20 +533,26 @@
    "source_review": [],
    "files": [
     "bridge/brain_policy.py",
+    "scripts/personal/鲸鲸-出生边界自测.py",
     "bridge/brain-readonly.yml",
     "bridge/brain-write.yml"
    ],
    "actions": [
-    "路径守卫；网络拦截；凭据拒绝"
+    "路径守卫；data/backup 拒绝；凭据拒绝；network_denied/check_action；审计脱敏",
+    "本步只做策略层，不接真实执行链"
    ],
    "tests": [
-    "越界读/写",
-    "联网拦截"
+    "python scripts/personal/鲸鲸-出生边界自测.py",
+    "python scripts/personal/鲸鲸-执行脑自测.py",
+    "node scripts/personal/鲸鲸-内核自测.js",
+    "python scripts/personal/鲸鲸-自测.py"
    ],
    "acceptance": [
-    "越界 0",
+    "越界读/写 0",
+    "data/backup 0",
+    "凭据不泄露",
     "网络拦截",
-    "凭据不泄露"
+    "显式 allow 才放行"
    ]
   },
   {
