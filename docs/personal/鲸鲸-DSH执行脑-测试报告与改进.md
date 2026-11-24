@@ -200,3 +200,23 @@ python scripts/personal/鲸鲸-自测.py
 - [x] `whale-brain-testing` skill（仓库 + DSH 全局）。
 - [x] P0 网络硬隔离：只读用 patch 禁用 web/shell/子代理/工作流；P2 写仍保留 shell。
 - [x] P2 持续评测：脚本/JSON 已接入 selfcheck 门禁。
+
+---
+
+## 9. 真实微信验收（2026-11-24）
+
+主人实际发送：
+
+```
+脑子：查一下 D:\dsh\whale-personal 为什么启动失败
+```
+
+结果：
+
+- 18:43:18 任务创建/启动（`brain_012c97d388`，read-only，R0）
+- 18:46:58 完成（`status=done`，输出 1402 字）
+- `data/brain-audit.jsonl` 有 `created / started / done`
+- 结论指出：当前这份没有启动失败，是 8787/单实例锁导致第二份看起来没反应；只查看，未改文件。
+- 耗时约 **3 分 40 秒**，偏慢；已把 P1 prompt 收紧为“先看最近日志/入口，不要全仓扫，2 分钟内给结论”。
+
+仍待主人实际发送的：P2 写审批、P3 续跑、`脑子取消`。
