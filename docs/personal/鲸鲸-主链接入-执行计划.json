@@ -883,6 +883,43 @@
     "无 owner 拒绝",
     "不自动替换"
    ]
+  },
+  {
+   "id": "I-25",
+   "phase": "I",
+   "title": "affectCore 正式候选",
+   "goal": "owner 已授权下一阶段；affectCore 默认关，开启才加 Core 心情行。",
+   "case_ids": [
+    "EV-003",
+    "EV-004",
+    "EV-005",
+    "EV-006",
+    "EV-007",
+    "EV-008",
+    "EV-009",
+    "EV-010"
+   ],
+   "min_cases": 5,
+   "source_review": [],
+   "files": [
+    "src/services/affectCore.js",
+    "src/pipeline/chat.js",
+    "src/infra/features.js",
+    "scripts/personal/鲸鲸-主链Core心情自测.js"
+   ],
+   "actions": [
+    "Core 心情行",
+    "默认关",
+    "A/B 授权后候选"
+   ],
+   "tests": [
+    "node scripts/personal/鲸鲸-主链Core心情自测.js"
+   ],
+   "acceptance": [
+    "默认关",
+    "不替换旧 mood",
+    "可按 chat 隔离"
+   ]
   }
  ]
 }

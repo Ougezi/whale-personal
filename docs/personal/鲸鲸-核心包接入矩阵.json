@@ -68,11 +68,11 @@
   {
    "id": "affect",
    "path": "packages/persona-core/affect.js",
-   "status": "staged",
-   "note": "shadow only；不替换正式回复",
-   "integration": "src/services/personaShadow.js（shadow，仅日志）",
-   "flag": "features.personaShadow（默认 false）",
-   "test": "scripts/personal/鲸鲸-主链人格Shadow自测.js"
+   "status": "wired",
+   "note": "正式候选，默认关",
+   "integration": "src/services/affectCore.js -> chat prompt（默认关）",
+   "flag": "features.affectCore（默认 false）",
+   "test": "scripts/personal/鲸鲸-主链Core心情自测.js"
   },
   {
    "id": "scope",

@@ -45,6 +45,8 @@ check('receipts wired', lambda: (_ for _ in ()).throw(AssertionError()) if by_id
 check('commitment wired', lambda: (_ for _ in ()).throw(AssertionError()) if by_id('commitment')['status'] != 'wired' else None)
 check('registry wired', lambda: (_ for _ in ()).throw(AssertionError()) if by_id('registry')['status'] != 'wired' else None)
 
+check('affect wired', lambda: (_ for _ in ()).throw(AssertionError()) if by_id('affect')['status'] != 'wired' else None)
+
 check('检查器通过', lambda: (_ for _ in ()).throw(AssertionError()) if not M.check()['ok'] else None)
 
 print('\n通过 %d/%d' % (pass_n, pass_n + fail_n))

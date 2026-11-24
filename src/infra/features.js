@@ -107,6 +107,14 @@ const REGISTRY = [
     experimental: true,
   },
   {
+    key: 'affectCore',
+    path: 'features.affectCore',
+    label: '情绪 Core（实验性，正式候选）',
+    desc: '默认关闭。开启后额外加一条【Core 心情】行；旧 mood 仍保留。需 A/B 与主人授权后按 chat 灰度。',
+    default: false,
+    experimental: true,
+  },
+  {
     key: 'personaShadow',
     path: 'features.personaShadow',
     label: '人格 Shadow（实验性）',

@@ -22,6 +22,7 @@ const innerNotes = require('../core/innerNotes');
 const concerns = require('../core/concerns');
 const commitmentLedger = require('../services/commitmentLedger');
 const personaShadow = require('../services/personaShadow');
+const affectCore = require('../services/affectCore');
 const empathy = require('../core/empathy');
 const antiRepeat = require('../core/antiRepeat');
 const skills = require('../core/skills');
@@ -992,6 +993,10 @@ class Bot {
       }
     }
     // 念头流：跨轮携带、3 小时淡掉；每轮最多带出两条，明说「不一定要说出来」
+    let affectCoreLine = '';
+    if (features.isOn(this.config, 'affectCore')) {
+      try { affectCoreLine = affectCore.tick({ chatId: key, text: (clean && clean.text) || msg.text || '', now: nowMs }).line; } catch { affectCoreLine = ''; }
+    }
     let thoughtLine = '';
     if (features.isOn(this.config, 'thoughts')) {
       try {
@@ -1065,7 +1070,7 @@ class Bot {
       }
     } catch { /* 漏回检测失败不影响回复 */ }
     const innerLine = promptBudgetCore.fitBlocks([
-      { key: 'mood', text: moodLine }, { key: 'thought', text: thoughtLine },
+      { key: 'mood', text: moodLine }, { key: 'affectCore', text: affectCoreLine }, { key: 'thought', text: thoughtLine },
       { key: 'notes', text: notesLine }, { key: 'empathy', text: empathyLine },
       { key: 'concern', text: concernLine }, { key: 'nick', text: nickLine },
       { key: 'coref', text: corefLine }, { key: 'intent', text: intentLine },
