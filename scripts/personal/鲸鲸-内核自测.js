@@ -511,6 +511,15 @@ try {
     && inner.recent('feelings', 1, { dir: idir })[0].text.length <= 200, cc3.text);
   const cc4 = inner.consume('看[[feel 没写冒号]]的', { dir: idir });
   check('半截标记不留渣', !cc4.text.includes('[') && !cc4.text.includes(']'), cc4.text);
+  const dupA = inner.append('feel', '重复句', { dir: idir });
+  const dupB = inner.append('feel', '重复句', { dir: idir });
+  check('感受去重', dupA.ok && dupB.duplicate === true
+    && inner.recent('feelings', 20, { dir: idir }).filter((x) => x.text === '重复句').length === 1, JSON.stringify(dupB));
+  const pdir = fsx.mkdtempSync(path.join(osx.tmpdir(), 'prune-'));
+  fsx.mkdirSync(path.join(pdir, 'inner'), { recursive: true });
+  fsx.writeFileSync(path.join(pdir, 'inner', 'feelings.md'), '- [04-01 10:00] 很久以前\n- [11-22 10:00] 最近\n');
+  const dropped = inner.prune({ dir: pdir, now: new Date(2026, 10, 23).getTime(), keepDays: 90 });
+  check('感受过期清理', dropped === 1 && inner.recent('feelings', 5, { dir: pdir }).length === 1, String(dropped));
   // 备份要带上感受/教训/日记
   const fsb = require('node:fs');
   const root2 = fsb.mkdtempSync(path.join(require('node:os').tmpdir(), 'bk-'));
@@ -532,6 +541,589 @@ try {
   fsb.rmSync(root2, { recursive: true, force: true });
 } catch (e) {
   check('会话归一化', false, String(e && e.message).slice(0, 40));
+}
+
+// 事件双时态（S1，2026-11-23）
+try {
+  const mk = () => pc.normalizeCard({ version: 2, chatId: 'wechat:u:tt', uid: 'u9', events: [] }, { chatId: 'wechat:u:tt' });
+  const c1 = mk();
+  const e1 = pc.addEvent(c1, { id: 'va', date: '2026-11-20', title: '换工作', summary: '他说想换工作', importance: 0.6, confidence: 0.8 }, { chatId: 'wechat:u:tt', now: 1000 });
+  check('新事件 validTo 为空', e1 && e1.validTo === null && e1.validFrom === 1000, JSON.stringify({ vf: e1 && e1.validFrom, vt: e1 && e1.validTo }));
+  check('旧卡旧事件读入 validFrom=createdAt',
+    pc.normalizeEvent({ summary: '旧事件', createdAt: 500 }, 'c', 999).validFrom === 500, '');
+  const c2 = mk();
+  pc.addEvent(c2, { id: 'old1', date: '2026-11-01', title: '旧', summary: '旧事件摘要', importance: 0.5, confidence: 0.7 }, { chatId: 'wechat:u:tt', now: 100 });
+  pc.addEvent(c2, { id: 'new1', date: '2026-11-02', title: '新', summary: '完全不同的新事', supersedes: 'old1' }, { chatId: 'wechat:u:tt', now: 200 });
+  const oldEv = c2.events.find((e) => e.id === 'old1');
+  check('显式 supersedes 让旧事件失效', oldEv && oldEv.validTo === 200 && oldEv.supersededBy === 'new1', JSON.stringify(oldEv));
+  check('失效事件不进 activeEvents', pc.activeEvents(c2).every((e) => e.id !== 'old1'), '');
+  const c3 = mk();
+  pc.addEvent(c3, { id: 'same1', date: '2026-11-01', title: '工作', summary: '他在找工作', importance: 0.5, confidence: 0.7 }, { chatId: 'wechat:u:tt', now: 100 });
+  pc.addEvent(c3, { id: 'same2', date: '2026-11-03', title: '工作', summary: '他在找工作', importance: 0.5, confidence: 0.7 }, { chatId: 'wechat:u:tt', now: 300 });
+  const dupEv = c3.events.find((e) => e.id === 'same1');
+  check('同标题近重复自动失效', dupEv && dupEv.validTo === 300 && dupEv.supersededBy === 'same2', JSON.stringify(dupEv));
+} catch (e) {
+  check('事件双时态', false, String(e && e.message).slice(0, 50));
+}
+
+// 来源 → 置信度（S2，2026-11-23）
+try {
+  const fmt = require(path.join(ROOT, 'src', 'memory', 'format.js'));
+  check('来源置信度定值', pc.sourceConfidence('owner') === 0.95 && pc.sourceConfidence('group') === 0.8
+    && pc.sourceConfidence('self') === 0.5 && pc.sourceConfidence('web') === 0.4, '');
+  const evOwner = pc.normalizeEvent({ summary: '主人说的', source: { kind: 'owner' } }, 'c', 1);
+  check('没给置信度时按来源定值', evOwner.confidence === 0.95 && evOwner.source.kind === 'owner', String(evOwner.confidence));
+  const evExplicit = pc.normalizeEvent({ summary: 'x', confidence: 0.3, source: { kind: 'owner' } }, 'c', 1);
+  check('显式置信度优先', evExplicit.confidence === 0.3, String(evExplicit.confidence));
+  const evOld = pc.normalizeEvent({ summary: '旧事件' }, 'c', 1);
+  check('无来源按默认 0.6', evOld.confidence === 0.6 && evOld.source.kind === null, String(evOld.confidence));
+  const lineGuess = fmt.indexLine(pc.normalizeEvent({ id: 'g', date: '2026-11-01', title: 't', summary: 's', confidence: 0.3, source: { kind: 'self' } }, 'c', 1));
+  check('低置信度标推测', lineGuess.includes('（推测）'), lineGuess);
+  const lineOwner = fmt.indexLine(pc.normalizeEvent({ id: 'o', date: '2026-11-01', title: 't', summary: 's', confidence: 0.95, source: { kind: 'owner' } }, 'c', 1));
+  check('主人亲口标 TA 说过', lineOwner.includes('（TA 说过）'), lineOwner);
+} catch (e) {
+  check('来源置信度', false, String(e && e.message).slice(0, 50));
+}
+
+// 审计 + 读取预算（S3/S4，2026-11-23）
+try {
+  const fsx = require('node:fs');
+  const osx = require('node:os');
+  const audit = require(path.join(ROOT, 'src', 'memory', 'audit.js'));
+  const fmt2 = require(path.join(ROOT, 'src', 'memory', 'format.js'));
+  const { withTimeout } = require(path.join(ROOT, 'src', 'infra', 'async.js'));
+  const adir = fsx.mkdtempSync(path.join(osx.tmpdir(), 'audit-'));
+  audit.append(adir, { kind: 'event', id: 'a1', action: 'add' });
+  audit.append(adir, { kind: 'preference', id: 'a2', action: 'add' });
+  audit.append(adir, { kind: 'event', id: 'a3', action: 'supersede' });
+  check('审计读写', audit.recent(adir, 10).length === 3 && audit.recent(adir, 10)[2].id === 'a3', String(audit.recent(adir, 10).length));
+  check('审计条数限制', audit.recent(adir, 2).length === 2, '');
+  check('截断助手', fmt2.capBlockText('一二三四五六七八', 4) === '一二三四…', fmt2.capBlockText('一二三四五六七八', 4));
+  const fast = await withTimeout(Promise.resolve('ok'), 100, 'fallback');
+  check('超时工具：正常返回', fast === 'ok', String(fast));
+  const slow = await withTimeout(new Promise((r) => setTimeout(() => r('late'), 300)), 30, 'fallback');
+  check('超时工具：超时回退', slow === 'fallback', String(slow));
+} catch (e) {
+  check('审计读写', false, String(e && e.message).slice(0, 50));
+}
+
+// 选择性入库（M1，2026-11-23）
+try {
+  const filter = require(path.join(ROOT, 'src', 'memory', 'filter.js'));
+  check('过滤纯表情', filter.worthRemembering('[微笑][微笑]') === false, '');
+  check('过滤纯 @', filter.worthRemembering('@某人') === false, '');
+  check('过滤短反应', filter.worthRemembering('哈哈哈哈') === false, '');
+  check('过滤太短', filter.worthRemembering('好') === false, '');
+  check('保留正常句子', filter.worthRemembering('今天去面试了，感觉还行') === true, '');
+  check('@ 后面有内容要记', filter.worthRemembering('@某人 明天下午三点开会') === true, '');
+} catch (e) {
+  check('选择性入库', false, String(e && e.message).slice(0, 40));
+}
+
+// 分层与教训状态（M2，2026-11-23）
+try {
+  const fsx = require('node:fs');
+  const osx = require('node:os');
+  const inner2 = require(path.join(ROOT, 'src', 'core', 'innerNotes.js'));
+  const d2 = fsx.mkdtempSync(path.join(osx.tmpdir(), 'm2-'));
+  fsx.mkdirSync(path.join(d2, 'inner'), { recursive: true });
+  fsx.writeFileSync(path.join(d2, 'inner', 'lessons.md'), '- [11-20 10:00] 旧格式教训\n');
+  check('旧行默认已确认', inner2.recent('lessons', 1, { dir: d2 })[0].status === 'confirmed', '');
+  inner2.append('lesson', '待确认教训', { dir: d2 });
+  check('新教训默认 pending', inner2.recent('lessons', 1, { dir: d2 })[0].status === 'pending', '');
+  check('pending 不进提示词', !inner2.block({ dir: d2 }).includes('待确认教训'), '');
+  inner2.append('lesson', '已确认教训', { dir: d2, status: 'confirmed' });
+  check('confirmed 进提示词', inner2.block({ dir: d2 }).includes('已确认教训'), '');
+  const evL = pc.normalizeEvent({ summary: 'x', layer: 'L2' }, 'c', 1);
+  const evD = pc.normalizeEvent({ summary: 'y' }, 'c', 1);
+  check('事件分层默认 L1', evL.layer === 'L2' && evD.layer === 'L1', evL.layer + '/' + evD.layer);
+} catch (e) {
+  check('教训状态', false, String(e && e.message).slice(0, 40));
+}
+
+// 夜间睡眠任务（M3，2026-11-23）
+try {
+  const fsx = require('node:fs');
+  const osx = require('node:os');
+  const sleep = require(path.join(ROOT, 'src', 'services', 'memorySleep.js'));
+  const now = new Date(2026, 10, 23, 10, 0).getTime();
+  const DAY = 86400000;
+  const root2 = fsx.mkdtempSync(path.join(osx.tmpdir(), 'sleep-'));
+  const pdir = path.join(root2, 'data', 'memory', 'chats', 'h1', 'people');
+  fsx.mkdirSync(pdir, { recursive: true });
+  const card = {
+    version: 2, chatId: 'c1', uid: 'u1',
+    events: [
+      { id: 'e1', title: '工作', summary: '他在找工作', createdAt: now - 40 * DAY, importance: 0.3, layer: 'L1' },
+      { id: 'e2', title: '工作', summary: '他在找工作', createdAt: now - 10 * DAY, importance: 0.3, layer: 'L1' },
+      { id: 'e3', title: '旅行', summary: '他想去旅行', createdAt: now - 1 * DAY, importance: 0.6, resolved: false, keywords: ['旅行'] },
+      { id: 'e4', title: '换房', summary: '他在看房子', createdAt: now - 2 * DAY, importance: 0.6, resolved: false },
+      { id: 'e5', title: '考试', summary: '他要考试了', createdAt: now - 3 * DAY, importance: 0.6, resolved: false },
+      { id: 'e6', title: '旧事', summary: '很久以前的小事', createdAt: now - 40 * DAY, importance: 0.2, layer: 'L1' },
+    ],
+  };
+  fsx.writeFileSync(path.join(pdir, 'p1.json'), JSON.stringify(card));
+  const idir = path.join(root2, 'data', 'inner');
+  fsx.mkdirSync(idir, { recursive: true });
+  const old = new Date(now - 10 * DAY);
+  const at = String(old.getMonth() + 1).padStart(2, '0') + '-' + String(old.getDate()).padStart(2, '0') + ' 10:00';
+  fsx.writeFileSync(path.join(idir, 'lessons.md'), '- [' + at + '] (pending) 旧教训\n');
+  const rep = sleep.run({ dataDir: path.join(root2, 'data'), now });
+  const after = JSON.parse(fsx.readFileSync(path.join(pdir, 'p1.json'), 'utf8'));
+  const e1 = after.events.find((e) => e.id === 'e1');
+  const e6 = after.events.find((e) => e.id === 'e6');
+  check('睡眠：矛盾失效', rep.conflicted >= 1 && e1 && e1.validTo === now, JSON.stringify(rep));
+  check('睡眠：旧事归档', rep.consolidated >= 1 && e6 && e6.validTo === now
+    && fsx.existsSync(path.join(root2, 'data', 'memory', 'archive.md')), String(rep.consolidated));
+  check('睡眠：教训晋升', rep.promoted === 1 && !fsx.readFileSync(path.join(idir, 'lessons.md'), 'utf8').includes('(pending)'), String(rep.promoted));
+  check('睡眠：洞察产出', rep.insights >= 1 && fsx.readFileSync(path.join(idir, 'insights.md'), 'utf8').includes('没结局'), String(rep.insights));
+  const again = sleep.maybeRun({ dataDir: path.join(root2, 'data'), now });
+  check('睡眠：同日幂等', again.ran === false, again.reason || '');
+} catch (e) {
+  check('睡眠任务', false, String(e && e.message).slice(0, 50));
+}
+
+// 记忆体检（M4，2026-11-23）
+try {
+  const fsx = require('node:fs');
+  const osx = require('node:os');
+  const inspect = require(path.join(ROOT, 'src', 'memory', 'inspect.js'));
+  const sroot = fsx.mkdtempSync(path.join(osx.tmpdir(), 'inspect-'));
+  const sp = path.join(sroot, 'memory', 'chats', 'h1', 'people');
+  fsx.mkdirSync(sp, { recursive: true });
+  const legacy = 1000;                       // S2 之前
+  const fresh = Date.now();
+  fsx.writeFileSync(path.join(sp, 'p1.json'), JSON.stringify({
+    version: 2, chatId: 'c1', uid: 'u1',
+    events: [
+      { id: 'd1', title: '工作', summary: '他在找工作', createdAt: fresh, source: { kind: 'group' } },
+      { id: 'd2', title: '工作', summary: '他在找工作', createdAt: fresh, source: { kind: 'group' } },
+      { id: 'l1', title: '旧', summary: '旧事件', createdAt: legacy, source: { chatId: 'c1' } },
+      { id: 'n1', title: '新', summary: '没有来源的新事件', createdAt: fresh, source: { chatId: 'c1' } },
+    ],
+  }));
+  fsx.writeFileSync(path.join(sp, 'broken.json'), '{ not json');
+  fsx.writeFileSync(path.join(sp, 'p2.json'), JSON.stringify({
+    version: 2, chatId: 'c1', uid: 'u2', events: [],
+    preferences: Array.from({ length: 49 }, (_, i) => ({ id: 'p' + i, text: 'x', deleted: false })),
+  }));
+  const rep = inspect.scan({ dataDir: sroot });
+  check('体检：重复事件', rep.dups === 1, String(rep.dups));
+  check('体检：新数据缺来源', rep.noSource === 1 && rep.legacyNoSource === 1, rep.noSource + '/' + rep.legacyNoSource);
+  check('体检：坏卡', rep.broken === 1, String(rep.broken));
+  check('体检：超限卡', rep.overLimit === 1 && rep.ok === false, String(rep.overLimit));
+} catch (e) {
+  check('记忆体检', false, String(e && e.message).slice(0, 50));
+}
+
+// 牵挂 / 共情 / 复合情绪 / 表达 / 联系协调（R1–R5，2026-11-23）
+try {
+  const fsx = require('node:fs');
+  const osx = require('node:os');
+  const concerns = require(path.join(ROOT, 'src', 'core', 'concerns.js'));
+  const empathy = require(path.join(ROOT, 'src', 'core', 'empathy.js'));
+  const moodR = require(path.join(ROOT, 'src', 'core', 'mood.js'));
+  const careR = require(path.join(ROOT, 'src', 'services', 'care.js'));
+  const cdir = fsx.mkdtempSync(path.join(osx.tmpdir(), 'concern-'));
+  const c1 = concerns.add(cdir, { text: '明天再说换工作的事', now: 1000 });
+  concerns.add(cdir, { text: '明天再说换工作的事', now: 2000 });
+  check('牵挂：写入去重', c1 && concerns.list(cdir, { now: 3000 }).length === 1, '');
+  check('牵挂：注入文案', concerns.block({ dir: cdir, now: 3000 }).includes('欠着的'), '');
+  concerns.close(cdir, '换工作', 4000);
+  check('牵挂：可关闭', concerns.list(cdir, { now: 5000 }).length === 0, '');
+  check('共情：生气安抚', empathy.assess('烦死了').tone === 'soothe', '');
+  check('共情：忙时简短', empathy.assess('在开会').tone === 'brief', '');
+  const stR = moodR.baseline(0);
+  stR.emotions = { 喜: 0, 怒: 0.5, 哀: 0.6, 惧: 0, 爱: 0, 恶: 0, 欲: 0 };
+  check('复合情绪：委屈', moodR.composite(stR) === '委屈', moodR.composite(stR));
+  stR.emotions = { 喜: 0, 怒: 0.9, 哀: 0, 惧: 0, 爱: 0, 恶: 0, 欲: 0 };
+  check('表达映射：怒→炸毛', moodR.expressionFor(stR) === '炸毛', '');
+  const cfgR = { paths: { dataDir: cdir }, care: { enabled: true, everyMinutes: 1, followDesire: false } };
+  const t0 = new Date(2026, 10, 23, 11, 0).getTime();
+  const active = careR.careDue(cfgR, { lastSentTs: 0, sentToday: 0, now: t0, ownerActiveAt: t0 - 1000 });
+  check('联系协调：主人在聊让位', active.due === false && active.reason === 'owner_active', active.reason);
+  const boosted = careR.careDue(cfgR, { lastSentTs: t0 - 1000, sentToday: 0, now: t0, eventScore: 3 });
+  check('联系协调：事件分可直接开口', boosted.due === true, boosted.reason);
+  const noAns = careR.careDue(cfgR, { lastSentTs: t0 - 61000, sentToday: 0, now: t0 });
+  const doubled = careR.careDue(cfgR, { lastSentTs: t0 - 61000, sentToday: 0, now: t0, unanswered: 1 });
+  check('联系协调：未回冷却翻倍', noAns.due === true && doubled.due === false && doubled.reason === 'too_soon', noAns.reason + '/' + doubled.reason);
+} catch (e) {
+  check('牵挂账本', false, String(e && e.message).slice(0, 50));
+}
+
+// 画像 / 全局记忆 / 世界书 / 技能 / 反重复（I1–I5，2026-11-23）
+try {
+  const fsx = require('node:fs');
+  const osx = require('node:os');
+  const fmt3 = require(path.join(ROOT, 'src', 'memory', 'format.js'));
+  const prompt3 = require(path.join(ROOT, 'src', 'persona', 'prompt.js'));
+  const pg = require(path.join(ROOT, 'src', 'core', 'personGlobal.js'));
+  const skills = require(path.join(ROOT, 'src', 'core', 'skills.js'));
+  const anti = require(path.join(ROOT, 'src', 'core', 'antiRepeat.js'));
+  const tr3 = pc.normalizeTrait({ text: '慢热', evidence: ['a', 'b', 'c'] }, 1);
+  const tr1 = pc.normalizeTrait({ text: '爱猫', evidence: ['a'] }, 1);
+  check('画像证据晋级', tr3.confirmed === true && tr1.confirmed === false, String(tr3.confirmed) + '/' + String(tr1.confirmed));
+  const c3 = pc.normalizeCard({ version: 2, chatId: 'c', uid: 'u', traits: [
+    { text: '未确认', confidence: 0.9, evidence: ['a'] },
+    { text: '已确认', confidence: 0.6, evidence: ['a', 'b', 'c'] },
+  ] }, { chatId: 'c' });
+  const blk3 = fmt3.buildMemoryBlock({ card: c3, events: [], summary: '' });
+  check('画像优先级排序', blk3.indexOf('已确认') < blk3.indexOf('未确认'), '');
+  const gdir = fsx.mkdtempSync(path.join(osx.tmpdir(), 'global-'));
+  pg.addFact(gdir, 'u1', '在武汉上班', { at: 1 });
+  pg.addFact(gdir, 'u1', '在武汉上班', { at: 2 });
+  check('全局记忆去重', pg.list(gdir, 'u1').length === 1, '');
+  check('全局记忆隔离', pg.list(gdir, 'u2').length === 0 && pg.block({ dataDir: gdir, uid: 'u1' }).includes('跨会话印象'), '');
+  const P3 = { world: [
+    { key: '公司', text: '在光谷', keywords: ['上班', '公司'] },
+    { key: '猫', text: '养了只橘猫', keywords: ['猫'] },
+    { key: '房', text: '在租房', keywords: ['租'] },
+    { key: '车', text: '没有车', keywords: ['车'] },
+  ] };
+  check('世界书命中', prompt3.worldBlock(P3, '今天上班好累').includes('光谷'), '');
+  check('世界书不命中', prompt3.worldBlock(P3, '你好').length === 0, '');
+  check('世界书最多三条', (prompt3.worldBlock(P3, '上班 猫 租 车').match(/：/g) || []).length === 3, '');
+  skills.add(gdir, '改配置前先备份');
+  skills.add(gdir, '改配置前先备份');
+  check('技能结晶去重', skills.list(gdir).length === 1, '');
+  check('技能匹配', skills.match(gdir, '帮我改配置').length === 1, '');
+  check('反重复：用过换说法', anti.pick('好的', ['好的'], () => 0) === '好', '');
+  check('反重复：没用过不动', anti.pick('好的', ['行'], () => 0) === '好的', '');
+  check('反重复：长句不动', anti.pick('今天天气不错', ['今天天气不错'], () => 0) === '今天天气不错', '');
+} catch (e) {
+  check('画像证据晋级', false, String(e && e.message).slice(0, 50));
+}
+
+// careDecide 透传（R5 调用方，2026-11-23）
+try {
+  const careD = require(path.join(ROOT, 'src', 'services', 'care.js'));
+  const nowD = new Date(2026, 10, 23, 11, 0).getTime();
+  const cfgD = { paths: { dataDir: 'x' }, care: { enabled: true, everyMinutes: 1, followDesire: false,
+    whitelist: ['wxid_x'], allowOthers: true, onlyMaster: false } };
+  const blocked = careD.careDecide(cfgD, { now: nowD, ownerActiveAt: nowD - 1000 });
+  check('careDecide 透传：主人在聊', blocked.due === false && blocked.reason === 'owner_active', blocked.reason);
+  const boostedD = careD.careDecide(cfgD, { now: nowD, eventScore: 3 });
+  check('careDecide 透传：事件分', boostedD.due === true && boostedD.target && boostedD.target.wxid === 'wxid_x', JSON.stringify(boostedD.target || null));
+} catch (e) {
+  check('careDecide 透传', false, String(e && e.message).slice(0, 40));
+}
+
+// Store 集成回归（复核修复，2026-11-23）
+try {
+  const fsx = require('node:fs');
+  const osx = require('node:os');
+  const { Store } = require(path.join(ROOT, 'src', 'memory', 'store.js'));
+  const sroot = fsx.mkdtempSync(path.join(osx.tmpdir(), 'store-'));
+  const dataDir = path.join(sroot, 'data');
+  const store = new Store({
+    file: path.join(dataDir, 'store.json'),
+    dir: path.join(dataDir, 'memory'),
+    config: { paths: { dataDir } },
+    logger: null,
+  });
+  const key = 'wechat:u:u1';
+  store.appendMessage(key, { role: 'user', uid: 'u1', name: 'n', text: '我住在武汉，在光谷上班', isMaster: true, isGroup: false });
+  const msgs = store.messages(key, 5);
+  check('Store 集成：消息保留 isMaster', msgs.length >= 1 && msgs[0].isMaster === true, JSON.stringify(msgs[0] && msgs[0].isMaster));
+  const auditFile = path.join(dataDir, 'memory', 'audit.jsonl');
+  const auditText = fsx.existsSync(auditFile) ? fsx.readFileSync(auditFile, 'utf8') : '';
+  check('Store 集成：审计有写入', auditText.includes('"action":"add"'), auditText.slice(0, 60));
+  const gdir = path.join(dataDir, 'memory', 'people-global');
+  const gFiles = fsx.existsSync(gdir) ? fsx.readdirSync(gdir) : [];
+  check('Store 集成：全局记忆有写入', gFiles.length >= 1, String(gFiles.length));
+  // 牵挂默认 7 天过期
+  const concerns2 = require(path.join(ROOT, 'src', 'core', 'concerns.js'));
+  const croot = fsx.mkdtempSync(path.join(osx.tmpdir(), 'concern2-'));
+  const nowC = new Date(2026, 10, 23, 10, 0).getTime();
+  concerns2.add(croot, { text: '改天再说', now: nowC });
+  check('牵挂默认 7 天过期', concerns2.list(croot, { now: nowC + 8 * 86400000 }).length === 0, '');
+  // 极端情绪连续 3 次加速回落
+  const moodX = require(path.join(ROOT, 'src', 'core', 'mood.js'));
+  const stX = moodX.baseline(0);
+  stX.emotions = { 喜: 0, 怒: 0.9, 哀: 0, 惧: 0, 爱: 0, 恶: 0, 欲: 0 };
+  stX.scales = { 怒: 1.5 };
+  moodX.dampIfExtreme(stX); moodX.dampIfExtreme(stX);
+  check('极端情绪第三次加速回落', moodX.dampIfExtreme(stX) === true && stX.scales.怒 <= 0.8, String(stX.scales.怒));
+} catch (e) {
+  check('Store 集成', false, String(e && e.message).slice(0, 60));
+}
+
+// 睡眠后刷新缓存 + 事件分越过欲望闸门（复核修复，2026-11-23）
+try {
+  const fsx = require('node:fs');
+  const osx = require('node:os');
+  const { Store } = require(path.join(ROOT, 'src', 'memory', 'store.js'));
+  const rroot = fsx.mkdtempSync(path.join(osx.tmpdir(), 'refresh-'));
+  const rdata = path.join(rroot, 'data');
+  const st2 = new Store({ file: path.join(rdata, 'store.json'), dir: path.join(rdata, 'memory'),
+    config: { paths: { dataDir: rdata } }, logger: null });
+  const key2 = 'wechat:u:u1';
+  st2.appendMessage(key2, { role: 'user', uid: 'u1', name: '小明', text: '我叫小明', isMaster: true, isGroup: false });
+  const chat2 = st2.chatStore.chats.get(key2);
+  const beforeCard = chat2.people.get('u1');
+  if (beforeCard) beforeCard.nickname = '内存脏值';
+  st2.refreshCards();
+  const afterCard = chat2.people.get('u1');
+  check('刷新卡片缓存', Boolean(afterCard) && afterCard.nickname !== '内存脏值', String(afterCard && afterCard.nickname));
+  const careD2 = require(path.join(ROOT, 'src', 'services', 'care.js'));
+  const t0 = new Date(2026, 10, 23, 11, 0).getTime();
+  const cdir2 = fsx.mkdtempSync(path.join(osx.tmpdir(), 'care2-'));
+  fsx.writeFileSync(path.join(cdir2, 'mood.json'), JSON.stringify({ wants: { 见: 100, 听: 100, 香: 100, 味: 100, 触: 100, 意: 100 } }));
+  const cfg2 = { paths: { dataDir: cdir2 }, care: { enabled: true, everyMinutes: 1, followDesire: true,
+    whitelist: ['wxid_x'], allowOthers: true, onlyMaster: false } };
+  const noBoost = careD2.careDue(cfg2, { now: t0, eventScore: 0 });
+  const boost = careD2.careDue(cfg2, { now: t0, eventScore: 3 });
+  check('事件分越过欲望闸门', noBoost.due === false && boost.due === true, (noBoost.reason || '') + '/' + (boost.reason || ''));
+} catch (e) {
+  check('刷新卡片缓存', false, String(e && e.message).slice(0, 50));
+}
+
+// 复核完善回归（2026-11-23 02:10）
+try {
+  const fsx = require('node:fs');
+  const osx = require('node:os');
+  // 睡眠任务写审计
+  const sroot = fsx.mkdtempSync(path.join(osx.tmpdir(), 'sleepaudit-'));
+  const sp = path.join(sroot, 'memory', 'chats', 'h1', 'people');
+  fsx.mkdirSync(sp, { recursive: true });
+  const nowS = new Date(2026, 10, 23, 10, 0).getTime();
+  fsx.writeFileSync(path.join(sp, 'p1.json'), JSON.stringify({ version: 2, chatId: 'c1', uid: 'u1', events: [
+    { id: 'x1', title: '工作', summary: '他在找工作', createdAt: nowS - 2 * 86400000, importance: 0.5, layer: 'L1' },
+    { id: 'x2', title: '工作', summary: '他在找工作', createdAt: nowS - 86400000, importance: 0.5, layer: 'L1' },
+  ] }));
+  const sleep2 = require(path.join(ROOT, 'src', 'services', 'memorySleep.js'));
+  sleep2.run({ dataDir: sroot, now: nowS });
+  const auditText = fsx.readFileSync(path.join(sroot, 'memory', 'audit.jsonl'), 'utf8');
+  check('睡眠审计留痕', auditText.includes('"reason":"sleep"'), auditText.slice(0, 50));
+  // 全局记忆过滤：taboo 不进全局，fact 进
+  const { Store } = require(path.join(ROOT, 'src', 'memory', 'store.js'));
+  const groot = fsx.mkdtempSync(path.join(osx.tmpdir(), 'globalf-'));
+  const gdata = path.join(groot, 'data');
+  const st3 = new Store({ file: path.join(gdata, 'store.json'), dir: path.join(gdata, 'memory'),
+    config: { paths: { dataDir: gdata } }, logger: null });
+  const gkey = 'wechat:u:u2';
+  st3.appendMessage(gkey, { role: 'user', uid: 'u2', name: 'n', text: '我不吃香菜', isMaster: true, isGroup: false });
+  st3.appendMessage(gkey, { role: 'user', uid: 'u2', name: 'n', text: '我住在武汉', isMaster: true, isGroup: false });
+  const pg2 = require(path.join(ROOT, 'src', 'core', 'personGlobal.js'));
+  const allFacts = pg2.list(gdata, 'u2', 20).map((f) => f.text).join('|');
+  check('全局记忆过滤 taboo', !allFacts.includes('香菜'), allFacts);
+  check('全局记忆保留事实', allFacts.includes('武汉'), allFacts);
+  // 技能提示
+  const sk2 = require(path.join(ROOT, 'src', 'core', 'skills.js'));
+  const kdir = fsx.mkdtempSync(path.join(osx.tmpdir(), 'skillb-'));
+  sk2.add(kdir, '改配置前先备份');
+  check('技能提示块', sk2.block({ dataDir: kdir, text: '帮我改配置' }).includes('以前做过'), '');
+  // 反重复新表
+  const anti2 = require(path.join(ROOT, 'src', 'core', 'antiRepeat.js'));
+  check('反重复新短句', anti2.pick('知道了', ['知道了'], () => 0) === '嗯嗯', '');
+} catch (e) {
+  check('复核完善回归', false, String(e && e.message).slice(0, 60));
+}
+
+// 改称呼识别（2026-11-24 断片修复）
+try {
+  const nick = require(path.join(ROOT, 'src', 'core', 'nickname.js'));
+  check('改称呼：接受新名字', nick.hint('以后叫你哦鲸鲸').includes('哦鲸鲸'), nick.hint('以后叫你哦鲸鲸'));
+  check('改称呼：以后就叫', nick.hint('以后就叫你鲸鲸吧').includes('鲸鲸'), '');
+  check('改称呼：不叫旧名', nick.hint('以后不叫你大肥鱼了').includes('不想再叫'), '');
+  check('改称呼：普通消息不触发', nick.hint('今天吃什么') === '', '');
+} catch (e) {
+  check('改称呼识别', false, String(e && e.message).slice(0, 40));
+}
+
+// 第一期记忆可靠性（2026-11-24）
+try {
+  const fsx = require('node:fs');
+  const osx = require('node:os');
+  const { Store } = require(path.join(ROOT, 'src', 'memory', 'store.js'));
+  const base = fsx.mkdtempSync(path.join(osx.tmpdir(), 'p1-'));
+  const mk = () => new Store({
+    file: path.join(base, 'store.json'), dir: path.join(base, 'memory'),
+    config: { paths: { dataDir: base }, persona: { master: { wxids: ['m1'], names: ['主人'] } } },
+    logger: null,
+  });
+  const st = mk();
+  const masterMsg = { platform: 'wechat', chatType: 'private', chatId: 'm1', senderId: 'm1', senderName: '主人' };
+  const otherMsg = { platform: 'wechat', chatType: 'private', chatId: 'u9', senderId: 'u9', senderName: '别人' };
+  st.recordUser('wechat:u:m1', masterMsg, '我住在武汉');
+  st.recordUser('wechat:u:u9', otherMsg, '我喜欢橘子');
+  const m1rows = st.messages('wechat:u:m1', 5);
+  const u9rows = st.messages('wechat:u:u9', 5);
+  check('统一写入口：主人标记', m1rows[0] && m1rows[0].isMaster === true, String(m1rows[0] && m1rows[0].isMaster));
+  check('统一写入口：非主人标记', u9rows[0] && u9rows[0].isMaster === false, String(u9rows[0] && u9rows[0].isMaster));
+  st.noteWriteFailure('user', new Error('disk full'));
+  st.noteWriteFailure('user', new Error('disk full'));
+  check('写失败计数', st.writeFailures.total === 2 && st.writeFailures.consecutive === 2, JSON.stringify(st.writeFailures));
+  st.recordUser('wechat:u:m1', masterMsg, '我住在武汉');
+  check('写成功后清零', st.writeFailures.consecutive === 0 && st.writeFailures.total === 2, JSON.stringify(st.writeFailures));
+  const sleep3 = require(path.join(ROOT, 'src', 'services', 'memorySleep.js'));
+  const sroot = fsx.mkdtempSync(path.join(osx.tmpdir(), 'p1s-'));
+  const chatDir = path.join(sroot, 'memory', 'chats', 'abc');
+  fsx.mkdirSync(chatDir, { recursive: true });
+  const lines = [JSON.stringify({ seq: 1, role: 'user', text: '你好' })];
+  for (let i = 2; i <= 9; i += 1) lines.push(JSON.stringify({ seq: i, role: 'assistant', text: '回' + i }));
+  fsx.writeFileSync(path.join(chatDir, 'messages.jsonl'), lines.join('\n'));
+  const health3 = sleep3.auditChats(sroot);
+  check('每日对账：发现断片', health3.stale.length === 1 && health3.stale[0].assistantsAfterLastUser === 8, JSON.stringify(health3.stale));
+  const ex3 = require(path.join(ROOT, 'src', 'memory', 'extractor.js'));
+  check('前缀抽取：对了', ex3.extractSelfFacts('对了，我住在武汉').facts.length === 1, '');
+} catch (e) {
+  check('第一期记忆可靠性', false, String(e && e.message).slice(0, 60));
+}
+
+// 第二期：最近 user 保底 + 改称呼持久化（2026-11-24）
+try {
+  const fsx = require('node:fs');
+  const osx = require('node:os');
+  const comp = require(path.join(ROOT, 'src', 'memory', 'compression.js'));
+  const msgs = [];
+  let seq = 0;
+  for (let u = 1; u <= 4; u += 1) {
+    seq += 1; msgs.push({ seq, role: 'user', text: '用户问题' + u, ts: 1, uid: 'u1', name: 'n' });
+    for (let a = 0; a < 4; a += 1) { seq += 1; msgs.push({ seq, role: 'assistant', text: '她的回复' + seq, ts: 2 }); }
+  }
+  const fakeChat = { messages: msgs, summary: { coveredThroughSeq: 0 } };
+  const recent = comp.recentForPrompt(fakeChat, { currentSeq: 0, maxTokens: 5, maxCount: 40, minUser: 4 });
+  const userCount = recent.messages.filter((m) => m.role === 'user').length;
+  check('最近用户消息保底', userCount === 4, 'user=' + userCount + ' tokens=' + recent.tokens);
+  const nick2 = require(path.join(ROOT, 'src', 'core', 'nickname.js'));
+  const ndir = fsx.mkdtempSync(path.join(osx.tmpdir(), 'nick-'));
+  nick2.remember(ndir, 'wechat:u:m1', '以后叫你哦鲸鲸', 1);
+  check('改称呼持久化', nick2.current(ndir, 'wechat:u:m1') === '哦鲸鲸', nick2.current(ndir, 'wechat:u:m1'));
+  nick2.remember(ndir, 'wechat:u:m1', '以后不叫你大肥鱼了', 2);
+  check('不叫旧名不覆盖', nick2.current(ndir, 'wechat:u:m1') === '哦鲸鲸', '');
+  check('改称呼提取', nick2.extract('以后就叫你鲸鲸吧').name === '鲸鲸', JSON.stringify(nick2.extract('以后就叫你鲸鲸吧')));
+} catch (e) {
+  check('最近用户消息保底', false, String(e && e.message).slice(0, 60));
+}
+
+// 第二期：定期摘要 + 指代提示（2026-11-24）
+try {
+  const comp2 = require(path.join(ROOT, 'src', 'memory', 'compression.js'));
+  const mkChat = (n) => {
+    const messages = [];
+    for (let i = 1; i <= n; i += 1) messages.push({ seq: i, role: i % 2 ? 'user' : 'assistant', text: '消息' + i, ts: i, uid: 'u1', name: 'n' });
+    return { messages, meta: {}, summary: { segments: [], coveredThroughSeq: 0 } };
+  };
+  const chatA = mkChat(35);
+  const nowT = new Date(2026, 10, 24, 2, 0).getTime();
+  const r1 = comp2.timedCompress(chatA, { now: nowT, minNew: 30, intervalMs: 2 * 3600000 });
+  check('定期摘要：触发', r1.chunks === 1 && chatA.summary.coveredThroughSeq === 15, JSON.stringify(r1));
+  const r2 = comp2.timedCompress(chatA, { now: nowT + 60000, minNew: 30, intervalMs: 2 * 3600000 });
+  check('定期摘要：间隔内不重复', r2.chunks === 0, '');
+  const chatB = mkChat(10);
+  check('定期摘要：条数不足不动', comp2.timedCompress(chatB, { now: nowT }).chunks === 0, '');
+  const coref2 = require(path.join(ROOT, 'src', 'core', 'coref.js'));
+  check('指代提示', coref2.hint('刚才那个事怎么样了').includes('指代') && coref2.hint('今天吃什么') === '', '');
+} catch (e) {
+  check('定期摘要', false, String(e && e.message).slice(0, 50));
+}
+
+// 第三期：意图分类（2026-11-24）
+try {
+  const it = require(path.join(ROOT, 'src', 'core', 'intent.js'));
+  check('意图：派活', it.classify('帮我查一下明天天气') === 'delegate', it.classify('帮我查一下明天天气'));
+  check('意图：提醒', it.classify('明天记得提醒我交表') === 'remind', it.classify('明天记得提醒我交表'));
+  check('意图：提问', it.classify('你为什么这么晚睡？') === 'question', it.classify('你为什么这么晚睡？'));
+  check('意图：闲聊', it.classify('今天天气不错') === 'chat' && it.hint('今天天气不错') === '', '');
+} catch (e) {
+  check('意图分类', false, String(e && e.message).slice(0, 40));
+}
+
+// 第三期：pin + 复杂路由（2026-11-24）
+try {
+  const fsx = require('node:fs');
+  const osx = require('node:os');
+  const pins = require(path.join(ROOT, 'src', 'core', 'pins.js'));
+  const pdir = fsx.mkdtempSync(path.join(osx.tmpdir(), 'pins-'));
+  const items = pins.detect('说好了每周三一起看电影，雷点是不准提香菜');
+  check('pin 识别', items.some((x) => x.kind === '约定') && items.some((x) => x.kind === '雷点'), JSON.stringify(items));
+  pins.add(pdir, 'wechat:u:m1', items, 1);
+  pins.add(pdir, 'wechat:u:m1', items, 2);
+  check('pin 去重', pins.list(pdir, 'wechat:u:m1', 10).length === 2, '');
+  check('pin 注入', pins.block({ dataDir: pdir, chatId: 'wechat:u:m1' }).includes('约定'), '');
+  check('pin 不误收日常', pins.detect('每天都很累').length === 0 && pins.detect('别问我为什么').length === 0, JSON.stringify(pins.detect('每天都很累')));
+  const route3 = require(path.join(ROOT, 'src', 'core', 'route.js'));
+  check('路由：关闭不动', route3.isComplex('写一段代码', { enabled: false, keywords: ['代码'] }) === false, '');
+  check('路由：关键词命中', route3.isComplex('帮我写一段代码', { enabled: true, keywords: ['代码'] }) === true, '');
+  check('路由：长文命中', route3.isComplex('x'.repeat(201), { enabled: true, minChars: 200 }) === true, '');
+} catch (e) {
+  check('关键事实 pin', false, String(e && e.message).slice(0, 50));
+}
+
+// 第三期：预算自适应（2026-11-24）
+try {
+  const bp = require(path.join(ROOT, 'src', 'memory', 'budgetPlan.js'));
+  check('预算自适应：短会话不变', bp.adaptiveBudget(8000, 100) === 8000, String(bp.adaptiveBudget(8000, 100)));
+  check('预算自适应：150 条', bp.adaptiveBudget(8000, 150) === 10000, String(bp.adaptiveBudget(8000, 150)));
+  check('预算自适应：300 条', bp.adaptiveBudget(8000, 300) === 12000, String(bp.adaptiveBudget(8000, 300)));
+  check('预算自适应：可关闭', bp.adaptiveBudget(8000, 300, false) === 8000, '');
+  check('预算自适应：记忆块变大', bp.planBudget(12000).memory > bp.planBudget(8000).memory, '');
+} catch (e) {
+  check('预算自适应', false, String(e && e.message).slice(0, 40));
+}
+
+// 备份覆盖与恢复（2026-11-24 复核）
+try {
+  const fsx = require('node:fs');
+  const osx = require('node:os');
+  const backup = require(path.join(ROOT, 'src', 'memory', 'backup.js'));
+  const rootA = fsx.mkdtempSync(path.join(osx.tmpdir(), 'bakA-'));
+  const dataA = path.join(rootA, 'data');
+  fsx.mkdirSync(path.join(dataA, 'memory'), { recursive: true });
+  fsx.writeFileSync(path.join(dataA, 'pins.json'), JSON.stringify({ c1: [{ kind: '约定', text: '每周三看电影' }] }));
+  fsx.writeFileSync(path.join(dataA, 'nicknames.json'), JSON.stringify({ c1: { name: '哦鲸鲸' } }));
+  fsx.writeFileSync(path.join(dataA, 'concerns.json'), JSON.stringify({ items: [] }));
+  fsx.writeFileSync(path.join(dataA, 'skills.md'), '- [11-24] 改配置前先备份\n');
+  const bundle = backup.collect(rootA);
+  check('备份覆盖新文件', Boolean(bundle.files.pins && bundle.files.nicknames && bundle.files.concerns && bundle.files.skills), Object.keys(bundle.files).join(','));
+  const rootB = fsx.mkdtempSync(path.join(osx.tmpdir(), 'bakB-'));
+  fsx.mkdirSync(path.join(rootB, 'data'), { recursive: true });
+  backup.restoreFrom(rootB, bundle);
+  const restored = fsx.readFileSync(path.join(rootB, 'data', 'pins.json'), 'utf8');
+  const restoredSkill = fsx.readFileSync(path.join(rootB, 'data', 'skills.md'), 'utf8');
+  check('恢复新文件', restored.includes('每周三看电影') && restoredSkill.includes('先备份'), '');
+} catch (e) {
+  check('备份覆盖新文件', false, String(e && e.message).slice(0, 60));
+}
+
+// 睡眠日期必须按本地时区（2026-11-24 实测 bug）
+try {
+  const ms = require(path.join(ROOT, 'src', 'services', 'memorySleep.js'));
+  const localNight = new Date(2026, 10, 24, 0, 30).getTime();
+  check('睡眠日期用本地时区', ms.dayKey(localNight) === '2026-11-24', ms.dayKey(localNight));
+  const localMorning = new Date(2026, 10, 24, 7, 46).getTime();
+  check('睡眠日期上午仍是当天', ms.dayKey(localMorning) === '2026-11-24', ms.dayKey(localMorning));
+} catch (e) {
+  check('睡眠日期用本地时区', false, String(e && e.message).slice(0, 40));
+}
+
+// 一期/二期：silent 补录 + 动态提示预算（2026-11-24）
+try {
+  const fsx = require('node:fs');
+  const osx = require('node:os');
+  const { Store } = require(path.join(ROOT, 'src', 'memory', 'store.js'));
+  const root4 = fsx.mkdtempSync(path.join(osx.tmpdir(), 'silent-'));
+  const mk4 = () => new Store({ file: path.join(root4, 'store.json'), dir: path.join(root4, 'memory'),
+    config: { paths: { dataDir: root4 } }, logger: null });
+  const st4 = mk4();
+  const key4 = 'wechat:u:u1';
+  st4.appendMessage(key4, { role: 'user', uid: 'u1', name: 'n', text: '我住在武汉', silent: true });
+  const chat4 = st4.chatStore.chats.get(key4);
+  const card4 = chat4.people.get('u1');
+  check('silent 补录：不抽事实', !card4 || (card4.preferences || []).length === 0, String(card4 && (card4.preferences || []).length));
+  st4.appendMessage(key4, { role: 'user', uid: 'u1', name: 'n', text: '我住在武汉' });
+  check('silent 补录：正常仍抽', (chat4.people.get('u1').preferences || []).length >= 1, '');
+  const pb = require(path.join(ROOT, 'src', 'core', 'promptBudget.js'));
+  const small = pb.fitBlocks([{ key: 'mood', text: '心情' }, { key: 'pin', text: '记着' }]);
+  check('动态预算：不超不动', small.includes('心情') && small.includes('记着'), small);
+  const big = pb.fitBlocks([
+    { key: 'mood', text: '心'.repeat(400) }, { key: 'pin', text: '记'.repeat(400) },
+    { key: 'skill', text: '技'.repeat(400) }, { key: 'coref', text: '指'.repeat(400) },
+  ], { maxChars: 1000 });
+  check('动态预算：裁剪', big.length <= 1000 && !big.includes('技'), String(big.length));
+} catch (e) {
+  check('silent 补录', false, String(e && e.message).slice(0, 60));
 }
 
 console.log('\n通过 ' + pass + '/' + (pass + fail));

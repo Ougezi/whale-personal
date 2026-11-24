@@ -50,7 +50,7 @@ function recentTokens(chat, opts = {}) {
  * 取最近原文（含当前消息），按 token 预算从新往旧装。
  * @returns {{messages:Array, tokens:number}}
  */
-function recentForPrompt(chat, { currentSeq = 0, maxTokens = LIMITS.recentMaxTokens, maxCount = LIMITS.recentMessages } = {}) {
+function recentForPrompt(chat, { currentSeq = 0, maxTokens = LIMITS.recentMaxTokens, maxCount = LIMITS.recentMessages, minUser = 4 } = {}) {
   const covered = Number(chat.summary && chat.summary.coveredThroughSeq) || 0;
   const all = chat.messages.filter((m) => m.seq > covered);
   const window = all.slice(-Math.max(1, maxCount));
@@ -68,6 +68,39 @@ function recentForPrompt(chat, { currentSeq = 0, maxTokens = LIMITS.recentMaxTok
   if (current && !picked.some((m) => m.seq === currentSeq)) {
     picked.push(clampPromptMessage(current));
     total += messageBudgetTokens(current);
+  }
+  // 第二期：最近用户消息保底。多气泡会把 user 挤出窗口，
+  // 至少保留最近 minUser 条 user；不够就先裁最旧的 assistant 腾预算。
+  const usersInPicked = picked.filter((m) => m.role === 'user' && m.seq !== currentSeq).length;
+  if (usersInPicked < minUser) {
+    const need = minUser - usersInPicked;
+    const extra = all
+      .filter((m) => m.role === 'user' && m.seq !== currentSeq && !picked.some((p) => p.seq === m.seq))
+      .slice(-need)
+      .map(clampPromptMessage);
+    if (extra.length) {
+      let needTokens = extra.reduce((sum, m) => sum + messageBudgetTokens(m), 0);
+      while (needTokens > 0) {
+        const idx = picked.findIndex((m) => m.role === 'assistant' && m.seq !== currentSeq);
+        if (idx < 0) break;
+        needTokens -= messageBudgetTokens(picked[idx]);
+        total -= messageBudgetTokens(picked[idx]);
+        picked.splice(idx, 1);
+      }
+      for (const m of extra) {
+        picked.push(m);
+        total += messageBudgetTokens(m);
+      }
+      picked.sort((a, b) => Number(a.seq || 0) - Number(b.seq || 0));
+    }
+  }
+  // 保底 user 后允许 1.3 倍预算；超了先裁最旧的 assistant，user 优先保住
+  const hardCap = Math.max(maxTokens, Math.round(maxTokens * 1.3));
+  while (total > hardCap) {
+    const idx = picked.findIndex((m) => m.role === 'assistant' && m.seq !== currentSeq);
+    if (idx < 0) break;
+    total -= messageBudgetTokens(picked[idx]);
+    picked.splice(idx, 1);
   }
   return { messages: picked, tokens: total };
 }
@@ -226,6 +259,22 @@ function compressSync(chat, { currentSeq = 0, now = Date.now(), hardTrigger, rec
  * 异步压缩：可以调用模型生成高质量摘要。模型失败 → 什么都不改（原文保留、coverage 不前进）。
  * @returns {Promise<{before:number, after:number, compressed:number, chunks:number, failed?:boolean}>}
  */
+/** 时间/条数触发的定期摘要：不等 token 爆，先把旧消息压成摘要 */
+function timedCompress(chat, { now = Date.now(), currentSeq = 0, minNew = 30, intervalMs = 2 * 60 * 60 * 1000, keepRecent = 20, summaryTokens = LIMITS.summaryTokens } = {}) {
+  const covered = Number(chat.summary && chat.summary.coveredThroughSeq) || 0;
+  const pendingMsgs = (chat.messages || []).filter((m) => m.seq > covered && m.seq !== currentSeq);
+  if (pendingMsgs.length < minNew) return { chunks: 0 };
+  const lastAt = Number(chat.meta && chat.meta.lastTimedSummaryAt) || 0;
+  if (lastAt && now - lastAt < intervalMs) return { chunks: 0 };
+  const keep = Math.max(0, keepRecent);
+  const chunk = pendingMsgs.slice(0, Math.max(1, pendingMsgs.length - keep));
+  if (!chunk.length) return { chunks: 0 };
+  const text = extractor.extractiveSummary(chunk, 220);
+  if (!applySegment(chat, { text, fromSeq: chunk[0].seq, toSeq: chunk[chunk.length - 1].seq, now, summaryTokens })) return { chunks: 0 };
+  chat.meta.lastTimedSummaryAt = now;
+  return { chunks: 1, messages: chunk.length, fromSeq: chunk[0].seq, toSeq: chunk[chunk.length - 1].seq };
+}
+
 async function compressAsync(chat, { currentSeq = 0, now = Date.now(), llm = null, logger = null, requireLlm = false, hardTrigger, recentLow, compressChunk, summaryTokens } = {}) {
   const bar = thresholds({ hardTrigger, recentLow, compressChunk });
   const before = recentTokens(chat, { currentSeq });
@@ -315,6 +364,7 @@ module.exports = {
   trimSummary,
   compressSync,
   compressAsync,
+  timedCompress,
   prepareSoft,
   resetSummary,
   recomputeSummary,

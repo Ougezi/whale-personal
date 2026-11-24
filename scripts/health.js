@@ -76,10 +76,31 @@ console.log('=== 4. 个人层提示词 ===');
     ['刷抖音提示词', '【刷抖音】'],
     ['开页标记', '[[open:'],
     ['自助规则', 'selfRules'],
+    // 2026-11-22：她会编「我这边闻着股香味」，又把话安到对方头上
+    ['边界（感官+归属）', '【边界】'],
+    ['内心记录', '【内心记录】'],
   ];
   for (const [label, needle] of checks) {
     if (text.includes(needle)) ok(label + ' 在');
     else bad(label + ' 丢了');
+  }
+
+  // 提示词体检：无重复【块】，估算 token 不超上限（2026-11-23）
+  {
+    const r = spawnSync(process.execPath, [path.join(__dirname, 'tools', 'prompt-audit.js'), '--json'], { encoding: 'utf8' });
+    if (r.status !== 0) {
+      bad('提示词测绘失败：' + String(r.stderr || r.stdout || '').slice(-200));
+    } else {
+      let audit = null;
+      try { audit = JSON.parse(r.stdout); } catch { audit = null; }
+      if (!audit) bad('提示词测绘结果不是 JSON');
+      else {
+        if (!audit.duplicated || !audit.duplicated.length) ok(`提示词无重复块（${audit.blocks} 个）`);
+        else bad('提示词有重复块：' + audit.duplicated.map(([k, n]) => `${k}×${n}`).join('、'));
+        if (audit.estimatedTokens <= 3000) ok(`提示词估算 ${audit.estimatedTokens} tokens（≤3000）`);
+        else bad(`提示词估算 ${audit.estimatedTokens} tokens，超过 3000`);
+      }
+    }
   }
 }
 
@@ -95,6 +116,102 @@ console.log('=== 5. 启动器隔离 ===');
   }
   if (hits.length) bad('启动器仍有官方入口：' + hits.join('; '));
   else ok('启动器源码无官方入口字符串');
+}
+
+console.log('=== 6. 文档解析库（PDF）===');
+{
+  // 2026-11-22：个人版打包时把 wheel 套成了 vendor/vendor，pdfium.dll 没合并到顶层，
+  // 结果所有 PDF 都读不出来（日志报 Could not find library 'pdfium'）。
+  const candidates = [
+    path.join(ROOT, 'dist', 'whale-personal', 'bridge', 'vendor'),
+    path.join(ROOT, '..', 'personal-layer', 'bridge', 'vendor'),
+  ];
+  const found = candidates.filter((v) => fs.existsSync(v));
+  if (!found.length) {
+    ok('没有找到运行目录/个人层 vendor（源码包无所谓，跳过）');
+  }
+  for (const vendor of found) {
+    const label = path.relative(path.join(ROOT, '..'), vendor);
+    const dll = path.join(vendor, 'pypdfium2_raw', 'pdfium.dll');
+    const pkg = path.join(vendor, 'pypdfium2', '__init__.py');
+    const nested = path.join(vendor, 'vendor');
+    if (!fs.existsSync(dll)) {
+      bad(`${label}: 缺 pypdfium2_raw/pdfium.dll（PDF 读不出来；把嵌套的 vendor/vendor 合并回顶层）`);
+      continue;
+    }
+    if (!fs.existsSync(pkg)) {
+      bad(`${label}: 缺 pypdfium2 包本身`);
+      continue;
+    }
+    if (fs.existsSync(nested)) bad(`${label}: 还有多余的 vendor/vendor 嵌套，建议删掉`);
+    // 真导入一次：文件在但 DLL 位数/依赖不对时，只有 import 能发现
+    const py = path.join(ROOT, 'dist', 'whale-personal', 'runtime', 'python', 'python.exe');
+    if (vendor.startsWith(path.join(ROOT, 'dist')) && fs.existsSync(py)) {
+      const r = spawnSync(py, ['-c', 'import sys; sys.path.insert(0, sys.argv[1]); import pypdfium2; print("ok")', vendor],
+        { encoding: 'utf8', timeout: 20000 });
+      if (r.status !== 0) {
+        bad(`${label}: pypdfium2 导入失败：` + String(r.stderr || r.stdout || '').split('\n').slice(-2).join(' '));
+      } else {
+        ok(`${label}: pypdfium2 可导入（PDF 能读）`);
+      }
+    } else {
+      ok(`${label}: pdfium.dll 在`);
+    }
+  }
+}
+
+console.log('=== 9. 记忆写入探针 ===');
+{
+  const r = spawnSync(process.execPath, [path.join(__dirname, 'tools', 'memory-probe.js'), '--json'], { encoding: 'utf8' });
+  if (r.status === 0) ok('recordUser/recordAssistant 落盘正常');
+  else bad('记忆写入探针失败：' + String(r.stdout || r.stderr || '').slice(-300));
+}
+
+console.log('=== 8. 写库变量顺序 ===');
+{
+  // 2026-11-24 踩过：appendMessage 里用了还没声明的 isMaster，导致用户消息全部写不进记忆
+  const chatFile = path.join(ROOT, 'src', 'pipeline', 'chat.js');
+  const src = fs.readFileSync(chatFile, 'utf8');
+  const storeFile = path.join(ROOT, 'src', 'memory', 'store.js');
+  const storeSrc = fs.readFileSync(storeFile, 'utf8');
+  const usesRecordUser = src.includes('this.store.recordUser(key, msg, clean.text');
+  const usesRecordAssistant = src.includes('this.store.recordAssistant(');
+  const hasApis = storeSrc.includes('recordUser(key') && storeSrc.includes('recordAssistant(key');
+  if (!usesRecordUser || !usesRecordAssistant || !hasApis) {
+    bad('用户/回复没有走统一写入口（recordUser/recordAssistant）');
+  } else if (src.includes('this.store.appendMessage(key, {')) {
+    bad('chat.js 仍在直接 appendMessage（可能再次出现 TDZ 丢消息）');
+  } else {
+    ok('写入口统一，且没有直接 appendMessage');
+  }
+  const careFile = path.join(ROOT, 'src', 'http', 'routes', 'care.js');
+  const careSrc = fs.readFileSync(careFile, 'utf8');
+  // 主动搭话必须在「桥接确认发送后」由 /api/care/sent 记录，不能在生成时先记
+  const sentAt = careSrc.indexOf("router.post('/api/care/sent'");
+  const recordsAfterSend = sentAt >= 0 && careSrc.slice(sentAt).includes('recordAssistant');
+  if (recordsAfterSend) ok('主动搭话发送确认后入记忆');
+  else bad('主动搭话没有在发送确认后入记忆（会断片或假记录）');
+}
+
+console.log('=== 7. 记忆体检 ===');
+{
+  // 只读扫描运行数据；老数据缺来源不算错（S2 之前没有这个字段）
+  const dataDir = path.join(ROOT, 'dist', 'whale-personal', 'data');
+  if (!fs.existsSync(path.join(dataDir, 'memory', 'chats'))) {
+    ok('没有运行数据，跳过');
+  } else {
+    const r = spawnSync(process.execPath, [path.join(__dirname, 'tools', 'memory-audit.js')], {
+      encoding: 'utf8',
+      env: { ...process.env, WHALE_DATA: dataDir },
+    });
+    if (r.status === 0) {
+      let rep = null;
+      try { rep = JSON.parse(r.stdout); } catch { rep = null; }
+      ok('记忆体检通过' + (rep ? `（卡片 ${rep.cards} / 事件 ${rep.events}）` : ''));
+    } else {
+      bad('记忆体检异常：' + String(r.stdout || r.stderr || '').slice(-400));
+    }
+  }
 }
 
 if (failures) {

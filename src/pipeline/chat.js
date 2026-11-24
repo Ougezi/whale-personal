@@ -19,7 +19,16 @@
  */
 const path = require('node:path');
 const innerNotes = require('../core/innerNotes');
+const concerns = require('../core/concerns');
+const empathy = require('../core/empathy');
+const antiRepeat = require('../core/antiRepeat');
+const skills = require('../core/skills');
+const nickname = require('../core/nickname');
+const coref = require('../core/coref');
+const intent = require('../core/intent');
+const promptBudget = require('../core/promptBudget');
 const sessionMod = require('./session');
+const marks = require('./marks');
 const persona = require('../persona');
 const features = require('../infra/features');
 const { matchMaster, isVerifiedOwner } = require('../core/master');
@@ -117,12 +126,15 @@ const mood = require('../core/mood');
 const thoughts = require('../core/thoughts');
 const thoughtGen = require('../services/thoughtGen');
 const browseCore = require('../services/browse');
+const pins = require('../core/pins');
+const route = require('../core/route');
 
 class Bot {
-  constructor({ config, store, llm, logger, trace = null, now = () => new Date(), rng = Math.random, mockChunkDelayMs = 12, linkReader = null, calibration = null, moments = null, version = VERSION }) {
+  constructor({ config, store, llm, llmComplex = null, logger, trace = null, now = () => new Date(), rng = Math.random, mockChunkDelayMs = 12, linkReader = null, calibration = null, moments = null, version = VERSION }) {
     this.config = config;
     this.store = store;
     this.llm = llm;
+    this.llmComplex = llmComplex;
     this.logger = logger;
     // 程序版本：环境块里要报给模型（问「你是什么版本」时不能瞎说）
     this.version = version;
@@ -493,19 +505,16 @@ class Bot {
       } catch { /* ignore */ }
     }
 
+    // 身份判定必须在写库之前：appendMessage 要用 isMaster 标来源（2026-11-24 修 TDZ）
+    const masterHit = matchMaster(this.config, msg);
+    const isMaster = masterHit.isMaster;
     const hasText = Boolean(clean.text);
     let appended = null;
     if (hasText && !msg.recycled) {
       // 落库失败不能拖死这一轮：记忆/原文是加分项，回复本身要继续。
       // 以前这里没兜底，磁盘满 / 文件被占用时整条消息直接变成「不回话」。
       try {
-        appended = this.store.appendMessage(key, {
-          role: 'user',
-          name: msg.senderName,
-          uid: msg.senderId,
-          text: clean.text,
-          ts: nowMs,
-          msgId: msg.msgId,
+        appended = this.store.recordUser(key, msg, clean.text, {
           addressedToBot: msg.addressedToBot,
           mentionedNames,
           inferredTargetNames: msg.inferredTargetNames || [],
@@ -513,7 +522,9 @@ class Bot {
           replyToUserId: msg.replyToUserId,
         });
       } catch (err) {
-        if (this.logger) this.logger.error('写入用户消息失败（继续回复）：' + describeError(err));
+        msg.writeFailed = true;
+        if (this.store && typeof this.store.noteWriteFailure === 'function') this.store.noteWriteFailure('user', err);
+        else if (this.logger) this.logger.error('写入用户消息失败（继续回复）：' + describeError(err));
       }
     }
     // 保留原有旁听记录，但在提醒、命令和固定回复之前拦住会话。
@@ -541,8 +552,6 @@ class Bot {
     // 规则只写在 src/core/master.js，启动器的提示词预览用的是同一个函数，不会出现
     //「预览说认了、微信里却当陌生人」这种两边打架的情况。
     const masterCfg = (this.config.persona && this.config.persona.master) || {};
-    const masterHit = matchMaster(this.config, msg);
-    const isMaster = masterHit.isMaster;
     // 每条微信私聊都留一行判定，出问题直接看日志，不用猜
     if (msg.platform === 'wechat' && msg.chatType === 'private' && this.logger) {
       this.logger.info(
@@ -800,6 +809,15 @@ class Bot {
     state.discussUntil = 0;
     msg.discussion = discussion;
 
+    // R1：主人说「明天再说/回头聊」时记一笔牵挂
+    try {
+      const _t = String(clean && clean.text || '');
+      if (isMaster && /(明天|回头|改天|等会|晚点).{0,8}(再说|聊|弄|说|处理)|先这样/.test(_t)) {
+        concerns.add((this.config && this.config.paths && this.config.paths.dataDir) || path.join(process.cwd(), 'data'),
+          { text: _t.slice(0, 60), kind: 'promise', now: nowMs });
+      }
+    } catch { /* 牵挂失败不影响回复 */ }
+
     // 6) 组装提示词：只加载「当前 chat + 当前说话人」的卡，绝不跨聊天取。
     // 记忆块（人物卡 + 相关事件 + 摘要）放进最后一条 user 消息，进 system 会打断前缀缓存。
     // 关系块（A 提到 B）挂在记忆块后面，同一个尾部位置；开关跟着 features.relations 走。
@@ -988,7 +1006,51 @@ class Bot {
         || path.join(process.cwd(), 'data');
       notesLine = innerNotes.block({ dir: dataDir, limit: 2 });
     } catch (err) { notesLine = ''; }
-    const innerLine = [moodLine, thoughtLine, notesLine].filter(Boolean).join('\n');
+    // R1 牵挂 + R2 共情：都进动态段，字很少
+    let concernLine = '';
+    let empathyLine = '';
+    try {
+      const _dir = (this.config && this.config.paths && this.config.paths.dataDir) || path.join(process.cwd(), 'data');
+      concernLine = concerns.block({ dir: _dir, limit: 3, now: nowMs });
+      empathyLine = empathy.line(empathy.assess(String(clean && clean.text || ''), moodState));
+    } catch { /* 不强求 */ }
+    // R4：把情绪挂到 decision 上，发不发图由 mood.expressionFor 决定
+    try { if (decision && moodState) decision.moodState = moodState; } catch { /* 不影响回复 */ }
+    // 改称呼：主人说「以后叫你 X / 不叫你 X」时明确告诉她该怎么做，别反问
+    let nickLine = '';
+    try {
+      const _nickText = String(clean && clean.text || '');
+      const _dir = (this.config && this.config.paths && this.config.paths.dataDir) || path.join(process.cwd(), 'data');
+      if (isMaster && nickname.extract(_nickText)) nickname.remember(_dir, key, _nickText, nowMs);
+      nickLine = nickname.hint(_nickText);
+      const _saved = nickname.current(_dir, key);
+      if (_saved) nickLine += (nickLine ? '\n' : '') + `【称呼】主人现在叫你「${_saved}」，不要再自称旧名字。`;
+    } catch { /* 改称呼失败不影响回复 */ }
+    let skillLine = '';
+    try {
+      const _sdir = (this.config && this.config.paths && this.config.paths.dataDir) || path.join(process.cwd(), 'data');
+      if (isMaster) skillLine = skills.block({ dataDir: _sdir, text: String(clean && clean.text || '') });
+    } catch { /* 技能提示失败不影响回复 */ }
+    let corefLine = '';
+    try { corefLine = coref.hint(String(clean && clean.text || '')); } catch { /* 指代提示失败不影响回复 */ }
+    let pinLine = '';
+    try {
+      const _pdir = (this.config && this.config.paths && this.config.paths.dataDir) || path.join(process.cwd(), 'data');
+      const _items = pins.detect(String(clean && clean.text || ''));
+      if (isMaster && _items.length) pins.add(_pdir, key, _items, nowMs);
+      pinLine = pins.block({ dataDir: _pdir, chatId: key, limit: 3 });
+    } catch { /* pin 失败不影响回复 */ }
+    let intentLine = '';
+    try {
+      if (isMaster && !isGroup) intentLine = intent.hint(String(clean && clean.text || ''));
+    } catch { /* 意图提示失败不影响回复 */ }
+    const innerLine = promptBudget.fitBlocks([
+      { key: 'mood', text: moodLine }, { key: 'thought', text: thoughtLine },
+      { key: 'notes', text: notesLine }, { key: 'empathy', text: empathyLine },
+      { key: 'concern', text: concernLine }, { key: 'nick', text: nickLine },
+      { key: 'coref', text: corefLine }, { key: 'intent', text: intentLine },
+      { key: 'pin', text: pinLine }, { key: 'skill', text: skillLine },
+    ]);
 
     const promptParts = persona.buildPromptParts({
       config: this.config,
@@ -1152,6 +1214,18 @@ class Bot {
     const beforeSend = await this.messagePlugins.run('chat.before_send', this.pluginContext(decision, { text: output.text }));
     this.checkReplyLength(String(beforeSend.text || '').length);
     return beforeSend.text;
+  }
+
+  /** 第三期：复杂问题路由（默认关；只有配置开且有第二客户端才切） */
+  replyClient(decision) {
+    try {
+      const cfg = (this.config && this.config.llm && this.config.llm.route) || {};
+      if (!this.llmComplex || this.llmComplex.isMock) return this.llm;
+      const msg = decision && decision.msg;
+      if (msg && (msg.image || msg.hasImage || msg.isImage)) return this.llm; // 图只走支持视觉的默认模型
+      const text = String((msg && (msg.cleanText || msg.text)) || '');
+      return route.isComplex(text, cfg) ? this.llmComplex : this.llm;
+    } catch { return this.llm; }
   }
 
   checkReplyLength(length) {
@@ -1648,12 +1722,13 @@ class Bot {
     let retried = false;
     let sent = false;
     // 本轮从哪个 usage 水位开始：流式重试会再调一次模型，结束时按水位累加
+    const replyClient = this.replyClient(decision);
     const usageMark = Number(this.llm && this.llm.usageSeq) || 0;
     // 流式请求可能还没吐字就报 context_length；此时可以安全地换半窗重试。
     // 已经吐过字就不能重试，否则用户会看到两段拼接的回复。
     while (true) {
       try {
-        for await (const piece of this.llm.stream({ system: decision.system, turns: decision.turns, signal, purpose: 'chat' })) {
+        for await (const piece of replyClient.stream({ system: decision.system, turns: decision.turns, signal, purpose: 'chat' })) {
           sent = true;
           yield piece;
         }
@@ -1720,7 +1795,12 @@ class Bot {
       const rawEnsure = this.config.sticker && this.config.sticker.ensureSend;
       const ensure = rawEnsure === true || rawEnsure === 1 || /^(1|true|on|yes)$/i.test(String(rawEnsure || ''));
       const demanded = Boolean(decision && decision.stickerDemand);
-      if (stickers.isStickerRequest(userText) || (ensure && demanded)) {
+      const _emo = (!category && decision && decision.moodState)
+        ? require('../core/mood').expressionFor(decision.moodState) : '';
+      if (_emo) {
+        category = stickers.categoryFromName(this.config, _emo) || stickers.resolveUsableCategory(this.config, _emo) || '';
+      }
+      if (!category && (stickers.isStickerRequest(userText) || (ensure && demanded))) {
         category = stickers.categoryInText(this.config, userText)
           || (ensure && demanded ? stickers.moodCategory(this.config, userText + '\n' + String(text || '')) : '')
           || stickers.defaultCategory(this.config);
@@ -1800,16 +1880,7 @@ class Bot {
    * 只有主人私聊允许读取；其他会话只把标记删掉，避免把日记泄露到群里。
    */
   expandDiaryMark(decision, text) {
-    const msg = (decision && decision.msg) || {};
-    const allowed = Boolean(this.diary && msg.isMaster && msg.chatType === 'private');
-    return String(text == null ? '' : text).replace(/\[\[diary:([^\]]{1,32})\]\]/gi, (all, token) => {
-      if (!allowed) return '';
-      try {
-        return this.diary.readForChat(String(token || '').trim()) || '（没找到那天的日记）';
-      } catch {
-        return '（没找到那天的日记）';
-      }
-    }).trim();
+    return marks.expandDiary(this, decision, text);
   }
 
   /**
@@ -1832,19 +1903,14 @@ class Bot {
     return true;
   }
 
-  /** 收走 [[feel:…]] / [[lesson:…]] 并写进 data/inner/；失败不影响回复 */
+  /** 收走 [[feel:…]] / [[lesson:…]]（实现在 pipeline/marks.js） */
   consumeInnerMarks(decision, text) {
-    try {
-      const dataDir = (this.config && this.config.paths && this.config.paths.dataDir)
-        || path.join(process.cwd(), 'data');
-      const parsed = innerNotes.consume(text, { dir: dataDir });
-      if (parsed.writes.length && this.logger) {
-        this.logger.info('内心记录：' + parsed.writes.map((w) => w.kind).join('、'));
-      }
-      return parsed.text;
-    } catch (err) {
-      return text;
-    }
+    return marks.consumeInner(this, decision, text);
+  }
+
+  /** 读回 [[feel:read]] / [[lesson:read]]（实现在 pipeline/marks.js） */
+  expandInnerRead(decision, text) {
+    return marks.expandInnerRead(this, decision, text);
   }
 
   _finalizeOnce(decision, text, { error = false } = {}) {
@@ -1852,7 +1918,15 @@ class Bot {
     if (error) decision.error = true;
     const modernPersona = decision?.msg?.newPersonaBehavior ?? usesNewPersona(this.config);
     text = stripInternalTimestamps(text);
-    // 内心记录标记 [[feel:…]] / [[lesson:…]]：写盘并从正文收走（2026-11-22）
+    // 连续写库失败第 3 次：明确告诉她/主人，不再静默（第一期 P0）
+    try {
+      if (decision && decision.msg && decision.msg.writeFailed
+        && this.store && this.store.writeFailures && this.store.writeFailures.consecutive === 3) {
+        text = String(text || '') + '\n（我这边记忆写不进去，先这样回你）';
+      }
+    } catch { /* 提示失败不影响回复 */ }
+    // 内心记录：先处理「读回」[[feel:read]]，再收走「写」标记 [[feel:…]]（2026-11-22）
+    text = this.expandInnerRead(decision, text);
     text = this.consumeInnerMarks(decision, text);
     // 模型主动退场标记 [[silence:分钟]]：先解析并从正文剥掉，再走后面的格式清理。
     const silenceMark = stripSilenceMark(text);
@@ -2000,8 +2074,7 @@ class Bot {
     if (!text) return [];
     const persist = () => {
     try {
-      this.store.appendMessage(decision.key, {
-        role: 'assistant',
+      this.store.recordAssistant(decision.key, {
         name: this.config.persona.name,
         replyToUserId: msg.senderId,
         text: storeText,
@@ -2009,7 +2082,8 @@ class Bot {
         error,
       });
     } catch (err) {
-      this.logger && this.logger.error('写入回复失败（照常发送）：' + describeError(err));
+      if (this.store && typeof this.store.noteWriteFailure === 'function') this.store.noteWriteFailure('assistant', err);
+      else this.logger && this.logger.error('写入回复失败（照常发送）：' + describeError(err));
     }
     // 每轮一个 checkpoint：重启后能知道停在哪、episode 有没有关
     try {
@@ -2290,6 +2364,7 @@ class Bot {
     let text = '';
     // 本轮从哪个 usage 水位开始：复读重写 / 半窗 / 降级重试都会再调一次模型，
     // 结束时按水位累加，只记最后一次会把前几次的钱漏掉。
+    const replyClient = this.replyClient(decision);
     const usageMark = Number(this.llm && this.llm.usageSeq) || 0;
     try {
       if (decision.canned) {
@@ -2297,7 +2372,7 @@ class Bot {
       } else if (decision.mock) {
         text = decision.text;
       } else {
-        text = await this.llm.complete({ system: decision.system, turns: decision.turns, signal, purpose: 'chat' });
+        text = await replyClient.complete({ system: decision.system, turns: decision.turns, signal, purpose: 'chat' });
         if (signal?.aborted) return { action: 'ignore', reason: 'cancelled' };
         this.checkReplyLength(String(text || '').length);
         // 模型有时候只会把别人说过的话复读一遍，或者重复自己上一句，这种重写一次
@@ -2311,7 +2386,7 @@ class Bot {
           const why = repeatsSelf ? '在重复你自己刚才说过的话' : '在复读别人的话';
           this.logger && this.logger.warn('回复' + why + '，重写一次：' + textMeta(text));
           try {
-            const retry = await this.llm.complete({
+            const retry = await replyClient.complete({
               system: decision.system + '\n\n【重写要求】你刚才的回答' + why + '，不合格。现在重写：换一个说法，给出新的信息或明确态度；不能出现对方原句，也不能重复你上面说过的话。',
               turns: decision.turns,
               signal,
@@ -2337,7 +2412,7 @@ class Bot {
       // 上下文超长：砍掉一半 turns 只重试一次，保留当前消息；不要退化成只发当前一句。
       if (isContextLengthError(err) && this.shrinkTurnsForContext(decision)) {
         try {
-          retried = await this.llm.complete({ system: decision.system, turns: decision.turns, signal, purpose: 'chat' });
+          retried = await replyClient.complete({ system: decision.system, turns: decision.turns, signal, purpose: 'chat' });
           this.logger && this.logger.warn('上下文超长，半窗重试成功');
         } catch (err2) {
           this.logger && this.logger.error('半窗重试仍失败：' + describeError(err2));
@@ -2353,7 +2428,7 @@ class Bot {
         const switched = this.llm.switchFallback();
         if (switched) {
           try {
-            retried = await this.llm.complete({ system: decision.system, turns: decision.turns, signal, purpose: 'chat' });
+            retried = await replyClient.complete({ system: decision.system, turns: decision.turns, signal, purpose: 'chat' });
             this.logger && this.logger.warn(`已切到备用服务商 ${switched.label} 并重试成功`);
           } catch (err2) {
             this.logger && this.logger.error('备用服务商也失败了：' + describeError(err2));
@@ -2364,7 +2439,7 @@ class Bot {
         try {
           const sys = sanitizeForModel(decision.system || '');
           const cur = sanitizeForModel((decision.msg && (decision.msg.cleanText || decision.msg.text)) || '');
-          retried = await this.llm.complete({ system: sys, turns: cur ? [{ role: 'user', content: cur }] : [], signal, purpose: 'chat' });
+          retried = await replyClient.complete({ system: sys, turns: cur ? [{ role: 'user', content: cur }] : [], signal, purpose: 'chat' });
           this.logger && this.logger.warn('内容审核拦截，已丢掉历史用精简上下文重试成功');
         } catch (err2) {
           this.logger && this.logger.error('精简重试仍失败：' + describeError(err2));
@@ -2392,7 +2467,7 @@ class Bot {
             content: '【你刚打开 ' + openTarget + ' 的正文】\n' + String(page.text).slice(0, 2000)
               + '\n\n（基于这页内容，重新回答我上一条消息；只输出最终回复，不要再写 [[open:…]]。）',
           }];
-          const second = await this.llm.complete({ system: decision.system, turns: pageTurns, signal, purpose: 'chat' });
+          const second = await replyClient.complete({ system: decision.system, turns: pageTurns, signal, purpose: 'chat' });
           if (second && String(second).trim()) text = String(second).trim();
           this.logger && this.logger.info('[open] ' + openTarget + ' ok chars=' + page.text.length + ' ms=' + (page.ms || 0));
         } else {

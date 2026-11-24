@@ -138,7 +138,7 @@ async function closeEpisode({ chat, chatStore, llm = null, logger = null, now = 
           b: rel.b,
           text: rel.text,
           confidence: rel.confidence,
-          source: { chatId: chat.chatId, messageIds },
+          source: { chatId: chat.chatId, messageIds, kind: /@chatroom$/i.test(chat.chatId) ? 'group' : 'owner' },
         }, { chatId: chat.chatId, now });
         if (edge) writtenRelations += 1;
       } catch (err) {
@@ -162,11 +162,12 @@ async function closeEpisode({ chat, chatStore, llm = null, logger = null, now = 
       }
       const personTraits = extracted.traits.filter((t) => !t.uid || t.uid === speaker.uid);
       for (const trait of personTraits) {
-        personCard.addTrait(card, {
+        const _tr = personCard.addTrait(card, {
           text: trait.text,
           confidence: trait.confidence,
           evidence: (trait.evidence && trait.evidence.length ? trait.evidence : messageIds).slice(-8),
         }, { chatId: chat.chatId, now });
+        if (audit && _tr) audit({ kind: 'trait', id: _tr.id, action: 'add', source: 'episode' });
       }
       const personThreads = extracted.threads.filter((t) => !t.uid || t.uid === speaker.uid);
       for (const thread of personThreads) {
@@ -185,14 +186,15 @@ async function closeEpisode({ chat, chatStore, llm = null, logger = null, now = 
           confidence: ev.confidence,
           valence: ev.valence,
           resolved: ev.resolved,
-          source: { chatId: chat.chatId, messageIds },
+          source: { chatId: chat.chatId, messageIds, kind: /@chatroom$/i.test(chat.chatId) ? 'group' : 'owner' },
         }, { chatId: chat.chatId, now });
         if (ev.threadText) personCard.addThread(card, { text: ev.threadText }, { chatId: chat.chatId, now });
+        if (audit) audit({ kind: 'event', id: `evt_${ep.id}_${personHash(speaker.uid).slice(0, 6)}`, action: 'add', source: 'episode' });
         writtenEvents += 1;
       }
       // 没有抽到具体事件：把整段 episode 压成一条，保证「这段事」不会消失
       if (!personEvents.length) {
-        personCard.addEvent(card, {
+        const _fallbackEv = personCard.addEvent(card, {
           id: `evt_${ep.id}_${personHash(speaker.uid).slice(0, 6)}`,
           date,
           title: (ep.activeTopic || messages.find((m) => m.role === 'user' && m.text) || {}).text?.slice(0, 20) || '一段聊天',
@@ -240,7 +242,7 @@ async function closeEpisode({ chat, chatStore, llm = null, logger = null, now = 
  * 在写入新消息前检查是否要换 episode。
  * @returns {{reason:string, promise:Promise|null}|null}
  */
-function rotateIfNeeded({ chat, text = '', now = Date.now(), chatStore, llm = null, logger = null }) {
+function rotateIfNeeded({ chat, text = '', now = Date.now(), chatStore, llm = null, logger = null, audit = null }) {
   const ep = chat.meta.episode;
   if (!ep) {
     episodeStart(chat, { now });
@@ -253,7 +255,7 @@ function rotateIfNeeded({ chat, text = '', now = Date.now(), chatStore, llm = nu
   // 当成「刚发生」又塞回 prompt。最终摘要稍后由后台补进 summary。
   // 不在这里 reset/推进 coverage：异步摘要还没生成。等 closeEpisode 成功
   // applySegment 后再推进，否则进程中断会丢一整段对话。
-  const promise = enqueue(chat, () => closeEpisode({ chat, chatStore, llm, logger, now, reason, episode: snapshot }))
+  const promise = enqueue(chat, () => closeEpisode({ chat, chatStore, llm, logger, now, reason, episode: snapshot, audit }))
     .catch((err) => {
       if (logger) logger.warn('episode 关闭失败（不影响聊天）：' + describeError(err));
       return null;

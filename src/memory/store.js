@@ -11,10 +11,14 @@ const fs = require('node:fs');
 const path = require('node:path');
 const { ChatStore } = require('./chatStore');
 const personCard = require('./personCard');
+const audit = require('./audit');
+const personGlobal = require('../core/personGlobal');
+const filter = require('./filter');
 const episode = require('./episode');
 const compression = require('./compression');
 const retrieval = require('./retrieval');
 const vectorIndex = require('./vectorIndex');
+const { withTimeout } = require('../infra/async');
 const format = require('./format');
 const extractor = require('./extractor');
 const migrate = require('./migrate');
@@ -66,12 +70,15 @@ function activePreferenceTexts(card) {
 }
 
 class Store {
-  constructor({ file, dir, limits = {}, logger = null, now = Date.now, llm = null } = {}) {
+  constructor({ file, dir, limits = {}, logger = null, now = Date.now, llm = null, config = null } = {}) {
     this.file = file || path.resolve(process.cwd(), 'data', 'store.json');
     this.memoryDir = dir || path.join(path.dirname(this.file), 'memory');
     this.logger = logger;
     this.nowFn = typeof now === 'function' ? now : () => now;
     this.llm = llm;
+    this.config = config;
+    // 写库失败要能被外部看到（以前 catch 吞掉，用户消息丢了没人知道）
+    this.writeFailures = { total: 0, consecutive: 0, lastAt: 0, lastError: '' };
     this.limits = {
       maxSessions: Number(limits.maxSessions) || 200,
       maxMessages: Number(limits.maxMessages) || LIMITS.maxMessagesPerChat,
@@ -190,11 +197,50 @@ class Store {
 
   /* ------------------------------ 消息 ------------------------------ */
 
+  /** 统一写用户消息：isMaster/isGroup 由 store 自己算，调用点不用再拼（2026-11-24） */
+  recordUser(key, msg = {}, text, extra = {}) {
+    let isMaster = false;
+    try {
+      const { matchMaster } = require('../core/master');
+      isMaster = matchMaster(this.config || {}, msg).isMaster;
+    } catch { isMaster = false; }
+    const chatId = String(msg.chatId || (key || '').split(':').pop() || '');
+    const isGroup = msg.chatType === 'group' || /@chatroom$/i.test(chatId) || /^wechat:g:/.test(String(key || ''));
+    return this.appendMessage(key, {
+      ...extra,
+      role: 'user',
+      name: msg.senderName,
+      uid: msg.senderId,
+      text,
+      ts: Number(extra.ts) || this._now(),
+      msgId: msg.msgId,
+      isMaster,
+      isGroup,
+    });
+  }
+
+  /** 统一写她的回复（主动搭话也走这里，别再只发不记） */
+  recordAssistant(key, message = {}) {
+    return this.appendMessage(key, { ...message, role: 'assistant' });
+  }
+
+  noteWriteFailure(scope, err) {
+    const f = this.writeFailures || (this.writeFailures = { total: 0, consecutive: 0, lastAt: 0, lastError: '' });
+    f.total += 1;
+    f.consecutive += 1;
+    f.lastAt = Date.now();
+    f.lastError = String((err && err.message) || err || '').slice(0, 160);
+    if (this.logger) this.logger.error(`记忆写库失败（${scope}）：${f.lastError}（累计 ${f.total}）`);
+  }
+
   appendMessage(key, message = {}) {
     const chat = this.chatStore.ensureChat(key);
     const at = Number(message.ts) || this._now();
     const role = message.role === 'assistant' ? 'assistant' : 'user';
-    if (role === 'user' && message.text) {
+    // silent：补录旧消息时只落原文，不抽事实、不转 episode、不建关系边。
+    // 否则回放 26 小时历史会凭空生成事件/偏好，甚至把当前 episode 关掉。
+    const silent = message.silent === true;
+    if (role === 'user' && message.text && !silent) {
       episode.ensureEpisode(chat, { now: at });
       const rotation = episode.rotateIfNeeded({
         chat,
@@ -203,6 +249,7 @@ class Store {
         chatStore: this.chatStore,
         llm: this.llm,
         logger: this.logger,
+        audit: (entry) => this._audit(entry),
       });
       if (rotation && rotation.promise) this._track(rotation.promise);
     }
@@ -213,8 +260,9 @@ class Store {
     });
     // 消息和去重 id 一起落盘：崩溃后重启不会把同一条再回一遍
     if (entry.msgId) this.markSeen(key, entry.msgId);
+    if (role === 'user' && this.writeFailures) this.writeFailures.consecutive = 0;
     episode.touchEpisode(chat, entry, { now: at });
-    if (role === 'user') {
+    if (role === 'user' && !silent) {
       this._onUserMessage(chat, entry);
       // 关系边：规则即时（「我和小明是同事」这种），不调模型、不建卡
       this._onRelationMention(chat, entry);
@@ -225,18 +273,50 @@ class Store {
     return entry;
   }
 
+  /** 审计旁路：失败不影响主流程（S3） */
+  /** 外部任务（夜间睡眠）改过卡后刷新内存缓存 */
+  refreshCards() {
+    let n = 0;
+    try {
+      for (const chat of this.chatStore.chats.values()) n += this.chatStore.reloadPeople(chat);
+    } catch { /* 刷新失败不影响聊天 */ }
+    return n;
+  }
+
+  _audit(entry) {
+    try {
+      const dir = this.config && this.config.paths && this.config.paths.dataDir;
+      if (dir) audit.append(dir, entry);
+    } catch { /* 审计失败不阻塞 */ }
+  }
+
   _onUserMessage(chat, entry) {
     if (!entry.uid || !entry.text) return;
+    // M1：低信息量消息（表情/纯@/短反应）不抽事实，原文仍然在
+    if (!filter.worthRemembering(entry.text, entry)) return;
     try {
       // 已有卡就直接用，别在这里重复把 count 加一次（profile() 那步才算“聊过一次”）
       const card = this.chatStore.getCard(chat, entry.uid) || this.chatStore.ensurePerson(chat, entry.uid, entry.name);
       const { facts } = extractor.extractSelfFacts(entry.text, { msgId: entry.id, now: entry.ts });
       if (facts.length) {
-        extractor.applyFacts(card, facts, { chatId: chat.chatId, now: entry.ts });
+        const writtenPrefs = extractor.applyFacts(card, facts, { chatId: chat.chatId, now: entry.ts });
+        for (const w of writtenPrefs || []) {
+          this._audit({ kind: 'preference', id: w.id, action: 'add', text: w.text,
+            confidence: w.confidence, source: w.source && (w.source.messageId || w.source) });
+          // I2：非群聊的个人事实同步到跨会话全局记忆
+          // 只把「事实/偏好」带到全局；taboo、承诺这类留在原会话
+          if (!String(chat.chatId || '').endsWith('@chatroom')
+            && ['fact', 'preference'].includes(String(w.kind || ''))) {
+            try {
+              const _dir = this.config && this.config.paths && this.config.paths.dataDir;
+              if (_dir) personGlobal.addFact(_dir, entry.uid, w.text, { at: entry.ts });
+            } catch { /* 全局记忆失败不影响本会话 */ }
+          }
+        }
         // 人生事件：即时补一条事件卡
         for (const fact of facts) {
           if (!String(fact.key || '').startsWith('life:')) continue;
-          personCard.addEvent(card, {
+          const _ev = personCard.addEvent(card, {
             id: `evt_${entry.id}`,
             date: personCard.dateString(entry.ts),
             title: trimText(entry.text, 20),
@@ -245,8 +325,18 @@ class Store {
             participants: [entry.uid],
             importance: 0.65,
             confidence: 0.8,
-            source: { chatId: chat.chatId, messageIds: [entry.id] },
+            source: { chatId: chat.chatId, kind: entry.isMaster ? 'owner' : 'group', messageIds: [entry.id] },
           }, { chatId: chat.chatId, now: entry.ts });
+          if (_ev) {
+            this._audit({ kind: 'event', id: _ev.id, action: 'add',
+              confidence: _ev.confidence, sourceKind: _ev.source && _ev.source.kind });
+            // 双时态自动失效也要留痕
+            for (const old of card.events || []) {
+              if (old && old.validTo && old.supersededBy === _ev.id) {
+                this._audit({ kind: 'event', id: old.id, action: 'supersede', by: _ev.id, reason: 'auto' });
+              }
+            }
+          }
         }
         this.chatStore.saveCard(chat, card);
       }
@@ -258,7 +348,9 @@ class Store {
     // 连续 20 条 user 消息：轻量候选，只写偏好，不写 L2
     if (chat.meta.stats.userMessagesSinceExtract >= LIMITS.factExtractEveryUserMessages) {
       try {
-        const last = chat.messages.filter((m) => m.role === 'user').slice(-LIMITS.factExtractEveryUserMessages);
+        const last = chat.messages.filter((m) => m.role === 'user')
+          .filter((m) => filter.worthRemembering(m.text, m))
+          .slice(-LIMITS.factExtractEveryUserMessages);
         const candidates = extractor.lightweightCandidates(last, { now: entry.ts });
         const byUid = new Map();
         for (const c of candidates) {
@@ -362,9 +454,14 @@ class Store {
     const at = Number(now) || this._now();
     const factor = Number(tokenScale);
     const relationsOn = relationsEnabled === undefined ? this.limits.relationsEnabled : relationsEnabled === true;
+    // 预算自适应：长会话 8k → 10k/12k；用户手动调过 dialogueBudget 时按比例放大
+    const adaptiveOn = !(this.config && this.config.memory && this.config.memory.adaptiveBudget === false);
+    const effectiveBudget = budgetPlan.adaptiveBudget(this.limits.dialogueBudget, chat.messages.length, adaptiveOn);
     const plan = Number.isFinite(factor) && factor > 0 && factor !== 1
-      ? budgetPlan.planBudget(this.limits.dialogueBudget / factor, { relations: relationsOn })
-      : this.plan;
+      ? budgetPlan.planBudget(effectiveBudget / factor, { relations: relationsOn })
+      : (effectiveBudget !== this.limits.dialogueBudget
+        ? budgetPlan.planBudget(effectiveBudget, { relations: relationsOn })
+        : this.plan);
     let card = this.chatStore.getCard(chat, uid);
     if (!card) card = this.chatStore.ensurePerson(chat, uid, name);
     const last = chat.messages[chat.messages.length - 1];
@@ -378,6 +475,15 @@ class Store {
       summaryTokens: plan.summary,
     });
     if (compressed.chunks) {
+      this.chatStore.saveSummary(chat);
+      this.chatStore.saveMeta(chat);
+    }
+    // 第二期：不等 token 爆，超过 30 条 / 2 小时先压一次
+    // 本轮刚因 token 超限压过，就不要再时间压缩一次（会把上下文压没）
+    const timed = compressed.chunks
+      ? { chunks: 0 }
+      : compression.timedCompress(chat, { now: at, currentSeq: protectSeq, summaryTokens: plan.summary });
+    if (timed.chunks) {
       this.chatStore.saveSummary(chat);
       this.chatStore.saveMeta(chat);
     }
@@ -400,14 +506,25 @@ class Store {
     let eventVectors = null;
     if (vectorSearch) {
       try {
-        const activeEvents = require('./personCard').activeEvents(card);
-        const texts = activeEvents.map((e) => retrieval.eventDoc(e));
-        eventVectors = await vectorIndex.getVectors(texts, { logger: this.logger });
-        const qText = [query, ...recentUser.slice(-2),
-          chat.meta.episode ? chat.meta.episode.activeTopic : ''].filter(Boolean).join(' ');
-        queryVec = eventVectors ? await vectorIndex.getQueryVector(qText, { logger: this.logger }) : null;
-        if (this.logger && eventVectors) {
-          this.logger.info('向量检索：事件 ' + eventVectors.filter(Boolean).length + ' 条已编码');
+        const _load = async () => {
+          const activeEvents = require('./personCard').activeEvents(card);
+          const texts = activeEvents.map((e) => retrieval.eventDoc(e));
+          const ev = await vectorIndex.getVectors(texts, { logger: this.logger });
+          const qText = [query, ...recentUser.slice(-2),
+            chat.meta.episode ? chat.meta.episode.activeTopic : ''].filter(Boolean).join(' ');
+          const qv = ev ? await vectorIndex.getQueryVector(qText, { logger: this.logger }) : null;
+          return { ev, qv };
+        };
+        // S4：800ms 超时就降级 BM25，不让向量拖住整轮
+        const _res = await withTimeout(_load(), 800, null);
+        if (_res === null) {
+          if (this.logger) this.logger.warn('向量检索超时（800ms），降级为 BM25');
+        } else {
+          eventVectors = _res.ev;
+          queryVec = _res.qv;
+          if (this.logger && eventVectors) {
+            this.logger.info('向量检索：事件 ' + eventVectors.filter(Boolean).length + ' 条已编码');
+          }
         }
       } catch (err) {
         queryVec = null;
@@ -418,7 +535,8 @@ class Store {
     const _q = String(query || '');
     const _kBase = Number(plan.caps.events) || LIMITS.retrievalTopK;
     const _rich = _q.length >= 40 || /为什么|怎么办|你觉得|记得|是不是|要不要|分析/.test(_q);
-    const _k = Math.max(3, Math.min(8, _kBase + (_rich ? 2 : 0) - (_q.length <= 8 ? 2 : 0)));
+    // S4：单轮事件最多 6 条，防止记忆挤爆上下文
+    const _k = Math.max(3, Math.min(6, _kBase + (_rich ? 2 : 0) - (_q.length <= 8 ? 2 : 0)));
     const events = retrieval.selectEvents(card, {
       query,
       recentTexts: recentUser,
@@ -454,7 +572,16 @@ class Store {
     if (isGroup && chat.meta && chat.meta.episode && chat.meta.episode.activeTopic) {
       _extra.push(`【群里刚才在聊】${String(chat.meta.episode.activeTopic).slice(0, 60)}——接着聊，别重复问。`);
     }
-    const blockFinal = _extra.length ? `${block}\n${_extra.join('\n')}` : block;
+    let _globalLine = '';
+    try {
+      const _dir = this.config && this.config.paths && this.config.paths.dataDir;
+      if (_dir) _globalLine = personGlobal.block({ dataDir: _dir, uid, limit: 5 });
+    } catch { /* 全局记忆读不到就不带 */ }
+    const _blockWithGlobal = _globalLine ? `${block}\n${_globalLine}` : block;
+    const blockRaw = _extra.length ? `${_blockWithGlobal}\n${_extra.join('\n')}` : _blockWithGlobal;
+    // S4：记忆块字符硬上限 = 记忆预算 token 数 ×2，超了截断（摘要/卡都在这个块里）
+    const _capChars = Math.max(400, (Number(plan.memory) || LIMITS.memoryTokens) * 2);
+    const blockFinal = format.capBlockText(blockRaw, _capChars);
     // 「这条消息提到了谁」：只做内部状态，不进任何界面；名字对不上人就整块不输出。
     const relationCtx = this._buildRelationsBlock(chat, { uid, mentionedNames, relationsEnabled });
     return {
@@ -583,7 +710,7 @@ class Store {
     if (!textValue) return activePreferenceTexts(card);
     const kind = ['fact', 'preference', 'promise', 'recent', 'taboo'].includes(raw.kind) ? raw.kind : (meta.kind || 'fact');
     const lastMsg = chat.messages[chat.messages.length - 1];
-    personCard.addPreference(card, {
+    const _noteItem = personCard.addPreference(card, {
       text: textValue,
       // key 透传：同一槽位的新值会取代旧值（桥接写"搜图能力"这类事实靠它）
       key: trimText(raw.key, 60),
@@ -593,6 +720,7 @@ class Store {
       explicit: meta.explicit !== false,
     }, { chatId: chat.chatId, now: this._now() });
     if (kind === 'promise') personCard.addThread(card, { text: textValue }, { chatId: chat.chatId, now: this._now() });
+    if (_noteItem) this._audit({ kind: 'preference', id: _noteItem.id, action: 'add', text: _noteItem.text, confidence: _noteItem.confidence });
     this.chatStore.saveCard(chat, card);
     return activePreferenceTexts(card);
   }
@@ -601,13 +729,14 @@ class Store {
     const chat = this.chatStore.ensureChat(key);
     const card = this.chatStore.ensurePerson(chat, uid);
     const lastMsg = chat.messages[chat.messages.length - 1];
-    personCard.addPreference(card, {
+    const _manualItem = personCard.addPreference(card, {
       text: trimText(textValue, 80),
       kind: 'fact',
       confidence: 1,
       source: lastMsg && lastMsg.id,
       explicit: true,
     }, { chatId: chat.chatId, now: this._now() });
+    if (_manualItem) this._audit({ kind: 'preference', id: _manualItem.id, action: 'add', text: _manualItem.text, confidence: 1 });
     this.chatStore.saveCard(chat, card);
     return activePreferenceTexts(card);
   }
@@ -616,6 +745,7 @@ class Store {
     const chat = this.chatStore.ensureChat(key);
     const card = this.chatStore.ensurePerson(chat, uid);
     const removed = personCard.forget(card, needle, this._now());
+    this._audit({ kind: 'forget', action: 'remove', text: needle, count: removed });
     this.chatStore.saveCard(chat, card);
     return { removed, notes: activePreferenceTexts(card) };
   }

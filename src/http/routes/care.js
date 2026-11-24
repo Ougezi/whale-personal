@@ -24,11 +24,19 @@ module.exports = function register(router) {
       .split(/[\n,;，；\s]+/)
       .map((x) => x.trim())
       .filter(Boolean);
+    // 单位约定：毫秒；兼容桥接传秒（<1e12 视为秒）
+    const rawActive = Number(q.searchParams.get('ownerActiveAt') || 0) || 0;
+    const ownerActiveAt = rawActive > 0 && rawActive < 1e12 ? rawActive * 1000 : rawActive;
+    const unanswered = Number(q.searchParams.get('unanswered') || 0) || 0;
+    const eventScore = Number(q.searchParams.get('eventScore') || 0) || 0;
     const out = care.careDecide(runtime.config, {
       contacts: runtime.contacts || null,
       lastSentTs: Number.isFinite(last) && last > 0 ? last : 0,
       sentToday: Number.isFinite(sentToday) ? sentToday : 0,
       activeWxids: active,
+      ownerActiveAt,
+      unanswered,
+      eventScore,
     });
     runtime.logger?.debug?.(`[care] due=${Boolean(out.due)} reason=${out.reason || '-'} ` +
       `target=${out.target ? (out.target.kind || 'unknown') : 'none'} windows=${(out.windows || []).length} ` +
@@ -52,7 +60,10 @@ module.exports = function register(router) {
   // 生成那句关心的话（带最近聊天上下文，避免每次同一句）
   router.get('/api/care', async (runtime, req, res, info) => {
     try {
-      const out = await careForChat(runtime, info.url.searchParams.get('chat') || '');
+      const chat = info.url.searchParams.get('chat') || '';
+      const out = await careForChat(runtime, chat);
+      // 主动搭话待发送：这里**不**写记忆，等桥接确认发送成功后
+      // 由 /api/care/sent 记录。否则发送失败也会留下“她说过”的假记录。
       runtime.logger?.debug?.(`[care] generate mock=${Boolean(out.mock)} fallback=${Boolean(out.fallback)} len=${String(out.text || '').length}`);
       return json(res, 200, out);
     } catch (err) {
@@ -75,7 +86,7 @@ module.exports = function register(router) {
     try {
       runtime.store.ensureSession(key, { platform: 'wechat', chatType: body.group === true ? 'group' : 'private' });
       if (msgId && runtime.store.isDuplicate(key, msgId)) return json(res, 200, { ok: true, duplicate: true });
-      runtime.store.appendMessage(key, { role: 'assistant', name: runtime.config.persona.name, text, ts: Date.now(), ...(msgId ? { msgId } : {}) });
+      runtime.store.recordAssistant(key, { name: runtime.config.persona.name, text, ts: Date.now(), ...(msgId ? { msgId } : {}) });
       return json(res, 200, { ok: true });
     } catch (err) {
       runtime.logger.warn('主动搭话记录失败：' + describeError(err));

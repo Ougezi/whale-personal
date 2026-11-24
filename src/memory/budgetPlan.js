@@ -138,6 +138,16 @@ function nearestTier(dialogueBudget) {
  *   mode:'clamped'|'reclaim', shares:object, total:number, ok:boolean, warnings:string[]
  * }}
  */
+/** 预算自适应（默认开）：长会话自动抬高对话预算，旧会话不受影响 */
+function adaptiveBudget(base, messageCount, enabled = true) {
+  const b = Number(base) > 0 ? Number(base) : REF;
+  if (!enabled) return b;
+  const n = Number(messageCount) || 0;
+  if (n >= 300) return Math.round(b * 1.5);   // 8,000 → 12,000
+  if (n >= 150) return Math.round(b * 1.25);  // 8,000 → 10,000
+  return b;
+}
+
 function planBudget(dialogueBudget, { relations = false } = {}) {
   const wantedRaw = Math.round(Number(dialogueBudget));
   const wanted = Number.isFinite(wantedRaw) && wantedRaw > 0 ? wantedRaw : REF;
@@ -199,6 +209,7 @@ function planBudget(dialogueBudget, { relations = false } = {}) {
 }
 
 module.exports = {
+  adaptiveBudget,
   planBudget,
   TIERS,
   nearestTier,

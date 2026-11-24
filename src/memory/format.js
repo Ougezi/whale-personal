@@ -111,7 +111,12 @@ function indexLine(ev) {
   const ago = Number(ev && ev._agoDays);
   const agoText = Number.isFinite(ago) && ago >= 1 ? `（${ago} 天前）` : '';
   const pend = ev && ev.resolved === false ? '（未解决）' : '';
-  const prefix = `- [${date}] ${title}${agoText}${pend}：`;
+  // 来源标注：低置信度标「推测」，主人亲口标「TA 说过」（S2）
+  const conf = Number(ev && ev.confidence);
+  const kind = ev && ev.source && ev.source.kind;
+  const guess = Number.isFinite(conf) && conf < 0.55 && conf > 0 ? '（推测）' : '';
+  const said = kind === 'owner' ? '（TA 说过）' : '';
+  const prefix = `- [${date}] ${title}${agoText}${pend}${guess}${said}：`;
   const room = Math.max(0, INDEX_MAX_CHARS - Array.from(prefix).length);
   return clip(prefix + firstSentence(ev && ev.summary, room), INDEX_MAX_CHARS);
 }
@@ -196,6 +201,14 @@ function hardCut(body, limit, measure) {
  *   caps：每类展示几条 { traits, prefs, threads, events }，默认 6/10/4/5（= 900 预算下的旧值）
  * @returns {string}
  */
+/** 记忆块字符上限（S4）：按字符截断，CJK 安全 */
+function capBlockText(text, maxChars) {
+  const chars = Array.from(String(text == null ? '' : text));
+  const cap = Math.max(0, Number(maxChars) || 0);
+  if (!cap || chars.length <= cap) return String(text == null ? '' : text);
+  return chars.slice(0, cap).join('') + '…';
+}
+
 function buildMemoryBlock({
   card = null, events = [], summary = '', budget = LIMITS.memoryTokens, memoryBudget = null, caps = null,
 } = {}) {
@@ -208,7 +221,10 @@ function buildMemoryBlock({
   };
   if (!card) return '';
   const traits = personCard.activeTraits(card)
-    .sort((a, b) => (b.confidence || 0) - (a.confidence || 0))
+    .sort((a, b) => ((b.confirmed ? 1 : 0) - (a.confirmed ? 1 : 0))
+      || ((b.evidence || []).length - (a.evidence || []).length)
+      || ((b.confidence || 0) - (a.confidence || 0)))
+    .slice(0, 3)
     .map((t) => clip(t.text, 40));
   const prefs = personCard.activePreferences(card)
     .sort((a, b) => (b.confidence || 0) - (a.confidence || 0))
@@ -306,4 +322,5 @@ function buildMemoryBlock({
   return body ? `${body}\n\n${MEMORY_SCOPE_NOTICE}` : MEMORY_SCOPE_NOTICE;
 }
 
-module.exports = { buildMemoryBlock, MEMORY_SCOPE_NOTICE, splitSentences, indexLine };
+module.exports = {
+  capBlockText, buildMemoryBlock, MEMORY_SCOPE_NOTICE, splitSentences, indexLine };

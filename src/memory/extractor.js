@@ -14,6 +14,7 @@ const { describeError } = require('../infra/errors');
 const { cleanIncoming } = require('./text');
 
 const QUESTION_RE = /[?？]|(?:吗|呢|吧)\s*$|如果|要是|假如|假设|开玩笑|哈哈|呵呵|不是吧/;
+const PREFIX_RE = /^(?:对了|话说|顺便说(?:一下)?|其实|哦对|另外|还有|嗯+|那个|就是|跟你说|告诉你|提醒你|讲真|说实话|说真的)[，,。.！!？?:：\s]*/;
 const THIRD_PERSON_RE = /^(?:他|她|他们|她们|别人|人家|我朋友|我同事|我同学|我妈|我爸|我哥|我姐|我弟|我妹|我家那位)/;
 
 function clampText(value, max) {
@@ -28,9 +29,12 @@ function clampText(value, max) {
 function extractSelfFacts(text, { msgId = '', now = Date.now() } = {}) {
   const original = cleanIncoming(text);
   if (!original || original.length > 120) return { facts: [] };
-  if (THIRD_PERSON_RE.test(original)) return { facts: [] };
-  const manual = /^(?:记住|记一下|帮我记住|帮我记一下|记下|别忘了)[：:\s]*(.+)$/.exec(original);
-  const body = manual ? manual[1].trim() : original;
+  // 真实聊天常带「对了/其实/话说」前缀；不剥掉的话 ^我... 全部抽不到
+  const stripped = original.replace(PREFIX_RE, '').trim();
+  if (!stripped) return { facts: [] };
+  if (THIRD_PERSON_RE.test(stripped)) return { facts: [] };
+  const manual = /^(?:记住|记一下|帮我记住|帮我记一下|记下|别忘了)[：:\s]*(.+)$/.exec(stripped);
+  const body = manual ? manual[1].trim() : stripped;
   if (!body) return { facts: [] };
   const explicit = true;
   const source = msgId || '';

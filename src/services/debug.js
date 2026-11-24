@@ -171,7 +171,13 @@ async function debugPrompt(runtime, body) {
       thoughtLine = thoughts.peek(dir, { now: now.getTime() }).text;
     }
   } catch { thoughtLine = ''; }
-  const innerLine = [moodLine, thoughtLine].filter(Boolean).join('\n');
+  // 她写下的感受/教训：诊断页也要能看到（和真实提示词一致）
+  let notesLine = '';
+  try {
+    const dir = config.paths?.dataDir || path.join(process.cwd(), 'data');
+    notesLine = require('../core/innerNotes').block({ dir, limit: 2 });
+  } catch { notesLine = ''; }
+  const innerLine = [moodLine, thoughtLine, notesLine].filter(Boolean).join('\n');
 
   const parts = persona.buildPromptParts({
     config,

@@ -260,7 +260,7 @@ function parseSseLines(bufferText) {
 }
 
 class DeepSeekClient {
-  constructor({ config, logger }) {
+  constructor({ config, logger, modelOverride = '' }) {
     this.config = config;
     this.logger = logger;
     // OpenCode Go 要求客户端自报身份 + 一个稳定的会话号（用于路由和 prompt 缓存）。
@@ -276,6 +276,11 @@ class DeepSeekClient {
     // 每次 reload 清空，靠 provider|model + baseUrl 校验失效
     this._caps = null;
     this.reload();
+    // 路由客户端：settings.model 优先级最高，必须构造后再强制覆盖
+    if (modelOverride && String(modelOverride) !== this.model) {
+      this.model = String(modelOverride);
+      this._caps = null;
+    }
   }
 
   /** 每个逻辑调用创建一次，并在所有重试中复用这个不透明用量标识。 */

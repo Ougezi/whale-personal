@@ -148,6 +148,9 @@ class Gateway {
       accountWhy: String(info.account_why || this.bridge.accountWhy || ''),
       accountGuard: typeof info.account_guard === 'boolean' ? info.account_guard : this.bridge.accountGuard,
       window: String(info.window || this.bridge.window || ''),
+      // 预热期（重启后 90 秒内 UIA 还没好）不要误报成“失联”
+      warming: typeof info.warming === 'boolean' ? info.warming : Boolean(this.bridge.warming),
+      protocol: Number(info.protocol) || this.bridge.protocol || 0,
     };
     return { ok: true, online: true, serverTime: now };
   }
@@ -163,6 +166,7 @@ class Gateway {
     return {
       online,
       uia: online ? this.bridge.uia : null,
+      warming: online ? Boolean(this.bridge.warming) : false,
       ffmpeg: online ? this.bridge.ffmpeg : null,
     };
   }
@@ -369,6 +373,8 @@ class Gateway {
         accountGuard: this.bridge.accountGuard,
         accountStale: !online,
         window: online ? this.bridge.window : '',
+        warming: online ? Boolean(this.bridge.warming) : false,
+        protocol: online ? Number(this.bridge.protocol) || 0 : 0,
       },
       ...this.stats,
     };

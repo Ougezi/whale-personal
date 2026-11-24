@@ -5,7 +5,7 @@ const path = require('node:path');
 
 const PREFIX = '.memory-restore-';
 const KIND = 'whale-memory-restore';
-const TARGETS = new Set(['memory', 'personas', 'store.json', 'persona.json', 'settings.json', 'care-state.json', 'share-state.json']);
+const TARGETS = new Set(['memory', 'personas', 'inner', 'diary', 'store.json', 'persona.json', 'settings.json', 'care-state.json', 'share-state.json', 'concerns.json', 'nicknames.json', 'pins.json', 'skills.md', 'mood.json', 'thoughts.json']);
 function exists(file) {
   try { fs.lstatSync(file); return true; } catch (error) {
     if (error.code === 'ENOENT') return false;
@@ -113,7 +113,10 @@ function restoreFiles(dir, memory, files, dirs = {}) {
       const preparedDir = path.join(transaction, 'prepared', name);
       fs.mkdirSync(preparedDir, { recursive: true });
       for (const [rel, body] of Object.entries(entries || {})) {
-        if (!rel || rel.includes('/') || rel.includes('\\') || rel.includes('..')) throw new Error('恢复里的文件名不合法：' + rel);
+        // 目录条目允许子路径（diary/2026/11-22.md），但不许跳出目录
+        if (!rel || rel.includes('\\') || rel.includes('..') || path.isAbsolute(rel) || /^[a-zA-Z]:/.test(rel)) {
+          throw new Error('恢复里的文件名不合法：' + rel);
+        }
         writeVerified(path.join(preparedDir, rel), body);
       }
     }

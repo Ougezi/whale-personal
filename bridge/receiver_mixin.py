@@ -1726,9 +1726,23 @@ class ReceiverMixin:
                                 _doc_name, desc + (('\n' + _doc_note) if _doc_note else ''), _doc_tail)
                     else:
                         media_failed('文件')
-                        content = ('（对方发了一份文档「%s」，但这边没取到、也没读出来。'
-                                   '不要编造文档内容；可以自然地回一句，比如让对方把文字直接贴出来，'
-                                   '或说明一下文档是什么格式）' % _doc_name)
+                        # 带上真实原因：以前只说「没取到」，对方会以为是她偷懒（2026-11-22）
+                        _why = ''
+                        try:
+                            _why = str((msg.get('_media_fail') if isinstance(msg, dict) else '') or '').strip()
+                        except Exception:
+                            _why = ''
+                        if ('没缓存' in _why) or ('找不到' in _why):
+                            _advice = ('这个文件在微信里还没下载到本地。请对方在聊天里点一下这个文件、'
+                                       '等它下载完再看；不要编造内容。')
+                        elif '解析' in _why:
+                            _advice = ('文件拿到了但解析失败（%s）。如实说明，并请对方换成 docx / PDF '
+                                       '或把文字贴出来。' % (_why[:40] or '原因未知'))
+                        else:
+                            _advice = ('没读到内容（%s）。如实说明，不要编造；可以让对方把文字贴出来。'
+                                       % (_why[:40] or '原因未知'))
+                        content = ('（对方发了一份文档「%s」，但这边没取到、也没读出来。%s）'
+                                   % (_doc_name, _advice))
                         media_placeholder = True
                     _doc_parsed = True
                 if not _doc_parsed:
@@ -2294,6 +2308,38 @@ class ReceiverMixin:
                 out.append('好，记下了。')     # 整句只有标记：给一句应答，别把 [[...]] 发出去
         return out if out else ['嗯。']
 
+
+    def _remember_skipped(self, msg):
+        """桥接失联/重启期间被跳过的消息：至少写进记忆原文，不触发回复。"""
+        try:
+            username = str(msg.get('username') or '').strip()
+            if not username:
+                return
+            text = str(msg.get('content') or '').strip()
+            typ = str(msg.get('type') or '消息')
+            if text.startswith('<?xml') or text.startswith('<msg'):
+                text = '[%s]' % typ
+            if not text:
+                return
+            # 每次启动最多补 50 条：长时间停机的 backlog 不要一次性灌进记忆
+            _n = int(getattr(self, '_ingest_count', 0) or 0)
+            if _n >= 50:
+                G.log_throttled('ingest-capped', '失联消息补记已达本次启动上限 50 条，其余跳过', ttl=3600)
+                return
+            chat_type = 'group' if username.endswith('@chatroom') else 'private'
+            chat = ('wechat:g:' if chat_type == 'group' else 'wechat:u:') + username
+            base = self.bot_url.rsplit('/webhook', 1)[0]
+            uid = str(msg.get('sender_username') or username)
+            ts = int(float(msg.get('create_time') or 0) * 1000) or None
+            msg_id = '%s:%s' % (msg.get('shard') or '', msg.get('local_id') or '')
+            G.LOCAL_HTTP.post(base + '/api/memory/ingest', json={
+                'chat': chat, 'uid': uid, 'name': str(msg.get('sender_name') or ''),
+                'text': text[:4000], 'ts': ts, 'msgId': msg_id, 'chatType': chat_type,
+            }, headers={'x-whale-bridge': '1', 'x-whale-bridge-token': self.token or ''}, timeout=6)
+            self._ingest_count = _n + 1
+        except Exception as e:
+            G.log_throttled('ingest-skip-fail', '失联消息补记失败（忽略）：' + repr(e), ttl=120)
+
     def _recover_delegation_once(self):
         """重启后第一次收消息时跑一次：把上次打断的委托告诉主人，别让它悄悄消失。"""
         if getattr(self, '_deleg_recovered', False):
@@ -2334,9 +2380,11 @@ class ReceiverMixin:
                     % (msg.get('shard') or '', msg.get('local_id'), int(create_time)),
                     ttl=60,
                 )
+                self._remember_skipped(msg)
                 return
             if create_time and G.time.time() - create_time > G.STALE_AFTER:
                 G.log('跳过过期消息（%.0fs 前）：%s' % (G.time.time() - create_time, G.safe_text(msg.get('content') or '')))
+                self._remember_skipped(msg)
                 return
             chat = username or 'unknown'
             pushed = self.batches.push(chat, msg)

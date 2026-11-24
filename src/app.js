@@ -79,6 +79,8 @@ function createRuntime({ root = path.resolve(__dirname, '..'), env = process.env
     // 关系卡份额（120 token）跟着 features.relations 走：关掉就并回 recent
     limits: { ...(config.memory || {}), relationsEnabled: features.isOn(config, 'relations') },
     logger: child('memory'),
+    // 审计/跨会话全局记忆都要读 dataDir（2026-11-23 修：以前没传，两个功能静默失效）
+    config,
   });
   // 启动时先「忘」一遍：太久没被想起、又不重要的记忆沉到归档，别一直占着检索位
   try {
@@ -125,6 +127,22 @@ function createRuntime({ root = path.resolve(__dirname, '..'), env = process.env
     });
   } catch { /* 定时器起不来不影响主流程 */ }
 
+  // 记忆睡眠（M3）：每天 4 点后整理一次，失败不影响聊天
+  try {
+    runtime.scheduler.every('memory.sleep', 30 * 60 * 1000, () => {
+      const r = require('./services/memorySleep').maybeRun({ dataDir: config.paths.dataDir, logger: child('sleep'), store });
+      if (r && r.ran) logger.info('记忆睡眠：卡片 ' + r.cards + ' 矛盾 ' + r.conflicted + ' 巩固 ' + r.consolidated + ' 晋升 ' + r.promoted + ' 洞察 ' + r.insights);
+    });
+  } catch { /* 定时器起不来不影响主流程 */ }
+
+  // 启动补跑睡眠：4 点后启动的应用不用等下一个 30 分钟 tick
+  setTimeout(() => {
+    try {
+      const r = require('./services/memorySleep').maybeRun({ dataDir: config.paths.dataDir, store, logger: child('sleep') });
+      if (r && r.ran) logger.info('记忆睡眠（启动补跑）：卡片 ' + r.cards + ' 矛盾 ' + r.conflicted + ' 巩固 ' + r.consolidated + ' 晋升 ' + r.promoted + ' 洞察 ' + r.insights);
+    } catch (err) { logger.warn('启动补跑睡眠失败（不影响聊天）：' + describeError(err)); }
+  }, 8000);
+
   runtime.llm = new DeepSeekClient({ config, logger: child('llm') });
   runtime.diary = new DiaryService(config, {
     store,
@@ -152,7 +170,20 @@ function createRuntime({ root = path.resolve(__dirname, '..'), env = process.env
     raw: Boolean(config.log && config.log.traceRaw !== false),
   });
   runtime.trace = trace;
-  runtime.bot = new Bot({ config, store, llm: runtime.llm, logger: child('pipeline'), trace, version: VERSION });
+  // 复杂问题路由：只建客户端，配置没开就不发请求（默认关，不增加成本）
+  let llmComplex = null;
+  try {
+    const routeCfg = config.llm && config.llm.route;
+    if (routeCfg && routeCfg.enabled) {
+      const cloned = JSON.parse(JSON.stringify(config));
+      cloned.deepseek = { ...(cloned.deepseek || {}), model: routeCfg.model || (cloned.deepseek || {}).model };
+      llmComplex = new DeepSeekClient({ config: cloned, logger: child('llm-complex') });
+      logger.info('模型路由已开启：复杂问题用 ' + llmComplex.model);
+    }
+  } catch (err) {
+    logger.warn('模型路由初始化失败（不影响聊天）：' + describeError(err));
+  }
+  runtime.bot = new Bot({ config, store, llm: runtime.llm, llmComplex, logger: child('pipeline'), trace, version: VERSION });
   // 主人问起日记时，聊天模型通过 [[diary:日期]] 标记读取；不给它直接塞全文。
   runtime.bot.diary = runtime.diary;
   // 自主上网：隔几小时自己刷一条热榜，用自己的话说一句，再写回情绪与念头。
