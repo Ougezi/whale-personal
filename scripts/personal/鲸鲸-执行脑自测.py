@@ -95,6 +95,16 @@ def unit_tests():
     handled = b.handle_message(msg('脑子：查一下', username='other_wxid', sender='other_wxid'))
     check('非主人不接管', handled is False and not sent)
 
+    print('\n[unit] 桥接入口')
+    b, sent = fresh_agent()
+    from receiver_mixin import ReceiverMixin
+    class _Dummy:
+        pass
+    d = _Dummy()
+    d.brain = b
+    ReceiverMixin.on_message(d, msg('脑子状态'), None)
+    check('桥接入口接管', any('执行脑任务' in s or '还没有' in s for s in sent), sent[-1][:30] if sent else '')
+
     print('\n[unit] P2 审批状态机')
     b, sent = fresh_agent()
     b._run = lambda task: (task.update(status='done', output='fake'), b._save())
