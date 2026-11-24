@@ -1252,6 +1252,79 @@
     "verify ok",
     "二次 added=0 duplicate=8"
    ]
+  },
+  {
+   "id": "I-35",
+   "phase": "I",
+   "title": "真实调用方设计",
+   "goal": "盘点 9 契约与三平台，给出 Broker/Adapter/24 案例设计。",
+   "case_ids": [
+    "EV-003",
+    "EV-004",
+    "EV-005",
+    "EV-006"
+   ],
+   "min_cases": 4,
+   "source_review": [],
+   "files": [
+    "docs/personal/鲸鲸-真实调用方-设计.md"
+   ],
+   "actions": [
+    "盘点",
+    "设计",
+    "24 案例"
+   ],
+   "tests": [
+    "文档评审"
+   ],
+   "acceptance": [
+    "9 契约有落点",
+    "三平台有调用链",
+    "24 案例"
+   ]
+  },
+  {
+   "id": "I-36",
+   "phase": "I",
+   "title": "真实调用方 P0",
+   "goal": "GitHub/B站只读 adapter + Broker + 抖音包装；24/24 live；默认关。",
+   "case_ids": [
+    "EV-003",
+    "EV-004",
+    "EV-005",
+    "EV-006",
+    "EV-007",
+    "EV-008",
+    "EV-009",
+    "EV-010"
+   ],
+   "min_cases": 8,
+   "source_review": [],
+   "files": [
+    "bridge/platform_agent.py",
+    "bridge/platform_broker.py",
+    "bridge/platform_github.py",
+    "bridge/platform_bilibili.py",
+    "bridge/platform_douyin.py",
+    "scripts/personal/鲸鲸-真实调用方自测.py",
+    "scripts/personal/鲸鲸-真实调用方-24案例.py",
+    "skills/whale-platform-callers/SKILL.md"
+   ],
+   "actions": [
+    "只读 adapter",
+    "标记入口",
+    "24 案例",
+    "抖音 status"
+   ],
+   "tests": [
+    "鲸鲸-真实调用方自测.py",
+    "鲸鲸-真实调用方-24案例.py --live"
+   ],
+   "acceptance": [
+    "24/24",
+    "默认关",
+    "无写操作"
+   ]
   }
  ]
 }

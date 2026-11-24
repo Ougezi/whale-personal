@@ -1,6 +1,6 @@
 ---
 name: whale-mainline-integration
-description: 鲸鲸主链接入与结构治理的可执行 runbook：按 I-01..I-34 过案例/源码/测试/证据/回滚门禁，接 kernel/bridge、job/receipts、动作硬审批、action-audit、dist 全量同步，并分 L0-L5 做真实微信/真实动作/热停验收。Use when the owner says 主链接入 / 接入主链 / 结构治理 / 下一步接入 / 热停 / 端到端验收 / 真实微信验收 / 核心包接入.
+description: 鲸鲸主链接入与结构治理的可执行 runbook：按 I-01..I-36 过案例/源码/测试/证据/回滚门禁，接 kernel/bridge、job/receipts、动作硬审批、action-audit、dist 全量同步，并分 L0-L5 做真实微信/真实动作/热停验收。Use when the owner says 主链接入 / 接入主链 / 结构治理 / 下一步接入 / 热停 / 端到端验收 / 真实微信验收 / 核心包接入.
 ---
 
 # whale-mainline-integration
@@ -256,6 +256,8 @@ git commit -m "I-XX ..."
 | I-32 | scopeCore | 默认关；canRecall 过滤；fail-open |
 | I-33 | scopeCore 真实召回 | 私聊/群聊不串；已关闭 |
 | I-34 | migrate 真实迁移 | 8 行，源 SHA 不变，二次 0/8 |
+| I-35 | 真实调用方设计 | 9 契约落点 + 24 案例 |
+| I-36 | 平台调用 P0 | GitHub/B站/抖音只读；24/24；默认关 |
 
 详细命令/文件/验收在计划 JSON；本 skill 只规定方法。
 
@@ -604,3 +606,7 @@ git ls-remote origin refs/heads/main refs/heads/release
 - `integration_check.py --check` 0；
 - 文档/计划/状态/证据同步；
 - 推送后 main/release 同提交。
+
+## 平台调用方
+
+真实平台调用方见 `whale-platform-callers` skill。

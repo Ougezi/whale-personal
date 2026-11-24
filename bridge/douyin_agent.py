@@ -16,7 +16,11 @@ import subprocess
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 SIDECAR = os.environ.get("WHALE_DOUYIN_DIR") or r"D:\dsh\profiles\desktop\whale-douyin"
-NODE = os.path.join(ROOT, "runtime", "node.exe")
+NODE = os.environ.get("WHALE_NODE") or os.path.join(ROOT, "runtime", "node.exe")
+if not os.path.isfile(NODE):
+    _dist_node = os.path.join(ROOT, "dist", "whale-personal", "runtime", "node.exe")
+    if os.path.isfile(_dist_node):
+        NODE = _dist_node
 ENTRY = os.path.join(SIDECAR, "service.mjs")
 
 MARKER_RE = re.compile(r"\[\[dy:\s*(.+?)(?:\]\]|$)", re.S)

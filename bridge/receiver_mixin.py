@@ -24,6 +24,10 @@ try:
 except Exception:
     douyin_agent = None
 try:
+    import platform_agent
+except Exception:
+    platform_agent = None
+try:
     import image_fetch
 except Exception:
     image_fetch = None
@@ -1141,6 +1145,39 @@ class ReceiverMixin:
             G.log('抖音线程启动失败，改为同步：', repr(e))
             self._run_douyin(task, username, sender)
 
+    def _spawn_platform(self, spec, username, sender):
+        """后台跑 GitHub/B站只读查询，别堵会话。"""
+        if platform_agent is None or not platform_agent.enabled():
+            G.log('平台调用未开启，跳过')
+            return
+        try:
+            import threading as _th
+            _t = _th.Thread(target=self._run_platform, args=(spec, username, sender),
+                            name='platform-query', daemon=True)
+            _t.start()
+        except Exception as e:
+            G.log('平台线程启动失败，改为同步：', repr(e))
+            self._run_platform(spec, username, sender)
+
+    def _run_platform(self, spec, username, sender):
+        """跑一条平台只读查询，把事实作为「执行端回报」交给内核。"""
+        target = self.display_name(username)
+        try:
+            _t0 = G.time.time()
+            ok, text = platform_agent.run(spec)
+            G.log('平台返回：%s，%d 字，耗时 %.0f 秒，任务=%s'
+                  % ('成功' if ok else '失败', len(text), G.time.time() - _t0, str(spec)[:40]))
+        except Exception as e:
+            ok, text = False, '平台链路异常：%r' % e
+        if ok:
+            note = ('（这条不是主人说的，是执行端回报——真的查了平台，事实如下：\\n%s\\n'
+                    '用自己的话讲给主人听：挑重点说，别整段复述；没查成要说清卡在哪，别编。）'
+                    % text)
+        else:
+            note = ('（这条不是主人说的，是执行端回报——这轮没查成：%s\\n'
+                    '照实说，别编看到了什么。）' % text)
+        self._post_note(note, username, sender, target)
+
     def _run_douyin(self, task, username, sender):
         """跑一轮抖音，把事实作为「执行端回报」交给内核，让她自己说。"""
         target = self.display_name(username)
@@ -2077,6 +2114,7 @@ class ReceiverMixin:
 
             # 她回复里的两种标记：[[dsh:任务]] 派活、[[pic:关键词]] 找图，都在发出去之前抹掉
             _dys = []
+            _plats = []
             _tasks = []
             _pics = []
             _kept = []
@@ -2090,6 +2128,10 @@ class ReceiverMixin:
                     _clean, _dy = douyin_agent.extract(_clean)
                     if _dy:
                         _dys.append(_dy)
+                if platform_agent is not None:
+                    _clean, _pf = platform_agent.extract(_clean)
+                    if _pf:
+                        _plats.append(_pf)
                 if image_fetch is not None:
                     _clean, _key = image_fetch.extract(_clean)
                     if _key:
@@ -2102,6 +2144,8 @@ class ReceiverMixin:
                 G.log('她要找图：', ' | '.join(_pics)[:80])
             if _dys:
                 G.log('她要刷抖音：', _dys[0][:60])
+            if _plats:
+                G.log('她要查平台：', _plats[0][:80])
             bubbles = _kept
             for line in bubbles:
                 if not line:
@@ -2153,6 +2197,15 @@ class ReceiverMixin:
                     self._spawn_douyin(_dys[0], username, msg.get('sender_username') or '')
                 else:
                     G.log('抖音刷得太密集，本次忽略（20 秒冷却）')
+            if _plats and G.MASTER_WXID and (msg.get('sender_username') or '') == G.MASTER_WXID  \
+                    and not username.endswith('@chatroom'):
+                _now = G.time.time()
+                _key = '_pf_last_' + str(username)
+                if _now - float(getattr(self, _key, 0) or 0) >= 20:
+                    setattr(self, _key, _now)
+                    self._spawn_platform(_plats[0], username, msg.get('sender_username') or '')
+                else:
+                    G.log('平台查询太密集，本次忽略（20 秒冷却）')
             _stk = data.get('sticker') or None
             if G.STICKER_TEST_ON and isinstance(_stk, dict):
                 self.claim_and_send_sticker(_stk, expected_chat=target, expected_username=username)

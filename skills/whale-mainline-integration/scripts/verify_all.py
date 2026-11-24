@@ -39,6 +39,7 @@ CASES = [
     ('bridge', 'py', 'scripts/personal/鲸鲸-自测.py', {'WHALE_ROOT': DIST}),
     ('执行脑', 'py', 'scripts/personal/鲸鲸-执行脑自测.py', {'WHALE_ROOT': DIST}),
     ('出生技能', 'py', 'scripts/personal/鲸鲸-出生技能自测.py', {}),
+    ('真实调用方', 'py', 'scripts/personal/鲸鲸-真实调用方自测.py', {}),
 ]
 
 

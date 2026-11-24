@@ -126,8 +126,10 @@
   {
    "id": "verify",
    "path": "bridge/verify.py",
-   "status": "not-wired",
-   "note": "回执契约，未接发送链"
+   "status": "wired",
+   "integration": "PlatformBroker.dispatch -> Verifier.verify",
+   "flag": "WHALE_PLATFORM_CALLS=1",
+   "note": "P0 只读平台结果必须有 readback/tests"
   },
   {
    "id": "shadow",
