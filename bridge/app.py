@@ -305,6 +305,7 @@ class BridgeRuntime(AccountMixin, WindowMixin, SenderMixin, StickerMixin, VoiceM
         self._UIA_READY = {'ts': 0.0, 'ok': None, 'msg': '', 'res': None}
         G.threading.Thread(target=self.config_watch, daemon=True).start()
         G.threading.Thread(target=self.warmup, daemon=True).start()
+        G.threading.Thread(target=self.catchup_watch, daemon=True, name='catchup').start()
         G.threading.Thread(target=self.send_watchdog, daemon=True).start()
         G.threading.Thread(target=self.battery_watch, daemon=True).start()
         G.threading.Thread(target=self.care_watch, daemon=True).start()

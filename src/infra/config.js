@@ -363,6 +363,21 @@ const DEFAULT_CONFIG = {
     // 启动器设置页已不再暴露这一组，改只能改 config.json。
     wechat: { enabled: true, inboundToken: 'change-me-wechat', outboundUrl: '', outboundHeaders: {} },
   },
+  // 漏回补答（2026-11-24）：桥接触发、内核生成、确认后入记忆。
+  // 只对主人私聊生效；默认 23:00–08:00 不补，6 小时冷却，每天最多 2 次。
+  catchup: {
+    enabled: true,
+    minAgeMinutes: 2,
+    maxAgeHours: 6,
+    quietStart: '23:00',
+    quietEnd: '08:00',
+    cooldownHours: 6,
+    maxPerDay: 2,
+    maxChars: 80,
+    maxBubbles: 2,
+    fallbackTemplate: false,
+    startupDelaySec: 20,
+  },
   // 日志：level 管控制台，fileLevel 管文件（默认 debug 全量）。
   // trace 记「为什么回/为什么不回」的判定链（不含正文）；traceRaw 在本地留 24 小时的原文副本，
   // 只有导出日志包时手动勾选才会带出去。

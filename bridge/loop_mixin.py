@@ -269,6 +269,57 @@ class LoopMixin:
         except Exception as e:
             G.log('发送通道预热失败：', repr(e))
 
+    def catchup_watch(self):
+        """启动后检查主人私聊有没有漏回；只补一次，失败不重试。"""
+        if getattr(self, '_catchup_done', False):
+            return
+        G.time.sleep(20)
+        if not G.MASTER_WXID:
+            return
+        # 等 UIA/账号窗口就绪（最多 2.5 分钟）
+        ready = False
+        for _ in range(30):
+            try:
+                if self.selected_window_ready():
+                    r = self.ensure_uia_ready(force=False)
+                    if r.get('ok') and self.ACCOUNT.get('hwnd'):
+                        ready = True
+                        break
+            except Exception:
+                pass
+            G.time.sleep(5)
+        self._catchup_done = True
+        if not ready:
+            G.log('补答检查跳过：UIA/账号窗口未就绪')
+            return
+        base = self.bot_url.rsplit('/webhook', 1)[0]
+        headers = {'x-whale-bridge': '1', 'x-whale-bridge-token': self.token or ''}
+        chat = 'wechat:u:' + str(G.MASTER_WXID)
+        try:
+            r = G.LOCAL_HTTP.post(base + '/api/memory/catchup/plan', json={'chat': chat}, headers=headers, timeout=40)
+            data = r.json() if r.ok else {}
+            if not data.get('needed'):
+                G.log('补答检查：不需要（%s）' % (data.get('reason') or 'unknown'))
+                return
+            text = str(data.get('text') or '').strip()
+            if not text:
+                G.log('补答检查：内核返回空文本，跳过')
+                return
+            G.log('补答检查：需要补 %d 条，准备发送' % len(data.get('missed') or []))
+            target = self.display_name(G.MASTER_WXID)
+            sent = self.send_text(text, target, G.MASTER_WXID)
+            if sent is False:
+                G.log('补答发送失败（不重试）')
+                return
+            receipt = {'chat': chat, 'throughSeq': data.get('throughSeq'), 'text': text, 'result': 'submitted'}
+            rr = G.LOCAL_HTTP.post(base + '/api/memory/catchup/sent', json=receipt, headers=headers, timeout=15)
+            if rr.ok and (rr.json() or {}).get('ok'):
+                G.log('补答已发送并入记忆：seq=%s' % (rr.json() or {}).get('seq'))
+            else:
+                G.log('补答已发送但入记忆失败：%s' % (getattr(rr, 'status_code', '?'),))
+        except Exception as e:
+            G.log('补答检查失败（不重试）：' + repr(e))
+
     def send_watchdog(self):
         """发送卡住超过预算就重启桥接，避免整个队列卡死。
 

@@ -188,6 +188,7 @@ class ChatStore {
         legacy: Boolean(meta.legacy),
         // 刚导入的旧 chat：sweep 当天不要立刻归档，否则用户刚看到「已导入」就找不到会话
         importedAt: Number(meta.importedAt) || 0,
+        catchup: meta.catchup || null,
       },
       messages: [],
       summary: null,
@@ -313,6 +314,7 @@ class ChatStore {
         relations: [],
         legacy: Boolean(meta.legacy),
         importedAt: 0,
+        catchup: meta.catchup || null,
       },
       messages: [],
       summary: normalizeSummary(null, id),
@@ -605,6 +607,7 @@ class ChatStore {
         relations: chat.meta.relations || [],
         legacy: chat.meta.legacy,
         importedAt: chat.meta.importedAt || 0,
+        catchup: chat.meta.catchup || null,
       });
       chat.dirtyMeta = false;
     } catch (err) {

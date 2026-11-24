@@ -1362,6 +1362,56 @@ try {
   check('漏回提醒', false, String(e && e.message).slice(0, 50));
 }
 
+// 漏回补答服务（2026-11-24）
+try {
+  const cu = require(path.join(ROOT, 'src', 'services', 'catchup.js'));
+  const cfgC = { persona: { master: { wxids: ['wxid_master'] } }, catchup: { quietStart: '23:00', quietEnd: '08:00', cooldownHours: 6, maxPerDay: 2 } };
+  const nowC = new Date(2026, 10, 24, 12, 0, 0).getTime();
+  const chatC = { chatId: 'wechat:u:wxid_master', platform: 'wechat', chatType: 'private', meta: {}, messages: [
+    { seq: 1, role: 'assistant', text: '在', ts: nowC - 3600000 },
+    { seq: 2, role: 'user', text: '早捏', ts: nowC - 600000 },
+    { seq: 3, role: 'user', text: '上班呢', ts: nowC - 540000 },
+  ] };
+  const vC = cu.evaluate({ config: cfgC, chat: chatC, messages: chatC.messages, now: nowC });
+  check('补答：需要判断', vC.needed === true && vC.throughSeq === 3, JSON.stringify(vC.reason));
+  const nowQ = new Date(2026, 10, 24, 23, 30).getTime();
+  const chatQ = Object.assign({}, chatC, { meta: {}, messages: [
+    { seq: 1, role: 'assistant', text: '在', ts: nowQ - 3600000 },
+    { seq: 2, role: 'user', text: '睡了没', ts: nowQ - 600000 },
+  ] });
+  const quietC = cu.evaluate({ config: cfgC, chat: chatQ, messages: chatQ.messages, now: nowQ });
+  check('补答：静默时段', quietC.needed === false && quietC.reason === 'quiet_hours', quietC.reason);
+  chatC.meta.catchup = { throughSeq: 3 };
+  const doneC = cu.evaluate({ config: cfgC, chat: chatC, messages: chatC.messages, now: nowC });
+  check('补答：已补过', doneC.needed === false && doneC.reason === 'already_replied', doneC.reason);
+  chatC.meta.catchup = { throughSeq: 0, sentAt: nowC - 3600000 };
+  const coolC = cu.evaluate({ config: cfgC, chat: chatC, messages: chatC.messages, now: nowC });
+  check('补答：冷却', coolC.needed === false && coolC.reason === 'cooldown', coolC.reason);
+  const groupC = Object.assign({}, chatC, { chatId: 'wechat:g:1@chatroom', chatType: 'group', meta: {} });
+  const gvC = cu.evaluate({ config: cfgC, chat: groupC, messages: groupC.messages, now: nowC });
+  check('补答：不补群聊', gvC.needed === false && gvC.reason === 'not_master', gvC.reason);
+  check('补答：清理文本', cu.cleanText('鲸鲸：刚看到你前面几条。\n上班还顺利吗？', 80).split('\n').length === 2, '');
+} catch (e) {
+  check('补答：需要判断', false, String(e && e.message).slice(0, 60));
+}
+
+// 补答 meta 持久化（2026-11-24）
+try {
+  const fsx = require('node:fs');
+  const osx = require('node:os');
+  const { Store } = require(path.join(ROOT, 'src', 'memory', 'store.js'));
+  const rootM = fsx.mkdtempSync(path.join(osx.tmpdir(), 'catch-'));
+  const dataM = path.join(rootM, 'data');
+  const mk = () => new Store({ file: path.join(dataM, 'store.json'), dir: path.join(dataM, 'memory'), config: { paths: { dataDir: dataM } }, logger: null });
+  const a = mk(); const c = a.chatStore.ensureChat('wechat:u:u1');
+  c.meta.catchup = { throughSeq: 7, sentAt: 123, status: 'sent' };
+  a.chatStore.saveMeta(c, { immediate: true });
+  const b = mk(); const loaded = b.chatStore.ensureChat('wechat:u:u1');
+  check('补答：meta 持久化', loaded.meta.catchup && loaded.meta.catchup.throughSeq === 7, JSON.stringify(loaded.meta.catchup));
+} catch (e) {
+  check('补答：meta 持久化', false, String(e && e.message).slice(0, 50));
+}
+
 console.log('\n通过 ' + pass + '/' + (pass + fail));
   process.exit(fail ? 1 : 0);
 })();

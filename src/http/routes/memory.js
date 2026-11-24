@@ -4,6 +4,7 @@ const path = require('node:path');
 const { json, readBody } = require('../util');
 const { isLoopbackRequest } = require('../security');
 const migrate = require('../../memory/migrate');
+const catchup = require('../../services/catchup');
 const { describeError, errorMessage } = require('../../infra/errors');
 
 /**
@@ -144,6 +145,92 @@ module.exports = function register(router) {
           ? ms.run({ dataDir, store: runtime.store, logger: runtime.logger })
           : ms.maybeRun({ dataDir, store: runtime.store, logger: runtime.logger });
         return json(res, 200, { ok: true, report });
+      } catch (err) {
+        return json(res, 500, { ok: false, error: errorMessage(err) });
+      }
+    })();
+  });
+
+  // 漏回补答：plan 只生成文本，sent 在桥接确认发送后才写 assistant。
+  function bridgeTokenOk(runtime, req) {
+    const want = String((((runtime.config || {}).gateway || {}).wechat || {}).inboundToken || '');
+    const got = String(req.headers['x-whale-bridge-token'] || '');
+    return Boolean(want) && got === want;
+  }
+
+  function chatOf(runtime, key) {
+    const chats = runtime.store && runtime.store.chatStore && runtime.store.chatStore.chats;
+    return chats && typeof chats.get === 'function' ? chats.get(String(key || '')) : null;
+  }
+
+  router.get('/api/memory/backlog', (runtime, req, res) => {
+    if (!isLoopbackRequest(req)) return json(res, 403, { ok: false, error: '只允许本机' });
+    if (!bridgeTokenOk(runtime, req)) return json(res, 403, { ok: false, error: '桥接 token 不正确' });
+    const chat = chatOf(runtime, req.query && req.query.chat);
+    if (!chat) return json(res, 404, { ok: false, error: '会话不存在' });
+    const back = catchup.collect(chat.messages, { now: Date.now() });
+    return json(res, 200, { ok: true, chat: chat.chatId, count: back.missed.length,
+      throughSeq: back.throughSeq, lastAssistantSeq: back.lastAssistantSeq, ageMs: back.ageMs });
+  });
+
+  router.post('/api/memory/catchup/plan', (runtime, req, res) => {
+    if (!isLoopbackRequest(req)) return json(res, 403, { ok: false, error: '只允许本机' });
+    if (!bridgeTokenOk(runtime, req)) return json(res, 403, { ok: false, error: '桥接 token 不正确' });
+    return (async () => {
+      try {
+        const body = await readBody(req);
+        const chat = chatOf(runtime, body && body.chat);
+        if (!chat) return json(res, 404, { ok: false, error: '会话不存在' });
+        const verdict = catchup.evaluate({ config: runtime.config, chat, messages: chat.messages, now: Date.now() });
+        if (!verdict.needed) return json(res, 200, { ok: true, needed: false, reason: verdict.reason });
+        if (!runtime.llm || typeof runtime.llm.complete !== 'function') {
+          return json(res, 503, { ok: false, error: '模型未就绪' });
+        }
+        const text = await catchup.generate(runtime, chat, verdict);
+        if (!text) return json(res, 502, { ok: false, error: '补答生成失败' });
+        return json(res, 200, { ok: true, needed: true, reason: 'ok', throughSeq: verdict.throughSeq,
+          missed: verdict.missed.map((m) => ({ seq: m.seq, text: m.text, ts: m.ts })), text });
+      } catch (err) {
+        return json(res, 500, { ok: false, error: errorMessage(err) });
+      }
+    })();
+  });
+
+  router.post('/api/memory/catchup/sent', (runtime, req, res) => {
+    if (!isLoopbackRequest(req)) return json(res, 403, { ok: false, error: '只允许本机' });
+    if (!bridgeTokenOk(runtime, req)) return json(res, 403, { ok: false, error: '桥接 token 不正确' });
+    return (async () => {
+      try {
+        const body = await readBody(req);
+        const chat = chatOf(runtime, body && body.chat);
+        if (!chat) return json(res, 404, { ok: false, error: '会话不存在' });
+        const throughSeq = Number(body && body.throughSeq);
+        const text = String((body && body.text) || '').trim();
+        if (!Number.isSafeInteger(throughSeq) || throughSeq < 1 || !text) {
+          return json(res, 400, { ok: false, error: 'throughSeq / text 都不能为空' });
+        }
+        const state = chat.meta.catchup || {};
+        if (Number(state.throughSeq) === throughSeq) {
+          return json(res, 200, { ok: true, already_recorded: true });
+        }
+        const back = catchup.collect(chat.messages, { now: Date.now() });
+        if (back.throughSeq !== throughSeq || back.lastAssistantSeq >= throughSeq) {
+          return json(res, 409, { ok: false, error: 'backlog_changed', throughSeq: back.throughSeq });
+        }
+        const entry = runtime.store.recordAssistant(chat.chatId, {
+          text: text.slice(0, 4000), ts: Date.now(), source: 'catchup',
+        });
+        const today = catchup.dayKey(Date.now());
+        chat.meta.catchup = {
+          throughSeq,
+          sentAt: Date.now(),
+          status: String((body && body.result) || 'sent').slice(0, 20),
+          attempts: Number(state.attempts || 0) + 1,
+          dayKey: today,
+          dayCount: state.dayKey === today ? Number(state.dayCount || 0) + 1 : 1,
+        };
+        runtime.store.chatStore.saveMeta(chat, { immediate: true });
+        return json(res, 200, { ok: true, recorded: true, seq: entry && entry.seq });
       } catch (err) {
         return json(res, 500, { ok: false, error: errorMessage(err) });
       }
