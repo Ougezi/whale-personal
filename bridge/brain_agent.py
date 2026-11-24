@@ -93,6 +93,11 @@ def _denied_workspace(path):
     return 'data' in parts or 'backup' in parts
 
 
+def _denied_text(text):
+    # 任务文本里出现的路径段也要拦，否则 cwd 在允许目录、目标却写进 data/
+    return bool(re.search(r'(?:^|[\\/])(data|backup)(?:[\\/]|$)', str(text or ''), re.I))
+
+
 class BrainAgent:
     def __init__(self, send, record=None, log=None):
         self.send = send                    # send(text, chat_username)
@@ -224,10 +229,8 @@ class BrainAgent:
         if not body:
             self._send('执行脑用法：脑子：查一下 D:\\...；脑子写：修一下 ...；脑子深查：...；脑子状态；脑子取消。', username)
             return True
+        # 只有显式「脑子写：」才进入写审批；「脑子：」永远是只读，避免“写”字误升级
         write_mode = sub == '写'
-        if not write_mode:
-            write_mode = any(h in body for h in WRITE_HINTS) and any(
-                w in body for w in ('修', '改', '删', '安装', '部署', '重启', '写', '替换', '创建', '生成'))
         if write_mode:
             self._ask_approval(username, body)
         else:
@@ -243,7 +246,8 @@ class BrainAgent:
             self._send('上一个任务还在跑，等它完再开写任务。', chat)
             return
         workspace = _workspace_of(goal)
-        if not _allowed_workspace(workspace) or _denied_workspace(workspace):
+        if (not _allowed_workspace(workspace) or _denied_workspace(workspace)
+                or _denied_text(goal)):
             self._send('这个工作区不在允许范围（默认只允许 D:\\dsh，且不碰 data/backup）。', chat)
             return
         task = self._new_task(chat, goal, 'workspace-write', workspace)
@@ -276,21 +280,29 @@ class BrainAgent:
         self._save()
         self._send('好，那先不动。', chat)
 
+    def _expire_pending(self, now=None):
+        now = _now() if now is None else int(now)
+        with self._lock:
+            changed = []
+            for t in self._state['tasks'].values():
+                if t.get('status') == 'pending_approval' and now - t.get('createdAt', 0) > 300000:
+                    t['status'] = 'cancelled'
+                    t['finishedAt'] = now
+                    t['error'] = '审批超时'
+                    changed.append(t)
+        if changed:
+            self._save()
+            for t in changed:
+                self._send('等太久没确认，我先不动了。', t['chat'])
+        return len(changed)
+
     def _approval_timeout_loop(self):
         while not self._stop:
             time.sleep(10)
-            with self._lock:
-                changed = []
-                for t in self._state['tasks'].values():
-                    if t.get('status') == 'pending_approval' and _now() - t.get('createdAt', 0) > 300000:
-                        t['status'] = 'cancelled'
-                        t['finishedAt'] = _now()
-                        t['error'] = '审批超时'
-                        changed.append(t)
-            if changed:
-                self._save()
-                for t in changed:
-                    self._send('等太久没确认，我先不动了。', t['chat'])
+            try:
+                self._expire_pending()
+            except Exception as e:
+                self.log('审批超时检查失败：', repr(e))
 
     # ------------------------------------------------------------------ 任务
     def _new_task(self, chat, goal, mode, workspace):
@@ -324,7 +336,8 @@ class BrainAgent:
             self._send('执行脑手上还有 2 个任务，等一个跑完再开。', chat)
             return
         workspace = _workspace_of(goal)
-        if not _allowed_workspace(workspace) or _denied_workspace(workspace):
+        if (not _allowed_workspace(workspace) or _denied_workspace(workspace)
+                or _denied_text(goal)):
             self._send('这个工作区不在允许范围（默认只允许 D:\\dsh，且不碰 data/backup）。', chat)
             return
         task = self._new_task(chat, goal, mode, workspace)
@@ -387,7 +400,8 @@ class BrainAgent:
             self._send('执行脑还在忙，等一个跑完再开多代理。', chat)
             return
         workspace = _workspace_of(goal)
-        if not _allowed_workspace(workspace) or _denied_workspace(workspace):
+        if (not _allowed_workspace(workspace) or _denied_workspace(workspace)
+                or _denied_text(goal)):
             self._send('这个工作区不在允许范围（默认只允许 D:\\\\\\\\dsh，且不碰 data/backup）。', chat)
             return
         task = self._new_task(chat, goal, 'multi-readonly', workspace)
@@ -399,6 +413,8 @@ class BrainAgent:
                          name='brain-multi-' + task['id']).start()
 
     def _multi_worker(self, task):
+        if task.get('status') == 'cancelled':
+            return
         goal = task['goal']
         ws = task['workspace']
         pa = ('只读侦察 A（项目结构/入口/配置/依赖）：' + goal +
@@ -412,12 +428,16 @@ class BrainAgent:
               threading.Thread(target=scout, args=('B', pb), daemon=True)]
         for t in ts: t.start()
         for t in ts: t.join()
+        if task.get('status') == 'cancelled':
+            return
         self._send('两路查完了，我汇总一下。', task['chat'])
         manager = ('你是鲸鲸的执行脑。下面是两路只读侦察报告。\n'
                    '请合并成一份简短结论：先给结论，再给关键证据；不要贴日志、不要写文件。\n\n'
                    '侦察 A：\n' + notes.get('A', '（无）') +
                    '\n\n侦察 B：\n' + notes.get('B', '（无）'))
         final = self._collect_once(manager, ws, 150)
+        if task.get('status') == 'cancelled':
+            return
         if not final or final.startswith('（'):
             final = '两路侦察：\nA：%s\nB：%s' % (notes.get('A', '（无）')[:500], notes.get('B', '（无）')[:500])
         task['status'] = 'done'
