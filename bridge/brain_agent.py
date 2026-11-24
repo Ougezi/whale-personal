@@ -40,6 +40,8 @@ PATCH_WRITE = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'brain-wr
 MAX_TASKS = 80
 MAX_OUTPUT = 1400
 MAX_PER_DAY = int(os.environ.get('WHALE_BRAIN_MAX_PER_DAY') or 20)
+SELF_ECHO = ('还在等你确认上一条', '在看了，稍等', '还在弄，稍等', '好，那先不动。', '等太久没确认', '这个要动文件/跑命令')
+PENDING_REMIND_MS = 60000
 APPROVE_WORDS = {'可以', '行', '好', '批准', '执行', '同意', '嗯'}
 REJECT_WORDS = {'不要', '不行', '取消', '拒绝', '算了', '不'}
 WRITE_HINTS = ('改', '修', '写', '删', '安装', '部署', '重启', '替换', '创建', '生成文件', 'patch')
@@ -207,6 +209,9 @@ class BrainAgent:
         text = str(msg.get('content') or '').strip()
         if not text:
             return False
+        # 自己发出的提醒/回执会被微信回读成 incoming；吞掉，避免自循环刷屏
+        if any(text.startswith(x) for x in SELF_ECHO):
+            return True
 
         with self._lock:
             pending = [t for t in self._state['tasks'].values()
@@ -219,6 +224,13 @@ class BrainAgent:
             if norm in REJECT_WORDS:
                 self.reject(username)
                 return True
+            now = _now()
+            last = max((t.get('lastRemindAt') or 0) for t in pending)
+            if now - last < PENDING_REMIND_MS:
+                return True
+            for t in pending:
+                t['lastRemindAt'] = now
+            self._save()
             self._send('还在等你确认上一条：回复「可以」执行，或「不要」取消。', username)
             return True
 
@@ -295,6 +307,7 @@ class BrainAgent:
         risk = verdict.get('risk') or 'R2'
         task = self._new_task(chat, goal, 'workspace-write', workspace, risk=risk)
         task['status'] = 'pending_approval'
+        task['lastRemindAt'] = _now()
         self._save()
         self._audit('approval_requested', task, 'risk=' + risk)
         self._send(

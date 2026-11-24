@@ -144,6 +144,18 @@ def unit_tests():
     t = b._latest('wxid_master')
     check('越界写被拒', t is None and any('不在允许范围' in s for s in sent))
 
+    b, sent = fresh_agent()
+    b.handle_message(msg('脑子写：在 D:\\dsh\\brain-test 写 x'))
+    base = len(sent)
+    b.handle_message(msg('在吗'))
+    check('审批提醒不刷屏', len(sent) == base)
+    b.handle_message(msg('还在等你确认上一条：回复「可以」执行，或「不要」取消。'))
+    check('审批提醒不自循环', len(sent) == base)
+    t = b._latest('wxid_master')
+    t['lastRemindAt'] = int(time.time() * 1000) - 61000
+    b.handle_message(msg('在吗'))
+    check('超过 60 秒提醒一次', len(sent) == base + 1)
+
     print('\n[unit] P3 状态恢复')
     b, _ = fresh_agent()
     t1 = b._new_task('wxid_master', 'running', 'read-only', r'D:\dsh')
