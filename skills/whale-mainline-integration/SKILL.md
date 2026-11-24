@@ -1,6 +1,6 @@
 ---
 name: whale-mainline-integration
-description: 鲸鲸主链接入与结构治理的可执行 runbook：按 I-01..I-18 过案例/源码/测试/证据/回滚门禁，接 kernel/bridge、job/receipts、动作硬审批、action-audit、dist 全量同步，并分 L0-L5 做真实微信/真实动作/热停验收。Use when the owner says 主链接入 / 接入主链 / 结构治理 / 下一步接入 / 热停 / 端到端验收 / 真实微信验收 / 核心包接入.
+description: 鲸鲸主链接入与结构治理的可执行 runbook：按 I-01..I-19 过案例/源码/测试/证据/回滚门禁，接 kernel/bridge、job/receipts、动作硬审批、action-audit、dist 全量同步，并分 L0-L5 做真实微信/真实动作/热停验收。Use when the owner says 主链接入 / 接入主链 / 结构治理 / 下一步接入 / 热停 / 端到端验收 / 真实微信验收 / 核心包接入.
 ---
 
 # whale-mainline-integration
@@ -240,6 +240,7 @@ git commit -m "I-XX ..."
 | I-16 | job.js | R2 未批不能 start |
 | I-17 | receipts.js | pending→sent→delivered |
 | I-18 | 真实写任务硬审批 | 未确认不写，确认后 i18-ok |
+| I-19 | 真实微信写审批 | 微信挂起 → 可以 → i18-wechat.txt=wechat-ok |
 
 详细命令/文件/验收在计划 JSON；本 skill 只规定方法。
 

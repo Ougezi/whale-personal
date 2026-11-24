@@ -23,10 +23,10 @@ def required(risk):
     return 2 if str(risk or '').upper() == 'R3' else 1
 
 
-def ask(chat, task, sender='', workspace='', risk='R2', send=None):
+def ask(chat, task, sender='', workspace='', risk='R2', send=None, task_id=''):
     now = time.time()
     _PENDING[str(chat)] = {'task': task, 'sender': sender, 'workspace': workspace,
-                           'risk': risk, 'createdAt': now, 'approvals': []}
+                           'risk': risk, 'createdAt': now, 'approvals': [], 'task_id': task_id}
     if callable(send):
         need = required(risk)
         send('这个委托要动文件，我先不动。\n任务：%s\n工作区：%s\n风险：%s（需 %d 次确认）\n'

@@ -160,6 +160,16 @@ check('R2 拒绝', r2_ask_reject)
 check('R2 一次确认', r2_approve)
 check('R3 两次确认', r3_two)
 check('过期', expired)
+def task_id_continuity():
+    A.clear('c5')
+    A.ask('c5', '改文件', risk='R2', task_id='approval_t1')
+    d = A.consume('c5', '可以')
+    assert d['action'] == 'approve'
+    assert d['item'].get('task_id') == 'approval_t1'
+
+
+check('审批 id 传给执行', task_id_continuity)
+
 check('未确认不执行', blocks_until_approved)
 check('确认后只跑一次', approved_once)
 check('越界在审批前拦截', policy_blocked)

@@ -664,6 +664,43 @@
     "确认后 i18-ok",
     "delegation_done"
    ]
+  },
+  {
+   "id": "I-19",
+   "phase": "I",
+   "title": "真实微信写审批",
+   "goal": "主人在微信发写任务，先挂起，回复可以后真实写入并留审计。",
+   "case_ids": [
+    "GH-115",
+    "GH-116",
+    "GH-117",
+    "GH-118",
+    "GH-119",
+    "GH-120",
+    "GH-121",
+    "GH-122"
+   ],
+   "min_cases": 5,
+   "source_review": [],
+   "files": [
+    "bridge/delegation_approval.py",
+    "bridge/receiver_mixin.py"
+   ],
+   "actions": [
+    "微信入站",
+    "R2 硬审批",
+    "真实 DSH 写",
+    "taskId 连续"
+   ],
+   "tests": [
+    "python scripts/personal/鲸鲸-主链委托审批自测.py"
+   ],
+   "acceptance": [
+    "未确认不写",
+    "可以后写入",
+    "delegation_done",
+    "taskId 连续"
+   ]
   }
  ]
 }

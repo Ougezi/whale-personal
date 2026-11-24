@@ -825,7 +825,7 @@ class ReceiverMixin:
             G.log_throttled('doc-extract:' + type(e).__name__, '文档解析失败：', repr(e))
             return ''
 
-    def _spawn_delegation(self, task, username, sender, force=False, approved=False):
+    def _spawn_delegation(self, task, username, sender, force=False, approved=False, audit_id=None):
         """委托放后台线程，别堵住会话 worker。"""
         # 记住最后一次委托：主人说「继续」时直接接着做，不用重述任务
         try:
@@ -836,12 +836,12 @@ class ReceiverMixin:
             pass
         try:
             import threading as _th
-            _t = _th.Thread(target=self.delegate_and_reply, args=(task, username, sender, force, approved),
+            _t = _th.Thread(target=self.delegate_and_reply, args=(task, username, sender, force, approved, audit_id),
                             name='dsh-delegate', daemon=True)
             _t.start()
         except Exception as e:
             G.log('委托线程启动失败，改为同步：', repr(e))
-            self.delegate_and_reply(task, username, sender, force, approved)
+            self.delegate_and_reply(task, username, sender, force, approved, audit_id)
 
     def _post_job(self, ops):
         """I-16：委托生命周期镜像到 kernel 的 job.js；失败不影响动作。"""
@@ -863,11 +863,11 @@ class ReceiverMixin:
         except Exception:
             pass
 
-    def delegate_and_reply(self, task, username, sender, force=False, approved=False):
+    def delegate_and_reply(self, task, username, sender, force=False, approved=False, audit_id=None):
         """跑执行端，把结果交回内核，让她用自己的话转述。"""
         # I-07：委托链统一动作审计
         _audit_t0 = G.time.time()
-        _audit_id = 'delegation_%d' % int(_audit_t0 * 1000)
+        _audit_id = audit_id or ('delegation_%d' % int(_audit_t0 * 1000))
         _audit_path = G.os.path.join(G.ROOT, 'data', 'action-audit.jsonl')
 
         def _audit(action, status, reason='', duration=0, evidence=None):
@@ -960,7 +960,7 @@ class ReceiverMixin:
                     self.send_text('还在等你确认上一条委托，先回复「可以」或「不要」。', target, username)
                     return
                 delegation_approval.ask(username, task, sender=sender, workspace=workspace, risk=risk,
-                                        send=lambda t: self.send_text(t, target, username))
+                                        send=lambda t: self.send_text(t, target, username), task_id=_audit_id)
                 _audit('approval_requested', 'pending_approval', 'risk=' + risk)
                 return
             if write and approved:
@@ -2478,7 +2478,7 @@ class ReceiverMixin:
                     elif _d['action'] == 'more':
                         self.send_text('还差一次确认：回复「可以」才会执行。', self.display_name(msg.get('username') or ''), msg.get('username') or '')
                     else:
-                        self._spawn_delegation(_it['task'], msg.get('username') or '', _it.get('sender') or '', force=True, approved=True)
+                        self._spawn_delegation(_it['task'], msg.get('username') or '', _it.get('sender') or '', force=True, approved=True, audit_id=_it.get('task_id'))
                     return
             except Exception as _e:
                 G.log('委托审批处理失败（继续普通聊天）：', repr(_e))
