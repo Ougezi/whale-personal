@@ -406,7 +406,7 @@ class ChatStore {
       text: String(message.text == null ? '' : message.text).slice(0, 4000),
       ts: at,
     };
-    for (const key of ['msgId', 'addressedToBot', 'mentionedNames', 'inferredTargetNames', 'replyToName', 'replyToUserId', 'error', 'cleanText', 'isMaster', 'isGroup']) {
+    for (const key of ['msgId', 'addressedToBot', 'mentionedNames', 'inferredTargetNames', 'replyToName', 'replyToUserId', 'error', 'cleanText', 'isMaster', 'isGroup', 'delivery', 'deliveryUncertain']) {
       if (message[key] !== undefined) entry[key] = message[key];
     }
     entry.tokens = messageTokens(entry);
