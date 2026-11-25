@@ -27,6 +27,7 @@ const expressionCore = require('../services/expressionCore');
 const scopeShadow = require('../services/scopeShadow');
 const empathy = require('../core/empathy');
 const antiRepeat = require('../core/antiRepeat');
+const phraseRepeat = require('../core/phraseRepeat');
 const skills = require('../core/skills');
 const nickname = require('../core/nickname');
 const coref = require('../core/coref');
@@ -2095,6 +2096,12 @@ class Bot {
         decision.finalText = text;
       }
     }
+    // 同一件事的重复叮嘱：最近几条已经说过两次“到家说一声”，这句就别再追。
+    try {
+      const _recent = this.store.messages(decision.key, 8) || [];
+      text = phraseRepeat.stripRepeatedArrival(text, _recent);
+      decision.finalText = text;
+    } catch { /* 守卫失败不影响回复 */ }
     // 写库失败照常返回 bubbles：话已经生成了，不能因为落库失败把回复丢了。
     // 日记标记只存占位符，避免把整篇日记又写进聊天记忆。
     const hasDiaryMark = /\[\[diary:[^\]]{1,32}\]\]/i.test(text);

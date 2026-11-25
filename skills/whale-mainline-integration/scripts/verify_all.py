@@ -45,6 +45,7 @@ CASES = [
     ('主动搭话记录', 'py', 'scripts/personal/鲸鲸-主动搭话记录自测.py', {}),
     ('QQ 队列时间', 'py', 'scripts/personal/鲸鲸-QQ队列时间自测.py', {}),
     ('主动搭话去重', 'node', 'scripts/personal/鲸鲸-主动搭话去重自测.js', {}),
+    ('重复叮嘱', 'node', 'scripts/personal/鲸鲸-重复叮嘱自测.js', {}),
     ('聊天元数据', 'node', 'scripts/personal/鲸鲸-聊天元数据自测.js', {}),
 ]
 
