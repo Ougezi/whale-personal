@@ -1593,6 +1593,42 @@
     "confirmed/submitted 都记录",
     "deliveryUncertain 标记"
    ]
+  },
+  {
+   "id": "I-46",
+   "phase": "I",
+   "title": "主动搭话硬去重",
+   "goal": "最近 8 条自己说过的话里重复则重写一次，仍重复换模板，绝不发同句。",
+   "case_ids": [
+    "EV-003",
+    "EV-004",
+    "EV-005",
+    "EV-006",
+    "EV-007",
+    "EV-008",
+    "EV-009",
+    "EV-010"
+   ],
+   "min_cases": 8,
+   "source_review": [],
+   "files": [
+    "src/services/careChat.js",
+    "scripts/personal/鲸鲸-主动搭话去重自测.js"
+   ],
+   "actions": [
+    "同句/标点归一",
+    "重写一次",
+    "模板兜底"
+   ],
+   "tests": [
+    "鲸鲸-主动搭话去重自测.js 5/5"
+   ],
+   "acceptance": [
+    "同句拒绝",
+    "标点差异拒绝",
+    "不同句放行",
+    "用户话不计"
+   ]
   }
  ]
 }

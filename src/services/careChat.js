@@ -8,6 +8,28 @@ const { describeError } = require('../infra/errors');
  * 主动搭话的内容：问她一句「在干啥 / 累不累」。
  * 演示模式（没 Key）直接用内置台词，省得等模型；有 Key 就带着最近聊天生成，避免每次同一句。
  */
+function normalizeCareLine(text) {
+  return String(text || '').replace(/[\s，。！？!?、~～]+/g, '').trim();
+}
+
+function isDuplicateCare(text, recent = []) {
+  const want = normalizeCareLine(text);
+  if (!want) return true;
+  return (recent || []).some((line) => {
+    const s = String(line || '');
+    if (!s.startsWith('我：')) return false;
+    return normalizeCareLine(s.slice(2)).includes(want);
+  });
+}
+
+function pickFreshTemplate(recent = [], rng = Math.random) {
+  for (let i = 0; i < 12; i++) {
+    const t = care.pickTemplate(rng);
+    if (!isDuplicateCare(t, recent)) return t;
+  }
+  return '在忙吗，我就问一句';
+}
+
 async function careForChat(runtime, chatId) {
   const personaCfg = runtime.config.persona || {};
   const name = String(personaCfg.ownerName || '主人');
@@ -30,7 +52,7 @@ async function careForChat(runtime, chatId) {
     }
   }
   if (runtime.llm.isMock) {
-    return { ok: true, text: care.pickTemplate(), mock: true, hour };
+    return { ok: true, text: pickFreshTemplate(recent), mock: true, hour };
   }
   try {
     const desire = care.careDesire(runtime.config);
@@ -43,12 +65,24 @@ async function careForChat(runtime, chatId) {
       wantLine: desire.needy ? desire.line : '',
     });
     const raw = await runtime.llm.complete({ system, turns: [{ role: 'user', content: user }] });
-    const text = care.cleanCareText(raw) || care.pickTemplate();
+    let text = care.cleanCareText(raw) || pickFreshTemplate(recent);
+    if (isDuplicateCare(text, recent)) {
+      // 模型还是复读：只重写一次，明确要求换一句
+      try {
+        const retry = await runtime.llm.complete({
+          system: system + '\n- 你上次刚说过几乎一样的话；这次必须换一个具体话题或说法，不要复读。',
+          turns: [{ role: 'user', content: user }],
+        });
+        const again = care.cleanCareText(retry);
+        if (again && !isDuplicateCare(again, recent)) text = again;
+      } catch { /* 重写失败就走模板 */ }
+    }
+    if (isDuplicateCare(text, recent)) text = pickFreshTemplate(recent);
     return { ok: true, text, mock: false, hour };
   } catch (err) {
     runtime.logger.warn('搭话模型失败，用内置台词：' + describeError(err));
-    return { ok: true, text: care.pickTemplate(), mock: true, fallback: true, hour };
+    return { ok: true, text: pickFreshTemplate(recent), mock: true, fallback: true, hour };
   }
 }
 
-module.exports = { careForChat };
+module.exports = { careForChat, isDuplicateCare, normalizeCareLine };

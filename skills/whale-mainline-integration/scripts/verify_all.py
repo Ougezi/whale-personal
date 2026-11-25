@@ -43,6 +43,8 @@ CASES = [
     ('平台控制', 'py', 'scripts/personal/鲸鲸-平台控制自测.py', {}),
     ('发图声明', 'py', 'scripts/personal/鲸鲸-主链发图声明自测.py', {}),
     ('主动搭话记录', 'py', 'scripts/personal/鲸鲸-主动搭话记录自测.py', {}),
+    ('QQ 队列时间', 'py', 'scripts/personal/鲸鲸-QQ队列时间自测.py', {}),
+    ('主动搭话去重', 'node', 'scripts/personal/鲸鲸-主动搭话去重自测.js', {}),
 ]
 
 
