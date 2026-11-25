@@ -87,16 +87,20 @@ class LoopMixin:
                     no_prior_effect = not care_attempt.effect_started
                     bound_account = bind_runtime_identity(care_attempt, self, u) and bool(care_attempt.account_identity)
                     ok = self.send_text(text, name, u)
+                    _care_status = str(getattr(care_attempt.result, 'status', '') or '')
+                    # submitted 也要入上下文：UIA 只说“已提交”，但消息确实已经出去了。
+                    # 不进上下文会导致下一轮她不知道这句主动搭话，出现“两段记忆”。
                     receipt_confirmed = (ok is True and no_prior_effect
                         and care_attempt.result is not before_result and care_attempt.effect_started
                         and care_attempt.target_username == u and bound_account
                         and bind_runtime_identity(care_attempt, self, u)
-                        and care_attempt.result.status == 'confirmed')
+                        and _care_status in ('confirmed', 'submitted'))
                 save_state({'lastTs': G.time.time(), 'day': today, 'count': sent + (0 if ok is False else 1)})
                 if receipt_confirmed:
                     # 回传失败只重试记账，不重发微信正文；相同 id 由内核去重。
                     import uuid
-                    receipt = {'id': uuid.uuid4().hex, 'chat': u, 'text': text, 'group': bool(target.get('isGroup'))}
+                    receipt = {'id': uuid.uuid4().hex, 'chat': u, 'text': text, 'group': bool(target.get('isGroup')),
+                               'delivery': _care_status}
                     headers = {'x-whale-bridge': '1', 'x-bot-token': self.token or ''}
                     try:
                         recorded = None

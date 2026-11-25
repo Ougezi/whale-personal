@@ -1557,6 +1557,42 @@
     "未执行不假发",
     "否定句不改"
    ]
+  },
+  {
+   "id": "I-43",
+   "phase": "I",
+   "title": "主动搭话 submitted 入上下文",
+   "goal": "UIA submitted 的主动搭话也入库并标记未确认，避免下一轮“两段记忆”。",
+   "case_ids": [
+    "EV-003",
+    "EV-004",
+    "EV-005",
+    "EV-006",
+    "EV-007",
+    "EV-008",
+    "EV-009",
+    "EV-010"
+   ],
+   "min_cases": 8,
+   "source_review": [],
+   "files": [
+    "bridge/loop_mixin.py",
+    "src/http/routes/care.js",
+    "scripts/personal/鲸鲸-主动搭话记录自测.py"
+   ],
+   "actions": [
+    "submitted 记录",
+    "delivery 标记",
+    "未确认字段"
+   ],
+   "tests": [
+    "鲸鲸-主动搭话记录自测.py 4/4"
+   ],
+   "acceptance": [
+    "submitted 入库",
+    "confirmed/submitted 都记录",
+    "deliveryUncertain 标记"
+   ]
   }
  ]
 }

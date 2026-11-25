@@ -82,11 +82,14 @@ module.exports = function register(router) {
       return json(res, 400, { ok: false, error: '搭话记录无效' });
     const key = `wechat:${body.group === true ? 'g' : 'u'}:${chat}`;
     const id = String(body.id || '').trim().slice(0, 100);
+    const delivery = String(body.delivery || '').trim();
     const msgId = id ? 'care:' + id : '';
     try {
       runtime.store.ensureSession(key, { platform: 'wechat', chatType: body.group === true ? 'group' : 'private' });
       if (msgId && runtime.store.isDuplicate(key, msgId)) return json(res, 200, { ok: true, duplicate: true });
-      runtime.store.recordAssistant(key, { name: runtime.config.persona.name, text, ts: Date.now(), ...(msgId ? { msgId } : {}) });
+      runtime.store.recordAssistant(key, { name: runtime.config.persona.name, text, ts: Date.now(),
+        ...(msgId ? { msgId } : {}),
+        ...(delivery ? { delivery, deliveryUncertain: delivery !== 'confirmed' } : {}) });
       return json(res, 200, { ok: true });
     } catch (err) {
       runtime.logger.warn('主动搭话记录失败：' + describeError(err));
