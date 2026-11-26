@@ -162,7 +162,7 @@ prompt 不编新经历
 
 ```text
 node scripts/personal/鲸鲸-兴趣爱好自测.js  12/12
-node scripts/personal/鲸鲸-兴趣爱好证据自测.js  8/8
+node scripts/personal/鲸鲸-兴趣爱好证据自测.js  11/11
 python skills/whale-mainline-integration/scripts/verify_all.py
 ```
 

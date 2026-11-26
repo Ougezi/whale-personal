@@ -94,7 +94,7 @@ function promptLine(doc, { max = 3 } = {}) {
   return '【我的兴趣】\n' + list.map((x) => {
     const how = x.status === 'exploring' ? '还在了解' : '喜欢';
     const claim = x.boundaries?.canClaimOwned ? '只说自己真的留着的，不编新买' : '只说想了解，不编经历';
-    return `- ${x.name}：${how}；${claim}`;
+    return `- ${x.name}：${how}；${claim}；不声称刚写完/拍完/去过/买过`;
   }).join('\n');
 }
 
@@ -120,8 +120,12 @@ function detectTags(text) {
 function detectEvidence(text, role = 'user') {
   const tags = detectTags(text);
   if (!tags.length) return { tags: [], kind: '', weight: 0 };
-  const self = role === 'assistant' && /我(?:的)?(?:盒子|留着|攒|写过|收藏|想闻|想听)/.test(String(text || ''));
-  return { tags, kind: self ? 'self-disclosure' : 'owner-shared', weight: self ? 2 : 1 };
+  if (role === 'assistant') {
+    // 只收她明确说“我...”的自我披露；她复述/提问不算自己的兴趣。
+    const self = /我(?:的)?(?:盒子|留着|攒|写过|收藏|想闻|想听)/.test(String(text || ''));
+    return self ? { tags, kind: 'self-disclosure', weight: 2 } : { tags: [], kind: '', weight: 0 };
+  }
+  return { tags, kind: 'owner-shared', weight: 1 };
 }
 
 module.exports = { VERSION, SEEDS, empty, load, save, normalize, observe, tick, promptLine, pickTopic, detectTags, detectEvidence };
