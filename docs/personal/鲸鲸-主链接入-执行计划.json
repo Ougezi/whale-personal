@@ -2045,6 +2045,41 @@
     "鲸鲸-表达偏好自测.js 6/6",
     "verify_all 39/39"
    ]
+  },
+  {
+   "id": "I-59",
+   "phase": "I",
+   "title": "自我学习与表达偏好改善计划书",
+   "goal": "以 200+313 案例为底，给 P0-P3 闭环计划：反馈账本、表达策略统一、24 条回归、3 天验收。",
+   "case_ids": [
+    "EV-003",
+    "EV-004",
+    "EV-005",
+    "EV-006",
+    "EV-007",
+    "EV-008",
+    "EV-009",
+    "EV-010"
+   ],
+   "min_cases": 8,
+   "source_review": [
+    "selfRules.js",
+    "innerNotes.js",
+    "memorySleep.js",
+    "expressionPrefs.js",
+    "chat.js"
+   ],
+   "files": [
+    "docs/personal/鲸鲸-自我学习与表达偏好-改善计划书.md"
+   ],
+   "actions": [
+    "现状审计",
+    "24案例",
+    "P0-P3"
+   ],
+   "tests": [
+    "文档审查"
+   ]
   }
  ]
 }
