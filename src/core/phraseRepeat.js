@@ -31,4 +31,12 @@ function stripRepeatedArrival(text, recent = []) {
   return out || '好，不催了。';
 }
 
-module.exports = { stripRepeatedArrival, ARRIVAL };
+function isImmediateDuplicate(text, recent = []) {
+  const last = (recent || [])[recent.length - 1];
+  if (!last || last.role !== 'assistant') return false;
+  const a = norm(text);
+  const b = norm(last.text);
+  return Boolean(a && b && a === b);
+}
+
+module.exports = { stripRepeatedArrival, isImmediateDuplicate, ARRIVAL };
