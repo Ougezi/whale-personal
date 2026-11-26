@@ -181,6 +181,18 @@ python skills/whale-mainline-integration/scripts/verify_all.py
 
 ---
 
+## 8.1 表达偏好
+
+主人说“我不喜欢💧 / 少发💧”：
+
+```text
+data/self/expression.json 记录禁用 emoji
+发送层过滤
+【表达偏好】进 prompt
+```
+
+---
+
 ## 9. 3 天实验
 
 起点：

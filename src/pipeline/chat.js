@@ -26,6 +26,8 @@ const affectCore = require('../services/affectCore');
 const expressionCore = require('../services/expressionCore');
 const scopeShadow = require('../services/scopeShadow');
 const hobby = require('../services/hobby');
+const expressionPrefs = require('../core/expressionPrefs');
+const selfRules = require('../core/selfRules');
 const empathy = require('../core/empathy');
 const antiRepeat = require('../core/antiRepeat');
 const phraseRepeat = require('../core/phraseRepeat');
@@ -1032,10 +1034,13 @@ class Bot {
     }
     // 她自己写下的感受/教训：只带最近两条，避免每轮都复述
     let notesLine = '';
+    let selfRulesLine = '';
     try {
       const dataDir = (this.config && this.config.paths && this.config.paths.dataDir)
         || path.join(process.cwd(), 'data');
       notesLine = innerNotes.block({ dir: dataDir, limit: 2 });
+      selfRulesLine = selfRules.formatBlock(dataDir);
+      if (isMaster && !isGroup) expressionPrefs.learn(dataDir, String(clean && clean.text || msg.text || ''));
     } catch (err) { notesLine = ''; }
     // R1 牵挂 + R2 共情：都进动态段，字很少
     let concernLine = '';
@@ -1085,7 +1090,7 @@ class Bot {
     } catch { /* 漏回检测失败不影响回复 */ }
     const innerLine = promptBudgetCore.fitBlocks([
       { key: 'mood', text: moodLine }, { key: 'affectCore', text: affectCoreLine }, { key: 'hobby', text: hobbyLine }, { key: 'thought', text: thoughtLine },
-      { key: 'notes', text: notesLine }, { key: 'empathy', text: empathyLine },
+      { key: 'notes', text: notesLine }, { key: 'exprPref', text: (() => { try { return expressionPrefs.line((this.config && this.config.paths && this.config.paths.dataDir) || path.join(process.cwd(), 'data')); } catch { return ''; } })() }, { key: 'empathy', text: empathyLine },
       { key: 'concern', text: concernLine }, { key: 'nick', text: nickLine },
       { key: 'coref', text: corefLine }, { key: 'intent', text: intentLine },
       { key: 'pin', text: pinLine }, { key: 'skill', text: skillLine },
@@ -1104,6 +1109,7 @@ class Bot {
       // 不塞进去她就永远不知道自己的副作用，只能编。
       events: recentEvents,
       moodLine: innerLine,
+      selfRules: selfRulesLine,
       now,
       envBlock,
     });
@@ -1804,7 +1810,10 @@ class Bot {
     if (this.rng() > chance) return text;
     // 一半颜文字、一半 emoji：以前只有 emoji，所以调「颜文字」也看不到颜文字
     if (this.rng() < 0.5) return text + ' ' + persona.kaomojiPick(this.rng);
-    const list = ['🐋', '🥺', '😭', '✨', '💧', '🫧'];
+    const _dir = (this.config && this.config.paths && this.config.paths.dataDir) || path.join(process.cwd(), 'data');
+    const _bad = new Set(expressionPrefs.banned(_dir));
+    const list = ['🐋', '🥺', '😭', '✨', '💧', '🫧'].filter((e) => !_bad.has(e));
+    if (!list.length) return text;
     return text + ' ' + list[Math.floor(this.rng() * list.length)];
   }
 
@@ -2213,12 +2222,14 @@ class Bot {
     // emoji 被剥掉就再也回不来。现在解耦：模型自带的 emoji 无论概率多少都按原设计
     // 回加成单独一条气泡，只有「随机补表情」才看概率。
     const chance = persona.emojiChanceFor(this.config);
-    let extra = decision.diaryExpanded ? '' : (foundEmoji || '');
+    const _prefDir = (this.config && this.config.paths && this.config.paths.dataDir) || path.join(process.cwd(), 'data');
+    const _badEmoji = expressionPrefs.banned(_prefDir);
+    let extra = decision.diaryExpanded ? '' : expressionPrefs.filterText(foundEmoji || '', _badEmoji);
     if (!decision.diaryExpanded && !error && decision.action === 'reply' && !extra && chance > 0 && this.rng() <= chance) {
       // 颜文字和 emoji 各一半，这样「颜文字用量」调高后真的能看到颜文字
-      extra = this.rng() < 0.5
-        ? persona.kaomojiPick(this.rng)
-        : ['🐋', '🥺', '😭', '✨', '💧', '🫧', '🍚'][Math.floor(this.rng() * 7)];
+      const pool = ['🐋', '🥺', '😭', '✨', '💧', '🫧', '🍚'].filter((e) => !_badEmoji.includes(e));
+      if (this.rng() < 0.5) extra = persona.kaomojiPick(this.rng);
+      else if (pool.length) extra = pool[Math.floor(this.rng() * pool.length)];
     }
     // 表情在正文截断后追加，必须连同合并时的空格一起占用整轮字数。
     const extraChars = Array.from(extra).length + (bubbles.length >= maxBubbles ? 1 : 0);
