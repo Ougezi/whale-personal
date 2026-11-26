@@ -1775,6 +1775,13 @@
    ],
    "tests": [
     "鲸鲸-兴趣爱好证据自测.js 8/8"
+   ],
+   "acceptance": [
+    "hobbies.chats API",
+    "chat 证据",
+    "browse 证据",
+    "platform 证据",
+    "ref 幂等"
    ]
   }
  ]
