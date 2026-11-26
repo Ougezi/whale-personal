@@ -1982,6 +1982,36 @@
     "鲸鲸-兴趣爱好自测.js 17/17",
     "verify_all 38/38"
    ]
+  },
+  {
+   "id": "I-57",
+   "phase": "I",
+   "title": "兴趣 3 天实验定时验收",
+   "goal": "记录起点、到期自动验收；样本不足/假动作/重复/开关异常不通过。",
+   "case_ids": [
+    "EV-003",
+    "EV-004",
+    "EV-005",
+    "EV-006",
+    "EV-007",
+    "EV-008",
+    "EV-009",
+    "EV-010"
+   ],
+   "min_cases": 8,
+   "source_review": [],
+   "files": [
+    "scripts/personal/鲸鲸-兴趣3天验收.py",
+    "skills/whale-interests/SKILL.md"
+   ],
+   "actions": [
+    "记录实验窗口",
+    "定时任务",
+    "验收脚本"
+   ],
+   "tests": [
+    "鲸鲸-兴趣3天验收.py NOT DUE (exit 2)"
+   ]
   }
  ]
 }

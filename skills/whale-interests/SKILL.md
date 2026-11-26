@@ -181,7 +181,55 @@ python skills/whale-mainline-integration/scripts/verify_all.py
 
 ---
 
-## 9. 回滚
+## 9. 3 天实验
+
+起点：
+
+```text
+2026-11-26 14:30 +08:00
+```
+
+终点：
+
+```text
+2026-11-29 14:30 +08:00
+```
+
+验收：
+
+```powershell
+python scripts\personal\鲸鲸-兴趣3天验收.py --accept
+```
+
+只有满足：
+
+```text
+到期
+有效 user 消息 >= 10
+hobbies=true 且 chat 在白名单
+没有假动作
+没有连续重复
+证据 ref/kind 完整
+```
+
+才写：
+
+```text
+data/integration/evidence/hobby-experiment-accepted.json
+```
+
+否则只报 issues，不自动接受。
+
+已定时：
+
+```text
+schedule-3a28b23d-0064-40a0-a2c8-056b4c9763fb
+2026-11-29 14:30 Asia/Shanghai
+```
+
+---
+
+## 10. 回滚
 
 ```text
 1. features.hobbies=false
