@@ -75,6 +75,11 @@ module.exports = function register(router) {
     }
   });
 
+  router.get('/api/hobbies', (runtime, req, res) => {
+    const st = hobby.status(runtime.config);
+    return json(res, 200, { ok: true, enabled: features.isOn(runtime.config, 'hobbies'), ...st });
+  });
+
   // 兴趣白名单：空名单不生效
   router.post('/api/hobbies/chats', async (runtime, req, res) => {
     const body = await readBody(req);

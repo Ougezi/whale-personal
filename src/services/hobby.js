@@ -28,13 +28,22 @@ function recordText(config, { text = '', role = 'user', ref = '', kind = '', wei
   return { ok: changed > 0, changed, tags: ev.tags };
 }
 function detect(text, role = 'user') { return core.detectEvidence(text, role); }
-function line(config, chatKey = '') { return core.promptLine(load(config), { chatKey }); }
+function line(config, chatKey = '') {
+  let d = load(config);
+  const ticked = core.tick(d);
+  if (ticked !== d) { d = ticked; save(config, d); }
+  return core.promptLine(d, { chatKey });
+}
 function markMention(config, chatKey, text, at = Date.now()) {
   const d = core.markMention(load(config), { chatKey, text, at });
   if (d) save(config, d);
   return Boolean(d);
 }
-function topic(config, desire) { return core.pickTopic(load(config), desire); }
+function topic(config, desire) {
+  let d = load(config);
+  d = core.tick(d); save(config, d);
+  return core.pickTopic(d, desire);
+}
 function names(config) {
   const d = load(config);
   return d.interests.filter((x) => ['seed', 'attached', 'practicing', 'exploring'].includes(x.status)).sort((a, b) => b.strength - a.strength).slice(0, 3).map((x) => x.name);
