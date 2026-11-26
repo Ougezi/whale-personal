@@ -1,0 +1,22 @@
+'use strict';
+const assert = require('node:assert');
+const fs = require('node:fs');
+const os = require('node:os');
+const path = require('node:path');
+const H = require('../../src/core/hobby.js');
+const S = require('../../src/services/hobby.js');
+let p = 0, f = 0;
+function c(n, fn) { try { fn(); p++; console.log('  ✓ ' + n); } catch (e) { f++; console.log('  ✗ ' + n + ' ' + e.message); } }
+c('用户说票根', () => assert.ok(H.detectEvidence('我盒子里还留着票根', 'user').tags.includes('collect-small-things')));
+c('她自己说票根', () => assert.strictEqual(H.detectEvidence('我盒子里留着票根', 'assistant').kind, 'self-disclosure'));
+c('否定不记', () => assert.strictEqual(H.detectEvidence('我不喜欢票根', 'user').tags.length, 0));
+c('雨味标签', () => assert.ok(H.detectEvidence('雨后的味道', 'user').tags.includes('rain-smell')));
+c('普通话不记', () => assert.strictEqual(H.detectEvidence('今天几号', 'user').tags.length, 0));
+const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'whale-ev-'));
+const cfg = { paths: { dataDir: dir } };
+const r = S.recordText(cfg, { text: '我盒子里还留着票根', role: 'user', ref: 'chat:test:1' });
+c('写入证据', () => assert.strictEqual(r.ok, true));
+c('同 ref 幂等', () => assert.strictEqual(S.recordText(cfg, { text: '我盒子里还留着票根', role: 'user', ref: 'chat:test:1' }).changed, 0));
+c('证据落盘', () => assert.ok(fs.readFileSync(path.join(dir, 'interests.json'), 'utf8').includes('chat:test:1')));
+console.log('\n通过 ' + p + '/' + (p + f));
+process.exit(f ? 1 : 0);

@@ -59,6 +59,7 @@ function observe(doc, { kind, ref, at = Date.now(), weight = 1, tags = [], name 
   const tagSet = new Set((Array.isArray(tags) ? tags : []).map(String));
   let it = d.interests.find((x) => tagSet.has(x.id) || tagSet.has(x.domain) || (name && x.name === name) || (domain && x.domain === domain));
   if (!it) return { changed: false, reason: 'unknown-interest' };
+  if ((it.evidence || []).some((e) => e.ref === String(ref))) return { changed: false, reason: 'duplicate-ref', state: d };
   if (it.status === 'dormant') it.status = 'exploring';
   it.evidence = [...(it.evidence || []), { kind, ref: String(ref).slice(0, 200), at, weight: w }].slice(-EVIDENCE_MAX);
   it.lastEvidenceAt = at;
@@ -104,4 +105,23 @@ function pickTopic(doc, desire = '') {
   return d.interests.filter((x) => ['seed', 'attached', 'practicing', 'exploring'].includes(x.status) && (!domain || x.domain === domain)).sort((a, b) => (b.strength || 0) - (a.strength || 0))[0] || null;
 }
 
-module.exports = { VERSION, SEEDS, empty, load, save, normalize, observe, tick, promptLine, pickTopic };
+const KEYWORDS = [
+  { id: 'collect-small-things', re: /票根|贴纸|糖纸|小东西|盒子|攒|收藏/ },
+  { id: 'rain-smell', re: /雨后|下雨|湿润|闻|香气|味道/ },
+  { id: 'small-notes', re: /小纸条|纸条|手写|写字|文字|写过/ },
+];
+
+function detectTags(text) {
+  const s = String(text || '');
+  if (/不喜欢|没兴趣|不感兴趣/.test(s)) return [];
+  return KEYWORDS.filter((k) => k.re.test(s)).map((k) => k.id);
+}
+
+function detectEvidence(text, role = 'user') {
+  const tags = detectTags(text);
+  if (!tags.length) return { tags: [], kind: '', weight: 0 };
+  const self = role === 'assistant' && /我(?:的)?(?:盒子|留着|攒|写过|收藏|想闻|想听)/.test(String(text || ''));
+  return { tags, kind: self ? 'self-disclosure' : 'owner-shared', weight: self ? 2 : 1 };
+}
+
+module.exports = { VERSION, SEEDS, empty, load, save, normalize, observe, tick, promptLine, pickTopic, detectTags, detectEvidence };

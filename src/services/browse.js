@@ -20,6 +20,7 @@ const thoughts = require('../core/thoughts');
 const mood = require('../core/mood');
 const { hotlistResult } = require('../adapters/search/hotlists');
 const features = require('../infra/features');
+const hobby = require('./hobby');
 const { describeError } = require('../infra/errors');
 
 const VERSION = 1;
@@ -248,6 +249,15 @@ class BrowseService {
       lastTs: now,
       seen: [...state.seen, `${source}|${pick.title}`],
     });
+
+    try {
+      if (features.isOn(this.config, 'hobbies')) {
+        hobby.recordText(this.config, {
+          text: `${pick.title} ${reaction}`, role: 'browse', kind: 'browse-hit', weight: 1,
+          ref: `browse:${source}:${pick.title}`,
+        });
+      }
+    } catch { /* 兴趣证据失败不影响自主上网 */ }
 
     return {
       ok: true,

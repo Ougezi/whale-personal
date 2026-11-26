@@ -47,6 +47,7 @@ CASES = [
     ('主动搭话去重', 'node', 'scripts/personal/鲸鲸-主动搭话去重自测.js', {}),
     ('重复叮嘱', 'node', 'scripts/personal/鲸鲸-重复叮嘱自测.js', {}),
     ('兴趣爱好', 'node', 'scripts/personal/鲸鲸-兴趣爱好自测.js', {}),
+    ('兴趣证据', 'node', 'scripts/personal/鲸鲸-兴趣爱好证据自测.js', {}),
     ('聊天元数据', 'node', 'scripts/personal/鲸鲸-聊天元数据自测.js', {}),
 ]
 

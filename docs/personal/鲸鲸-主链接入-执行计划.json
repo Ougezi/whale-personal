@@ -1742,6 +1742,40 @@
     "30 天休眠",
     "默认关"
    ]
+  },
+  {
+   "id": "I-50",
+   "phase": "I",
+   "title": "兴趣证据入口",
+   "goal": "hobbies.chats API + chat/browse/platform 证据采集；ref 必需且幂等。",
+   "case_ids": [
+    "EV-003",
+    "EV-004",
+    "EV-005",
+    "EV-006",
+    "EV-007",
+    "EV-008",
+    "EV-009",
+    "EV-010"
+   ],
+   "min_cases": 8,
+   "source_review": [],
+   "files": [
+    "src/http/routes/features.js",
+    "src/pipeline/chat.js",
+    "src/services/browse.js",
+    "bridge/platform_agent.py",
+    "scripts/personal/鲸鲸-兴趣爱好证据自测.js"
+   ],
+   "actions": [
+    "白名单 API",
+    "文本标签",
+    "幂等 ref",
+    "平台只读证据"
+   ],
+   "tests": [
+    "鲸鲸-兴趣爱好证据自测.js 8/8"
+   ]
   }
  ]
 }

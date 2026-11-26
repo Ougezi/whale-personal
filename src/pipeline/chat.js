@@ -2127,6 +2127,14 @@ class Bot {
       }
     }
     if (!text) return [];
+    try {
+      if (features.isOn(this.config, 'hobbies')) {
+        hobby.recordText(this.config, {
+          text, role: 'assistant',
+          ref: 'chat:' + String(decision.key || '') + ':assistant:' + Date.now(),
+        });
+      }
+    } catch { /* 兴趣证据失败不影响回复 */ }
     let _exprGuard = null;
     try {
       if (features.isOn(this.config, 'expressionCore')) {
@@ -2444,6 +2452,14 @@ class Bot {
     }
     // 私聊的直接请求由程序处理，避免模型漏写标记或误报已送达。
     const msg = decision.msg;
+    try {
+      if (features.isOn(this.config, 'hobbies')) {
+        hobby.recordText(this.config, {
+          text: String(msg && msg.text || ''), role: 'user',
+          ref: 'chat:' + String(decision.key || '') + ':' + String((msg && (msg.msgId || msg.id)) || Date.now()),
+        });
+      }
+    } catch { /* 兴趣证据失败不影响回复 */ }
     const stickerRequest = localWechat && msg?.platform === 'wechat' && msg.chatType === 'private'
       && stickers.isOn(this.config)
       && /^(?:请|麻烦)?\s*(?:给我|帮我)?\s*(?:发(?:给我)?|来|甩|丢)\s*(?:一?[个张]|点)?\s*(?:(傲娇|炸毛|开心)(?:的)?\s*)?(?:表情包|表情|动图|贴纸|梗图)(?:吧|呗|嘛|呀|啊|吗)?[\s。！!？?~～]*$/.exec(String(msg.text || '').trim());

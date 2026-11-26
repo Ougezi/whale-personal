@@ -22,10 +22,11 @@ python skills\whale-interests\scripts\run_all.py --execute
 
 ```text
 1. 兴趣自测 12/12
-2. 初始化 data/interests.json（没有才建）
-3. 校验 3 个真实种子
-4. 确认 features.hobbies=false
-5. 写证据 data/integration/evidence/I-49.json
+2. 证据自测 8/8
+3. 初始化 data/interests.json（没有才建）
+4. 校验 3 个真实种子
+5. 确认 features.hobbies=false
+6. 写证据 data/integration/evidence/I-49.json
 ```
 
 **不会**改 prompt、不会开启兴趣、不会发消息。
@@ -161,6 +162,7 @@ prompt 不编新经历
 
 ```text
 node scripts/personal/鲸鲸-兴趣爱好自测.js  12/12
+node scripts/personal/鲸鲸-兴趣爱好证据自测.js  8/8
 python skills/whale-mainline-integration/scripts/verify_all.py
 ```
 

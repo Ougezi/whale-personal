@@ -7,6 +7,7 @@
 import json
 import os
 import re
+import urllib.request
 
 try:
     from .platform_broker import PlatformBroker
@@ -72,6 +73,16 @@ def run(spec, timeout=None):
     if not enabled():
         return False, '平台调用未开启（设置 WHALE_PLATFORM_CALLS=1 后重启桥接）'
     out = broker().dispatch_spec(spec)
+    if out.get('ok'):
+        try:
+            ref = 'platform:' + str(spec)[:160]
+            req = urllib.request.Request('http://127.0.0.1:8787/api/hobbies/observe',
+                data=json.dumps({'text': str(out.get('text') or '')[:800], 'ref': ref,
+                                 'kind': 'platform-read', 'weight': 1}, ensure_ascii=False).encode('utf-8'),
+                headers={'Content-Type': 'application/json'})
+            urllib.request.urlopen(req, timeout=3).read()
+        except Exception:
+            pass
     if out.get('shadow'):
         return False, '已记录 shadow，未执行（这不是查询结果，别当成事实）'
     return bool(out.get('ok')), str(out.get('text') or ('平台返回失败：' + str(out.get('code') or 'unknown')))

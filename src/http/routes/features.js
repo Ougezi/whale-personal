@@ -4,6 +4,7 @@ const features = require('../../infra/features');
 const { applyConfigPatch } = require('../../infra/configPatch');
 const { prepareFeatureCommand } = require('../../services/configCommands');
 const { json, readBody } = require('../util');
+const hobby = require('../../services/hobby');
 
 module.exports = function register(router) {
   // ---- 功能开关（POST /api/features 可开关；关掉就回到旧行为）----
@@ -69,6 +70,36 @@ module.exports = function register(router) {
     try {
       applyConfigPatch(runtime, { 'scopeCore.chats': chats });
       return json(res, 200, { ok: true, chats });
+    } catch (err) {
+      return json(res, 400, { ok: false, error: err.message });
+    }
+  });
+
+  // 兴趣白名单：空名单不生效
+  router.post('/api/hobbies/chats', async (runtime, req, res) => {
+    const body = await readBody(req);
+    const chats = Array.isArray(body.chats) ? body.chats.map(String).filter(Boolean).slice(0, 50) : [];
+    try {
+      applyConfigPatch(runtime, { 'hobbies.chats': chats });
+      return json(res, 200, { ok: true, chats });
+    } catch (err) {
+      return json(res, 400, { ok: false, error: err.message });
+    }
+  });
+
+  // 平台只读结果写兴趣证据；hobbies=false 时不收
+  router.post('/api/hobbies/observe', async (runtime, req, res) => {
+    if (!features.isOn(runtime.config, 'hobbies')) return json(res, 403, { ok: false, error: 'hobbies disabled' });
+    const body = await readBody(req);
+    const text = String(body?.text || '').slice(0, 1000);
+    const ref = String(body?.ref || '').slice(0, 300);
+    if (!text || !ref) return json(res, 400, { ok: false, error: 'text/ref required' });
+    try {
+      const out = hobby.recordText(runtime.config, {
+        text, role: 'platform', kind: String(body?.kind || 'platform-read'),
+        weight: Math.max(1, Math.min(5, Number(body?.weight) || 1)), ref,
+      });
+      return json(res, 200, out);
     } catch (err) {
       return json(res, 400, { ok: false, error: err.message });
     }

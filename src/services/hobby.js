@@ -14,6 +14,20 @@ function record(config, evidence) {
   if (doc.changed && doc.state) save(config, doc.state);
   return doc;
 }
+function recordText(config, { text = '', role = 'user', ref = '', kind = '', weight = 0, at = Date.now() } = {}) {
+  if (!ref) return { ok: false, reason: 'ref-required' };
+  const ev = core.detectEvidence(text, role);
+  if (!ev.tags.length) return { ok: false, reason: 'no-interest' };
+  let doc = load(config);
+  let changed = 0;
+  for (const tag of ev.tags) {
+    const out = core.observe(doc, { kind: kind || ev.kind, ref, at, weight: weight || ev.weight, tags: [tag] });
+    if (out.changed) { doc = out.state; changed += 1; }
+  }
+  if (changed) save(config, doc);
+  return { ok: changed > 0, changed, tags: ev.tags };
+}
+function detect(text, role = 'user') { return core.detectEvidence(text, role); }
 function line(config) { return core.promptLine(load(config)); }
 function topic(config, desire) { return core.pickTopic(load(config), desire); }
 function status(config) {
@@ -26,4 +40,4 @@ function init(config) {
   if (!doc.interests.length) core.empty();
   return core.save(dir, doc);
 }
-module.exports = { load, save, record, line, topic, status, init, dirOf };
+module.exports = { load, save, record, recordText, detect, line, topic, status, init, dirOf };
