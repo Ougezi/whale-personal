@@ -26,7 +26,6 @@ const affectCore = require('../services/affectCore');
 const expressionCore = require('../services/expressionCore');
 const scopeShadow = require('../services/scopeShadow');
 const hobby = require('../services/hobby');
-const expressionPrefs = require('../core/expressionPrefs');
 const expressionPolicy = require('../core/expressionPolicy');
 const feedbackLedger = require('../core/feedbackLedger');
 const selfRules = require('../core/selfRules');
@@ -1044,7 +1043,6 @@ class Bot {
       selfRulesLine = selfRules.formatBlock(dataDir);
       if (isMaster && !isGroup) {
         const _fbText = String(clean && clean.text || msg.text || '');
-        expressionPrefs.learn(dataDir, _fbText);
         feedbackLedger.record(dataDir, { text: _fbText, chat: key, scope: 'master-private' });
       }
     } catch (err) { notesLine = ''; }
@@ -1096,7 +1094,7 @@ class Bot {
     } catch { /* 漏回检测失败不影响回复 */ }
     const innerLine = promptBudgetCore.fitBlocks([
       { key: 'mood', text: moodLine }, { key: 'affectCore', text: affectCoreLine }, { key: 'hobby', text: hobbyLine }, { key: 'thought', text: thoughtLine },
-      { key: 'notes', text: notesLine }, { key: 'exprPref', text: (() => { try { return expressionPrefs.line((this.config && this.config.paths && this.config.paths.dataDir) || path.join(process.cwd(), 'data')); } catch { return ''; } })() }, { key: 'empathy', text: empathyLine },
+      { key: 'notes', text: notesLine }, { key: 'exprPref', text: (() => { try { return expressionPolicy.line(expressionPolicy.load((this.config && this.config.paths && this.config.paths.dataDir) || path.join(process.cwd(), 'data'), { scope: isGroup ? ('chat:' + key) : 'master-private' })); } catch { return ''; } })() }, { key: 'empathy', text: empathyLine },
       { key: 'concern', text: concernLine }, { key: 'nick', text: nickLine },
       { key: 'coref', text: corefLine }, { key: 'intent', text: intentLine },
       { key: 'pin', text: pinLine }, { key: 'skill', text: skillLine },
@@ -1817,7 +1815,7 @@ class Bot {
     // 一半颜文字、一半 emoji：以前只有 emoji，所以调「颜文字」也看不到颜文字
     if (this.rng() < 0.5) return text + ' ' + persona.kaomojiPick(this.rng);
     const _dir = (this.config && this.config.paths && this.config.paths.dataDir) || path.join(process.cwd(), 'data');
-    const _policy = expressionPolicy.policyFrom(expressionPrefs.load(_dir));
+    const _policy = expressionPolicy.load(_dir, { scope: isGroup ? ('chat:' + key) : 'master-private' });
     const _picked = expressionPolicy.pickRandom(expressionPolicy.BASE_EMOJIS, _policy, this.rng);
     if (!_picked) return text;
     return text + ' ' + _picked;
@@ -2229,7 +2227,7 @@ class Bot {
     // 回加成单独一条气泡，只有「随机补表情」才看概率。
     const chance = persona.emojiChanceFor(this.config);
     const _prefDir = (this.config && this.config.paths && this.config.paths.dataDir) || path.join(process.cwd(), 'data');
-    const _exprPolicy = expressionPolicy.policyFrom(expressionPrefs.load(_prefDir));
+    const _exprPolicy = expressionPolicy.load(_prefDir, { scope: isGroup ? ('chat:' + key) : 'master-private' });
     let extra = decision.diaryExpanded ? '' : expressionPolicy.filterBanned(foundEmoji || '', _exprPolicy);
     if (!decision.diaryExpanded && !error && decision.action === 'reply' && !extra && chance > 0 && this.rng() <= chance) {
       // 颜文字和 emoji 各一半，这样「颜文字用量」调高后真的能看到颜文字

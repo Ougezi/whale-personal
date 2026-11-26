@@ -2144,6 +2144,38 @@
     "鲸鲸-反馈账本自测.js 6/6",
     "verify_all 40/40"
    ]
+  },
+  {
+   "id": "I-62",
+   "phase": "I",
+   "title": "P1.5 preferences 唯一策略源",
+   "goal": "expressionPolicy 读 preferences.json；expression.json 仅旧数据回退；发送/prompt/验收同源。",
+   "case_ids": [
+    "EV-003",
+    "EV-004",
+    "EV-005",
+    "EV-006",
+    "EV-007",
+    "EV-008",
+    "EV-009",
+    "EV-010"
+   ],
+   "min_cases": 8,
+   "source_review": [],
+   "files": [
+    "src/core/expressionPolicy.js",
+    "src/pipeline/chat.js",
+    "scripts/personal/鲸鲸-兴趣3天验收.py"
+   ],
+   "actions": [
+    "canonical preferences",
+    "legacy fallback",
+    "acceptance same source"
+   ],
+   "tests": [
+    "鲸鲸-表达偏好自测.js 12/12",
+    "verify_all 40/40"
+   ]
   }
  ]
 }

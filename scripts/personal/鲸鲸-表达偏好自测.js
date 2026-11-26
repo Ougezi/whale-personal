@@ -18,5 +18,17 @@ c('policy 排除 ban', () => assert.ok(!Q.policyFrom({ bannedEmojis: ['💧'] })
 c('policy reduce 不是 0', () => assert.strictEqual(Q.chance('💧', Q.policyFrom({ reducedEmojis: ['💧'] }), 1), 0.05));
 c('policy filter 去 ban', () => assert.strictEqual(Q.filterBanned('好💧', Q.policyFrom({ bannedEmojis: ['💧'] })), '好'));
 c('policy 可保留 reduce', () => assert.strictEqual(Q.shouldKeep('💧', Q.policyFrom({ reducedEmojis: ['💧'] }), () => 0.01), true));
+c('policy 从 preferences 读 ban', () => {
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'whale-policy-'));
+  fs.mkdirSync(path.join(dir, 'self'), { recursive: true });
+  fs.writeFileSync(path.join(dir, 'self', 'preferences.json'), JSON.stringify({ items: [{ target: '💧', mode: 'ban', scope: 'master-private', status: 'active' }] }), 'utf8');
+  assert.ok(Q.load(dir, { scope: 'master-private' }).banned.has('💧'));
+});
+c('revoked 不生效', () => {
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'whale-policy-'));
+  fs.mkdirSync(path.join(dir, 'self'), { recursive: true });
+  fs.writeFileSync(path.join(dir, 'self', 'preferences.json'), JSON.stringify({ items: [{ target: '💧', mode: 'ban', scope: 'master-private', status: 'revoked' }] }), 'utf8');
+  assert.ok(!Q.load(dir, { scope: 'master-private' }).banned.has('💧'));
+});
 console.log('\n通过 ' + p + '/' + (p + f));
 process.exit(f ? 1 : 0);

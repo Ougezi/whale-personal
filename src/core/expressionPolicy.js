@@ -3,6 +3,9 @@
  * 表达策略唯一出口：emoji 的 ban / reduce / allow 都在这里算。
  * chat 里不再各自维护 emoji 列表。
  */
+const fs = require('node:fs');
+const path = require('node:path');
+
 const BASE_EMOJIS = Object.freeze(['🐋', '🥺', '😭', '✨', '💧', '🫧', '🍚']);
 const REDUCED_CHANCE = 0.05;
 
@@ -40,4 +43,35 @@ function shouldKeep(emoji, p, rng = Math.random) {
   return (typeof rng === 'function' ? rng() : Math.random()) < p.reduced.get(emoji);
 }
 function shufflePick(list, p, rng = Math.random) { return pickRandom(list, p, rng); }
-module.exports = { BASE_EMOJIS, REDUCED_CHANCE, policyFrom, allowed, chance, filterBanned, pool, pickRandom, shouldKeep, shufflePick };
+function fromPreferences(doc, { scope = 'master-private' } = {}) {
+  const banned = [], reduced = [];
+  const want = String(scope || 'master-private');
+  for (const it of (doc && Array.isArray(doc.items) ? doc.items : [])) {
+    if (!it || it.status !== 'active') continue;
+    const sc = String(it.scope || 'master-private');
+    if (sc !== want && sc !== 'global') continue;
+    if (it.mode === 'ban') banned.push(it.target);
+    if (it.mode === 'reduce') reduced.push(it.target);
+  }
+  return policyFrom({ bannedEmojis: banned, reducedEmojis: reduced });
+}
+function load(dir, { scope = 'master-private' } = {}) {
+  try {
+    const d = JSON.parse(fs.readFileSync(path.join(dir, 'self', 'preferences.json'), 'utf8'));
+    if (Array.isArray(d.items) && d.items.length) return fromPreferences(d, { scope });
+  } catch { /* fallback legacy */ }
+  try {
+    const legacy = JSON.parse(fs.readFileSync(path.join(dir, 'self', 'expression.json'), 'utf8'));
+    return policyFrom({ bannedEmojis: legacy.bannedEmojis || [], reducedEmojis: legacy.reducedEmojis || [] });
+  } catch { return policyFrom({}); }
+}
+function line(policy) {
+  const banned = [...(policy?.banned || [])];
+  const reduced = [...(policy?.reduced?.keys?.() || [])];
+  const parts = [];
+  if (banned.length) parts.push('不喜欢：' + banned.join(' ') + '（不要发）');
+  if (reduced.length) parts.push('少发：' + reduced.join(' ') + '（降低频率，不是完全禁）');
+  return parts.length ? '【表达偏好】主人' + parts.join('；') + '。' : '';
+}
+
+module.exports = { BASE_EMOJIS, REDUCED_CHANCE, policyFrom, fromPreferences, load, line, allowed, chance, filterBanned, pool, pickRandom, shouldKeep, shufflePick };
