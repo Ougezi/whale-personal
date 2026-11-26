@@ -19,6 +19,7 @@ const cfg = { paths: { dataDir: dir } };
 const r = S.recordText(cfg, { text: '我盒子里还留着票根', role: 'user', ref: 'chat:test:1' });
 c('写入证据', () => assert.strictEqual(r.ok, true));
 c('同 ref 幂等', () => assert.strictEqual(S.recordText(cfg, { text: '我盒子里还留着票根', role: 'user', ref: 'chat:test:1' }).changed, 0));
+c('平台只读可写证据', () => assert.strictEqual(S.recordText(cfg, { text: '雨后的味道', role: 'platform', kind: 'platform-read', ref: 'platform:test' }).ok, true));
 c('证据落盘', () => assert.ok(fs.readFileSync(path.join(dir, 'interests.json'), 'utf8').includes('chat:test:1')));
 c('用户是 owner-shared', () => assert.strictEqual(H.detectEvidence('我盒子里还留着票根', 'user').kind, 'owner-shared'));
 console.log('\n通过 ' + p + '/' + (p + f));

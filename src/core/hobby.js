@@ -84,15 +84,20 @@ function tick(doc, now = Date.now()) {
   return d;
 }
 
-function promptLine(doc, { max = 3, chatKey = '' } = {}) {
+function promptLine(doc, { max = 3, chatKey = '', now = Date.now() } = {}) {
   const d = normalize(doc);
   const key = String(chatKey || '');
   const turn = Number(d.meta.turns && d.meta.turns[key]) || 0;
-  const recent = key && Array.isArray(d.meta.mentions && d.meta.mentions[key])
-    ? new Set(d.meta.mentions[key].filter((x) => turn - Number(x.turn || 0) < 6).map((x) => x.id))
-    : new Set();
+  const today = dayKey(now);
+  const mentions = key && Array.isArray(d.meta.mentions && d.meta.mentions[key]) ? d.meta.mentions[key] : [];
+  const recent = new Set(mentions.filter((x) => turn - Number(x.turn || 0) < 6).map((x) => x.id));
+  const todayCount = {};
+  for (const m of mentions) {
+    if (String(m.day || '') === today) todayCount[m.id] = (todayCount[m.id] || 0) + 1;
+  }
   const list = d.interests
     .filter((x) => ['seed', 'attached', 'practicing', 'exploring'].includes(x.status) && !recent.has(x.id))
+    .filter((x) => (todayCount[x.id] || 0) < Number(x.expression?.maxMentionsPerDay ?? 2))
     .sort((a, b) => (b.strength || 0) - (a.strength || 0))
     .slice(0, Math.max(1, Math.min(3, max)));
   if (!list.length) return '';
@@ -142,7 +147,7 @@ function markMention(doc, { chatKey = '', text = '', at = Date.now() } = {}) {
   d.meta.turns = d.meta.turns || {};
   d.meta.turns[key] = (Number(d.meta.turns[key]) || 0) + 1;
   d.meta.mentions = d.meta.mentions || {};
-  d.meta.mentions[key] = [...(d.meta.mentions[key] || []), { id: hit.id, turn: d.meta.turns[key] }].slice(-30);
+  d.meta.mentions[key] = [...(d.meta.mentions[key] || []), { id: hit.id, turn: d.meta.turns[key], at, day: dayKey(at) }].slice(-30);
   return d;
 }
 

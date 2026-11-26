@@ -34,7 +34,7 @@ def main():
         return 1
     doc = json.loads((DATA / 'interests.json').read_text(encoding='utf-8'))
     report = {'ok': True, 'step': 'I-49', 'seeds': len(doc.get('interests') or []), 'feature_default': 'false',
-              'test': '12/12+8/8', 'ledger': str(DATA / 'interests.json')}
+              'test': '17/17+12/12', 'ledger': str(DATA / 'interests.json')}
     OUT.parent.mkdir(parents=True, exist_ok=True)
     OUT.write_text(json.dumps(report, ensure_ascii=False, indent=1), encoding='utf-8')
     print('evidence:', OUT)

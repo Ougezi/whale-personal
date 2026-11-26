@@ -38,6 +38,24 @@ c('不同 chat 不串冷却', () => {
   d = H.markMention(d, { chatKey: 'c1', text: '我攒小东西' });
   assert.ok(H.promptLine(d, { chatKey: 'c2' }).includes('攒小东西'));
 });
+c('同一兴趣每天 2 次上限', () => {
+  let d = H.empty(now);
+  d.meta.turns = { c2: 10 };
+  d.meta.mentions = { c2: [
+    { id: 'collect-small-things', turn: 1, at: now, day: new Date(now).toISOString().slice(0, 10) },
+    { id: 'collect-small-things', turn: 2, at: now, day: new Date(now).toISOString().slice(0, 10) },
+  ] };
+  assert.ok(!H.promptLine(d, { chatKey: 'c2', now }).includes('攒小东西'));
+});
+c('念头带兴趣', () => {
+  const thoughts = require('../../src/core/thoughts.js');
+  assert.ok(thoughts.harvest({}, { rng: () => 0, interestNames: ['攒小东西'] }).includes('攒小东西'));
+});
+c('care 带兴趣一句', () => {
+  const care = require('../../src/services/care.js');
+  const p = care.buildCarePrompt({ interestLine: '攒小东西' });
+  assert.ok(p.system.includes('攒小东西'));
+});
 c('service 落盘', () => assert.ok(fs.existsSync(path.join(dir, 'interests.json'))));
 c('service 状态', () => assert.ok(S.status(cfg).count === 3));
 console.log('\n通过 ' + p + '/' + (p + f));

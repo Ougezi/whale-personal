@@ -21,8 +21,8 @@ python skills\whale-interests\scripts\run_all.py --execute
 执行：
 
 ```text
-1. 兴趣自测 12/12
-2. 证据自测 8/8
+1. 兴趣自测 17/17
+2. 证据自测 12/12
 3. 初始化 data/interests.json（没有才建）
 4. 校验 3 个真实种子
 5. 确认 features.hobbies=false
@@ -161,8 +161,8 @@ prompt 不编新经历
 测试：
 
 ```text
-node scripts/personal/鲸鲸-兴趣爱好自测.js  12/12
-node scripts/personal/鲸鲸-兴趣爱好证据自测.js  11/11
+node scripts/personal/鲸鲸-兴趣爱好自测.js  17/17
+node scripts/personal/鲸鲸-兴趣爱好证据自测.js  12/12
 python skills/whale-mainline-integration/scripts/verify_all.py
 ```
 
