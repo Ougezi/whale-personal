@@ -209,7 +209,7 @@ function pickTemplate(rng = Math.random) {
  * 生成「主动搭话」用的提示词。
  * 参考最近聊过什么：别重复、接着话头问，比干巴巴一句「在干啥」自然。
  */
-function buildCarePrompt({ persona = {}, recent = [], name = '', hour = null, want = null, wantLine = '' } = {}) {
+function buildCarePrompt({ persona = {}, recent = [], name = '', hour = null, want = null, wantLine = '', interestLine = '' } = {}) {
   const who = String(persona.name || '鲸鲸');
   const master = String(persona.ownerName || '主人');
   const lines = [
@@ -232,6 +232,9 @@ function buildCarePrompt({ persona = {}, recent = [], name = '', hour = null, wa
   // P3：她这次开口是因为真的缺了什么，句子围着那个缺口说，别通用问句
   if (wantLine) {
     lines.push(`- 你这会儿${wantLine}，就顺着这个开口（这是你自己的感觉，不是要求对方做什么）。`);
+  }
+  if (interestLine) {
+    lines.push(`- 这次可以自然带一句「${interestLine}」，但只能带一句，别硬提。`);
   }
   const user = recent.length
     ? '最近你们聊的（旧→新，只用来参考语气和话题，别复述）：\n' + recent.slice(-8).join('\n')

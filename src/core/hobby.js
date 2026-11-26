@@ -84,10 +84,15 @@ function tick(doc, now = Date.now()) {
   return d;
 }
 
-function promptLine(doc, { max = 3 } = {}) {
+function promptLine(doc, { max = 3, chatKey = '' } = {}) {
   const d = normalize(doc);
+  const key = String(chatKey || '');
+  const turn = Number(d.meta.turns && d.meta.turns[key]) || 0;
+  const recent = key && Array.isArray(d.meta.mentions && d.meta.mentions[key])
+    ? new Set(d.meta.mentions[key].filter((x) => turn - Number(x.turn || 0) < 6).map((x) => x.id))
+    : new Set();
   const list = d.interests
-    .filter((x) => ['seed', 'attached', 'practicing', 'exploring'].includes(x.status))
+    .filter((x) => ['seed', 'attached', 'practicing', 'exploring'].includes(x.status) && !recent.has(x.id))
     .sort((a, b) => (b.strength || 0) - (a.strength || 0))
     .slice(0, Math.max(1, Math.min(3, max)));
   if (!list.length) return '';
@@ -128,4 +133,17 @@ function detectEvidence(text, role = 'user') {
   return { tags, kind: 'owner-shared', weight: 1 };
 }
 
-module.exports = { VERSION, SEEDS, empty, load, save, normalize, observe, tick, promptLine, pickTopic, detectTags, detectEvidence };
+function markMention(doc, { chatKey = '', text = '', at = Date.now() } = {}) {
+  const key = String(chatKey || '');
+  if (!key) return false;
+  const d = normalize(doc, at);
+  const hit = d.interests.find((x) => String(text || '').includes(x.name));
+  if (!hit) return false;
+  d.meta.turns = d.meta.turns || {};
+  d.meta.turns[key] = (Number(d.meta.turns[key]) || 0) + 1;
+  d.meta.mentions = d.meta.mentions || {};
+  d.meta.mentions[key] = [...(d.meta.mentions[key] || []), { id: hit.id, turn: d.meta.turns[key] }].slice(-30);
+  return d;
+}
+
+module.exports = { VERSION, SEEDS, empty, load, save, normalize, observe, tick, promptLine, pickTopic, detectTags, detectEvidence, markMention };

@@ -174,7 +174,7 @@ function pickFrom(list, rng) {
  * 从当前状态挑一条新念头（纯函数，不读写盘）。
  * 优先级：缺了哪样欲 → 最明显的情绪 → 通用。
  */
-function harvest(state, { rng = Math.random } = {}) {
+function harvest(state, { rng = Math.random, interestNames = [] } = {}) {
   const groups = [];
   try {
     const need = state ? mood.neediest(state, HUNGRY_BELOW) : { needy: false };
@@ -187,6 +187,9 @@ function harvest(state, { rng = Math.random } = {}) {
     if (top && TEMPLATES.emotion[top.name]) groups.push(TEMPLATES.emotion[top.name]);
   } catch (err) {
     // 同上
+  }
+  if (Array.isArray(interestNames) && interestNames.length) {
+    groups.push(interestNames.map((n) => `最近还在想${n}`));
   }
   groups.push(TEMPLATES.general);
   const group = pickFrom(groups, rng) || TEMPLATES.general;
@@ -214,12 +217,12 @@ function format(items, rng = Math.random) {
  * 一轮的入口：读 → 丢掉过期 → 偶尔补一条 → 随机带出 ≤2 条。
  * 返回 { text, items, picks }；text 为空串表示这轮没有念头可用。
  */
-function line(dir, { state = null, now = Date.now(), rng = Math.random } = {}) {
+function line(dir, { state = null, now = Date.now(), rng = Math.random, interestNames = [] } = {}) {
   let items = load(dir, now);
   const wantNew = items.length < MIN_KEEP || (typeof rng === 'function' ? rng() : Math.random()) < NEW_CHANCE;
   let added = null;
   if (wantNew) {
-    const text = harvest(state, { rng });
+    const text = harvest(state, { rng, interestNames });
     if (text && !items.some((it) => it.text === text)) {
       items = [...items, { text, ts: now }].slice(-MAX_ITEMS);
       added = text;

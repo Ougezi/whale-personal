@@ -1,6 +1,8 @@
 'use strict';
 
 const care = require('./care');
+const hobby = require('./hobby');
+const features = require('../infra/features');
 const time = require('../infra/time');
 const { describeError } = require('../infra/errors');
 
@@ -63,6 +65,7 @@ async function careForChat(runtime, chatId) {
       hour,
       want: desire.needy ? desire.want : null,
       wantLine: desire.needy ? desire.line : '',
+      interestLine: features.isOn(runtime.config, 'hobbies') && desire.needy ? (hobby.topic(runtime.config, desire.want) || {}).name || '' : '',
     });
     const raw = await runtime.llm.complete({ system, turns: [{ role: 'user', content: user }] });
     let text = care.cleanCareText(raw) || pickFreshTemplate(recent);

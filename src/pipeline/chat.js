@@ -1008,13 +1008,13 @@ class Bot {
     try {
       const _hChats = (this.config && this.config.hobbies && this.config.hobbies.chats) || [];
       if (features.isOn(this.config, 'hobbies') && Array.isArray(_hChats) && _hChats.map(String).includes(String(key))) {
-        hobbyLine = hobby.line(this.config);
+        hobbyLine = hobby.line(this.config, key);
       }
     } catch { hobbyLine = ''; }
     let thoughtLine = '';
     if (features.isOn(this.config, 'thoughts')) {
       try {
-        thoughtLine = thoughts.line(innerDir, { state: moodState, now: nowMs }).text;
+        thoughtLine = thoughts.line(innerDir, { state: moodState, now: nowMs, interestNames: features.isOn(this.config, 'hobbies') ? hobby.names(this.config) : [] }).text;
       } catch (err) {
         thoughtLine = '';
       }
@@ -2134,6 +2134,7 @@ class Bot {
           text, role: 'assistant',
           ref: 'chat:' + String(decision.key || '') + ':assistant:' + Date.now(),
         });
+        hobby.markMention(this.config, decision.key, text);
       }
     } catch { /* 兴趣证据失败不影响回复 */ }
     let _exprGuard = null;

@@ -27,6 +27,17 @@ c('prompt 不编新买', () => { const line = H.promptLine(H.empty(now)); assert
 c('topic 按六欲', () => assert.strictEqual(H.pickTopic(H.empty(now), '香').domain, 'smell'));
 const cfg = { paths: { dataDir: dir } };
 S.record(cfg, { kind: 'owner-shared', ref: 'chat:3', weight: 1, tags: ['rain-smell'], at: now });
+c('同兴趣 6 轮冷却', () => {
+  let d = H.empty(now);
+  d = H.markMention(d, { chatKey: 'c1', text: '我攒小东西' });
+  const line = H.promptLine(d, { chatKey: 'c1' });
+  assert.ok(!line.includes('攒小东西'));
+});
+c('不同 chat 不串冷却', () => {
+  let d = H.empty(now);
+  d = H.markMention(d, { chatKey: 'c1', text: '我攒小东西' });
+  assert.ok(H.promptLine(d, { chatKey: 'c2' }).includes('攒小东西'));
+});
 c('service 落盘', () => assert.ok(fs.existsSync(path.join(dir, 'interests.json'))));
 c('service 状态', () => assert.ok(S.status(cfg).count === 3));
 console.log('\n通过 ' + p + '/' + (p + f));
