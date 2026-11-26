@@ -2176,6 +2176,41 @@
     "鲸鲸-表达偏好自测.js 12/12",
     "verify_all 40/40"
    ]
+  },
+  {
+   "id": "I-63",
+   "phase": "I",
+   "title": "自我上网学习与互动计划书",
+   "goal": "B站/抖音/GitHub 学习、评论互动、抖音发布的分阶段计划；28案例、审批、配额、回滚。",
+   "case_ids": [
+    "EV-003",
+    "EV-004",
+    "EV-005",
+    "EV-006",
+    "EV-007",
+    "EV-008",
+    "EV-009",
+    "EV-010"
+   ],
+   "min_cases": 8,
+   "source_review": [
+    "platform_bilibili.py",
+    "platform_douyin.py",
+    "dsh-douyin-watch/ops.js",
+    "browse.js"
+   ],
+   "files": [
+    "docs/personal/鲸鲸-自我上网学习与互动-计划书.md"
+   ],
+   "actions": [
+    "能力边界",
+    "学习账本",
+    "评论审批",
+    "发布门禁"
+   ],
+   "tests": [
+    "文档审查"
+   ]
   }
  ]
 }
