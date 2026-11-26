@@ -31,10 +31,13 @@ function stripRepeatedArrival(text, recent = []) {
   return out || '好，不催了。';
 }
 
-const ACTION_CLAIM = /(?:我)?(?:已经|刚|现在)?(?:写|画|拍|做)好了(?!\s*[吗?？])|(?:我)?(?:已经|刚|现在)?(?:写|画|拍|做)了(?:一|两|几)?张(?!\s*[吗?？])|(?:我)?写完了(?!\s*[吗?？])|(?:我)?画完了(?!\s*[吗?？])/g;
+const ACTION_CLAIM = /(?:这次|我)(?:是真的|是|真的|真)?真?(?:写|画|拍|做)(?:了)?(?!\s*[吗?？])|(?:我)?(?:已经|刚|现在)?(?:写|画|拍|做)好了(?!\s*[吗?？])|(?:我)?(?:已经|刚|现在)?(?:写|画|拍|做)了(?:一|两|几)?张(?!\s*[吗?？])|(?:我)?写完了(?!\s*[吗?？])|(?:我)?画完了(?!\s*[吗?？])/;
 
 function stripUnbackedActionClaims(text) {
-  return String(text || '').replace(ACTION_CLAIM, '还没真正做出来');
+  const t = String(text || '');
+  if (!ACTION_CLAIM.test(t)) return t;
+  // 只要出现“我写了一张/这次是真写/写好了”这类没有工具结果的动作，整句换成诚实回复。
+  return '我没法真的动笔，只能在脑子里想一句。';
 }
 
 function isImmediateDuplicate(text, recent = []) {

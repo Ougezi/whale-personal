@@ -94,7 +94,7 @@ function promptLine(doc, { max = 3 } = {}) {
   return '【我的兴趣】\n' + list.map((x) => {
     const how = x.status === 'exploring' ? '还在了解' : '喜欢';
     const claim = x.boundaries?.canClaimOwned ? '只说自己真的留着的，不编新买' : '只说想了解，不编经历';
-    return `- ${x.name}：${how}；${claim}；不声称刚写完/拍完/去过/买过`;
+    return `- ${x.name}：${how}；${claim}；不声称刚写完/拍完/去过/买过；也不要说“这次是真写”`;
   }).join('\n');
 }
 
