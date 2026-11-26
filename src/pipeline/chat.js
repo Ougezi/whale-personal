@@ -27,6 +27,7 @@ const expressionCore = require('../services/expressionCore');
 const scopeShadow = require('../services/scopeShadow');
 const hobby = require('../services/hobby');
 const expressionPrefs = require('../core/expressionPrefs');
+const expressionPolicy = require('../core/expressionPolicy');
 const selfRules = require('../core/selfRules');
 const empathy = require('../core/empathy');
 const antiRepeat = require('../core/antiRepeat');
@@ -1811,10 +1812,10 @@ class Bot {
     // 一半颜文字、一半 emoji：以前只有 emoji，所以调「颜文字」也看不到颜文字
     if (this.rng() < 0.5) return text + ' ' + persona.kaomojiPick(this.rng);
     const _dir = (this.config && this.config.paths && this.config.paths.dataDir) || path.join(process.cwd(), 'data');
-    const _bad = new Set(expressionPrefs.banned(_dir));
-    const list = ['🐋', '🥺', '😭', '✨', '💧', '🫧'].filter((e) => !_bad.has(e));
-    if (!list.length) return text;
-    return text + ' ' + list[Math.floor(this.rng() * list.length)];
+    const _policy = expressionPolicy.policyFrom(expressionPrefs.load(_dir));
+    const _picked = expressionPolicy.pickRandom(expressionPolicy.BASE_EMOJIS, _policy, this.rng);
+    if (!_picked) return text;
+    return text + ' ' + _picked;
   }
 
   /** 写入鲸鲸自己的回复，返回气泡数组 */
@@ -2223,13 +2224,12 @@ class Bot {
     // 回加成单独一条气泡，只有「随机补表情」才看概率。
     const chance = persona.emojiChanceFor(this.config);
     const _prefDir = (this.config && this.config.paths && this.config.paths.dataDir) || path.join(process.cwd(), 'data');
-    const _badEmoji = expressionPrefs.banned(_prefDir);
-    let extra = decision.diaryExpanded ? '' : expressionPrefs.filterText(foundEmoji || '', _badEmoji);
+    const _exprPolicy = expressionPolicy.policyFrom(expressionPrefs.load(_prefDir));
+    let extra = decision.diaryExpanded ? '' : expressionPolicy.filterBanned(foundEmoji || '', _exprPolicy);
     if (!decision.diaryExpanded && !error && decision.action === 'reply' && !extra && chance > 0 && this.rng() <= chance) {
       // 颜文字和 emoji 各一半，这样「颜文字用量」调高后真的能看到颜文字
-      const pool = ['🐋', '🥺', '😭', '✨', '💧', '🫧', '🍚'].filter((e) => !_badEmoji.includes(e));
       if (this.rng() < 0.5) extra = persona.kaomojiPick(this.rng);
-      else if (pool.length) extra = pool[Math.floor(this.rng() * pool.length)];
+      else extra = expressionPolicy.pickRandom(expressionPolicy.BASE_EMOJIS, _exprPolicy, this.rng);
     }
     // 表情在正文截断后追加，必须连同合并时的空格一起占用整轮字数。
     const extraChars = Array.from(extra).length + (bubbles.length >= maxBubbles ? 1 : 0);

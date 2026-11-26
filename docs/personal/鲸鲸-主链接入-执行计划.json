@@ -2080,6 +2080,38 @@
    "tests": [
     "文档审查"
    ]
+  },
+  {
+   "id": "I-60",
+   "phase": "I",
+   "title": "P0 表达策略收口",
+   "goal": "emoji 策略唯一出口；ban/reduce/allow 语义；移除 chat 硬编码列表。",
+   "case_ids": [
+    "EV-003",
+    "EV-004",
+    "EV-005",
+    "EV-006",
+    "EV-007",
+    "EV-008",
+    "EV-009",
+    "EV-010"
+   ],
+   "min_cases": 8,
+   "source_review": [],
+   "files": [
+    "src/core/expressionPolicy.js",
+    "src/core/expressionPrefs.js",
+    "src/pipeline/chat.js"
+   ],
+   "actions": [
+    "policy 出口",
+    "reduce 语义",
+    "过滤统一"
+   ],
+   "tests": [
+    "鲸鲸-表达偏好自测.js 10/10",
+    "verify_all 39/39"
+   ]
   }
  ]
 }
