@@ -1822,6 +1822,38 @@
     "写好了被拦截",
     "hobbies 仍可关"
    ]
+  },
+  {
+   "id": "I-52",
+   "phase": "I",
+   "title": "重复消息与动作声明",
+   "goal": "重复文本按消息 id 去重，不同 id 必须回复；拦截“写了一张”。",
+   "case_ids": [
+    "EV-003",
+    "EV-004",
+    "EV-005",
+    "EV-006",
+    "EV-007",
+    "EV-008",
+    "EV-009",
+    "EV-010"
+   ],
+   "min_cases": 8,
+   "source_review": [],
+   "files": [
+    "bridge/guards.py",
+    "bridge/receiver_mixin.py",
+    "src/core/phraseRepeat.js"
+   ],
+   "actions": [
+    "按 id 去重",
+    "同一文本不同 id 回复",
+    "写了一张拦截"
+   ],
+   "tests": [
+    "test_guards_duplicate.py 3/3",
+    "鲸鲸-重复叮嘱自测.js 12/12"
+   ]
   }
  ]
 }

@@ -1936,8 +1936,9 @@ class ReceiverMixin:
             _guard_text = content
             if media_placeholder or image_ref is not None:
                 _guard_text = '%s#%s:%s' % (content, msg.get('shard') or '', msg.get('local_id'))
-            if G.duplicate_guard(username, sender, _guard_text):
-                G.log('跳过重复消息：', G.safe_name(nickname), '：', G.safe_text(content))
+            _guard_id = msg.get('server_id') or msg.get('local_id') or msg.get('msg_id') or ''
+            if G.duplicate_guard(username, sender, _guard_text, _guard_id):
+                G.log('跳过重复消息（同一消息 id 重投）：', G.safe_name(nickname), '：', G.safe_text(content))
                 return
             if '拍了拍' in content and '<url>' not in content:
                 G.log('跳过拍一拍提示：', G.safe_text(content))

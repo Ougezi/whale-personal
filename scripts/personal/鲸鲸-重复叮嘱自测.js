@@ -10,6 +10,7 @@ c('只出现一次不删',()=>assert.strictEqual(stripRepeatedArrival('到家了
 c('无叮嘱不改',()=>assert.strictEqual(stripRepeatedArrival('今天有点累。',twice),'今天有点累。'));
 c('全删给不催短句',()=>assert.strictEqual(stripRepeatedArrival('到家了跟我说一声。',twice),'好，不催了。'));
 c('没动作不声称写好',()=>assert.ok(!stripUnbackedActionClaims('现在写好了也先不给你看').includes('写好了')));
+c('没动作不声称写了一张',()=>assert.ok(!stripUnbackedActionClaims('我写了一张，压在盒子最上面').includes('写了一张')));
 c('疑问句不误改',()=>assert.strictEqual(stripUnbackedActionClaims('你写好了吗'),'你写好了吗'));
 c('保留正常完成',()=>assert.strictEqual(stripUnbackedActionClaims('我想想'),'我想想'));
 c('连续 assistant 同句拦截',()=>assert.strictEqual(isImmediateDuplicate('在呢主人，怎么啦',[{role:'assistant',text:'在呢主人，怎么啦'}]),true));

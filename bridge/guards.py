@@ -42,10 +42,12 @@ def is_system_notice(username, nickname, content):
     return False
 
 
-def duplicate_guard(chat_username, sender, content):
-    """同一人 45 秒内重复同一句 → 不再回（微信重投/通知刷屏）。"""
+def duplicate_guard(chat_username, sender, content, msg_id=''):
+    """只挡同一消息 id 的重投；不同 id 的重复句是主人真的重复说，必须回。"""
+    if not msg_id:
+        return False
     now = time.time()
-    key = (str(chat_username or ""), str(sender or ""), str(content or "").strip())
+    key = (str(chat_username or ""), str(sender or ""), 'id:' + str(msg_id))
     with _guard_lock:
         last = _recent_dup.get(key, 0)
         _recent_dup[key] = now

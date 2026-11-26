@@ -31,7 +31,7 @@ function stripRepeatedArrival(text, recent = []) {
   return out || '好，不催了。';
 }
 
-const ACTION_CLAIM = /(?:我)?(?:已经|刚|现在)?(?:写|画|拍|做)好了(?!\s*[吗?？])|(?:我)?写完了(?![\s?？])|(?:我)?画完了(?![\s?？])/g;
+const ACTION_CLAIM = /(?:我)?(?:已经|刚|现在)?(?:写|画|拍|做)好了(?!\s*[吗?？])|(?:我)?(?:已经|刚|现在)?(?:写|画|拍|做)了(?:一|两|几)?张(?!\s*[吗?？])|(?:我)?写完了(?!\s*[吗?？])|(?:我)?画完了(?!\s*[吗?？])/g;
 
 function stripUnbackedActionClaims(text) {
   return String(text || '').replace(ACTION_CLAIM, '还没真正做出来');
