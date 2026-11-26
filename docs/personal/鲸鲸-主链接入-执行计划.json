@@ -2112,6 +2112,38 @@
     "鲸鲸-表达偏好自测.js 10/10",
     "verify_all 39/39"
    ]
+  },
+  {
+   "id": "I-61",
+   "phase": "I",
+   "title": "P1 反馈账本",
+   "goal": "原话反馈 JSONL + preferences.json；ban/reduce/allow 可审计；不覆盖历史。",
+   "case_ids": [
+    "EV-003",
+    "EV-004",
+    "EV-005",
+    "EV-006",
+    "EV-007",
+    "EV-008",
+    "EV-009",
+    "EV-010"
+   ],
+   "min_cases": 8,
+   "source_review": [],
+   "files": [
+    "src/core/feedbackLedger.js",
+    "src/pipeline/chat.js",
+    "scripts/personal/鲸鲸-反馈账本自测.js"
+   ],
+   "actions": [
+    "raw feedback",
+    "preference upsert",
+    "scope"
+   ],
+   "tests": [
+    "鲸鲸-反馈账本自测.js 6/6",
+    "verify_all 40/40"
+   ]
   }
  ]
 }

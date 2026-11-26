@@ -28,6 +28,7 @@ const scopeShadow = require('../services/scopeShadow');
 const hobby = require('../services/hobby');
 const expressionPrefs = require('../core/expressionPrefs');
 const expressionPolicy = require('../core/expressionPolicy');
+const feedbackLedger = require('../core/feedbackLedger');
 const selfRules = require('../core/selfRules');
 const empathy = require('../core/empathy');
 const antiRepeat = require('../core/antiRepeat');
@@ -1041,7 +1042,11 @@ class Bot {
         || path.join(process.cwd(), 'data');
       notesLine = innerNotes.block({ dir: dataDir, limit: 2 });
       selfRulesLine = selfRules.formatBlock(dataDir);
-      if (isMaster && !isGroup) expressionPrefs.learn(dataDir, String(clean && clean.text || msg.text || ''));
+      if (isMaster && !isGroup) {
+        const _fbText = String(clean && clean.text || msg.text || '');
+        expressionPrefs.learn(dataDir, _fbText);
+        feedbackLedger.record(dataDir, { text: _fbText, chat: key, scope: 'master-private' });
+      }
     } catch (err) { notesLine = ''; }
     // R1 牵挂 + R2 共情：都进动态段，字很少
     let concernLine = '';
