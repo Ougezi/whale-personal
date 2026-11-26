@@ -1699,6 +1699,49 @@
     "保留路上小心",
     "单次不删"
    ]
+  },
+  {
+   "id": "I-49",
+   "phase": "I",
+   "title": "兴趣爱好 P0/P1",
+   "goal": "兴趣账本+证据门禁+默认关 prompt 旁路；3 个真实种子。",
+   "case_ids": [
+    "EV-003",
+    "EV-004",
+    "EV-005",
+    "EV-006",
+    "EV-007",
+    "EV-008",
+    "EV-009",
+    "EV-010"
+   ],
+   "min_cases": 8,
+   "source_review": [],
+   "files": [
+    "src/core/hobby.js",
+    "src/services/hobby.js",
+    "src/pipeline/chat.js",
+    "src/infra/features.js",
+    "skills/whale-interests/SKILL.md",
+    "scripts/personal/鲸鲸-兴趣爱好自测.js"
+   ],
+   "actions": [
+    "兴趣账本",
+    "证据 ref",
+    "默认关",
+    "3 种子"
+   ],
+   "tests": [
+    "鲸鲸-兴趣爱好自测.js 12/12",
+    "run_all.py --execute"
+   ],
+   "acceptance": [
+    "3 种子",
+    "无 ref 拒收",
+    "14 天降温",
+    "30 天休眠",
+    "默认关"
+   ]
   }
  ]
 }

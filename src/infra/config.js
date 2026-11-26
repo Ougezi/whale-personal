@@ -271,6 +271,7 @@ const DEFAULT_CONFIG = {
   expressionCore: { chats: [] },
   scopeShadow: { chats: [] },
   scopeCore: { chats: [] },
+  hobbies: { chats: [] },
   storage: {
     mediaKeepDays: 7,
     mediaMaxMB: 500,

@@ -25,6 +25,7 @@ const personaShadow = require('../services/personaShadow');
 const affectCore = require('../services/affectCore');
 const expressionCore = require('../services/expressionCore');
 const scopeShadow = require('../services/scopeShadow');
+const hobby = require('../services/hobby');
 const empathy = require('../core/empathy');
 const antiRepeat = require('../core/antiRepeat');
 const phraseRepeat = require('../core/phraseRepeat');
@@ -1003,6 +1004,13 @@ class Bot {
         affectCoreLine = affectCore.tick({ chatId: key, text: (clean && clean.text) || msg.text || '', now: nowMs, chats: _acChats }).line;
       } catch { affectCoreLine = ''; }
     }
+    let hobbyLine = '';
+    try {
+      const _hChats = (this.config && this.config.hobbies && this.config.hobbies.chats) || [];
+      if (features.isOn(this.config, 'hobbies') && Array.isArray(_hChats) && _hChats.map(String).includes(String(key))) {
+        hobbyLine = hobby.line(this.config);
+      }
+    } catch { hobbyLine = ''; }
     let thoughtLine = '';
     if (features.isOn(this.config, 'thoughts')) {
       try {
@@ -1076,7 +1084,7 @@ class Bot {
       }
     } catch { /* 漏回检测失败不影响回复 */ }
     const innerLine = promptBudgetCore.fitBlocks([
-      { key: 'mood', text: moodLine }, { key: 'affectCore', text: affectCoreLine }, { key: 'thought', text: thoughtLine },
+      { key: 'mood', text: moodLine }, { key: 'affectCore', text: affectCoreLine }, { key: 'hobby', text: hobbyLine }, { key: 'thought', text: thoughtLine },
       { key: 'notes', text: notesLine }, { key: 'empathy', text: empathyLine },
       { key: 'concern', text: concernLine }, { key: 'nick', text: nickLine },
       { key: 'coref', text: corefLine }, { key: 'intent', text: intentLine },

@@ -107,6 +107,14 @@ const REGISTRY = [
     experimental: true,
   },
   {
+    key: 'hobbies',
+    path: 'features.hobbies',
+    label: '兴趣爱好（实验性）',
+    desc: '默认关闭。开启后只在白名单 chat 增加【我的兴趣】旁路；兴趣证据必须带 ref，不编经历。',
+    default: false,
+    experimental: true,
+  },
+  {
     key: 'scopeCore',
     path: 'features.scopeCore',
     label: 'Scope Core（实验性，召回过滤）',
