@@ -28,6 +28,7 @@ const scopeShadow = require('../services/scopeShadow');
 const hobby = require('../services/hobby');
 const expressionPolicy = require('../core/expressionPolicy');
 const feedbackLedger = require('../core/feedbackLedger');
+const finalGuards = require('./finalGuards');
 const selfRules = require('../core/selfRules');
 const empathy = require('../core/empathy');
 const antiRepeat = require('../core/antiRepeat');
@@ -1041,9 +1042,9 @@ class Bot {
         || path.join(process.cwd(), 'data');
       notesLine = innerNotes.block({ dir: dataDir, limit: 2 });
       selfRulesLine = selfRules.formatBlock(dataDir);
-      if (isMaster && !isGroup) {
+      if (isMaster) {
         const _fbText = String(clean && clean.text || msg.text || '');
-        feedbackLedger.record(dataDir, { text: _fbText, chat: key, scope: 'master-private' });
+        feedbackLedger.record(dataDir, { text: _fbText, chat: key, scope: isGroup ? ('chat:' + key) : 'master-private' });
       }
     } catch (err) { notesLine = ''; }
     // R1 牵挂 + R2 共情：都进动态段，字很少
@@ -2136,13 +2137,13 @@ class Bot {
     // 同一件事的重复叮嘱：最近几条已经说过两次“到家说一声”，这句就别再追。
     try {
       const _recent = this.store.messages(decision.key, 8) || [];
-      // 连续两条 assistant 之间没有 user，且内容完全相同：不再发第二遍。
-      if (phraseRepeat.isImmediateDuplicate(text, _recent)) return [];
-      text = phraseRepeat.stripRepeatedArrival(text, _recent);
-      text = phraseRepeat.stripUnbackedBrowseClaims(text);
-      text = phraseRepeat.stripUnbackedResearchClaims(text, { searched: Boolean(decision.msg && (decision.msg.webSearchStatus === 'ok' || decision.msg.webText)) });
-      text = phraseRepeat.stripFalseDocumentClaims(text, { mediaFail: decision.msg && decision.msg._media_fail });
-      text = phraseRepeat.stripUnbackedActionClaims(text);
+      const _guard = finalGuards.applyFinalGuards(text, {
+        recent: _recent,
+        mediaFail: decision.msg && decision.msg._media_fail,
+        searched: Boolean(decision.msg && (decision.msg.webSearchStatus === 'ok' || decision.msg.webText)),
+      });
+      if (_guard.drop) return [];
+      text = _guard.text;
       decision.finalText = text;
     } catch { /* 守卫失败不影响回复 */ }
     // 写库失败照常返回 bubbles：话已经生成了，不能因为落库失败把回复丢了。
