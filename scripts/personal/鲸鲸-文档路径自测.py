@@ -5,6 +5,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT / 'bridge'))
 import doc_download as d
+import document_read as dr
 P = F = 0
 def c(n, ok):
     global P, F
@@ -21,6 +22,8 @@ with tempfile.TemporaryDirectory() as tmp:
     c('按大小找到', d.find_by_size(str(acct), 3, '.pdf') == str(f))
     c('不存在的文件不误报', d.find_local_file(str(acct), ['nope.pdf']) is None)
     c('无 GUI 不点击', d._click_file_card(None, 'x.pdf') is False)
+    c('11MB/64MB 不被 8MB 误挡', dr.MAX_BYTES >= 12 * 1024 * 1024)
+
 
 print('\n通过 %d/%d' % (P, P + F))
 raise SystemExit(0 if F == 0 else 1)

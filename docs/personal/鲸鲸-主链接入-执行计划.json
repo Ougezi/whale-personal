@@ -2647,6 +2647,38 @@
    "tests": [
     "verify_all 44/44"
    ]
+  },
+  {
+   "id": "I-78",
+   "phase": "I",
+   "title": "11.2MB 文档读取上限",
+   "goal": "MAX_BYTES 8MB→128MB；11.2MB 扫描件可进 OCR；真实文件验证。",
+   "case_ids": [
+    "EV-003",
+    "EV-004",
+    "EV-005",
+    "EV-006",
+    "EV-007",
+    "EV-008",
+    "EV-009",
+    "EV-010"
+   ],
+   "min_cases": 8,
+   "source_review": [
+    "bridge/document_read.py"
+   ],
+   "files": [
+    "bridge/document_read.py",
+    "scripts/personal/鲸鲸-文档路径自测.py"
+   ],
+   "actions": [
+    "128MB limit",
+    "OCR fallback test"
+   ],
+   "tests": [
+    "文档路径 6/6",
+    "verify_all 44/44"
+   ]
   }
  ]
 }

@@ -20,7 +20,7 @@ import zipfile
 # 正文上限：太长会撑爆聊天上下文。可在 config.json 里加 document.maxChars 覆盖，
 # 或用环境变量 WHALE_DOC_MAX_CHARS 覆盖（两者都限制在 500~12000 之间）。
 DEFAULT_MAX_CHARS = 4000
-MAX_BYTES = 8 * 1024 * 1024
+MAX_BYTES = 128 * 1024 * 1024  # 11MB/64MB 扫描件也要能进；正文仍由 max_chars 截断
 DOC_EXT = {'.pdf', '.docx', '.doc', '.txt', '.md', '.text', '.xlsx', '.pptx'}
 
 
@@ -359,7 +359,7 @@ def describe_document(path, filename, max_chars=None, ocr=None):
         max_chars = default_max_chars()
     size = os.path.getsize(path)
     if size > MAX_BYTES:
-        raise ValueError('文件太大（%.1f MB，上限 8 MB），没读' % (size / 1024 / 1024))
+        raise ValueError('文件太大（%.1f MB，上限 128 MB），没读' % (size / 1024 / 1024))
     text = extract_document_text(path, filename)
     text = re.sub(r'\n{3,}', '\n\n', text).strip()
     ocr_note = ''
