@@ -2401,6 +2401,35 @@
     "鲸鲸-重复叮嘱自测.js 17/17",
     "verify_all 41/41"
    ]
+  },
+  {
+   "id": "I-70",
+   "phase": "I",
+   "title": "文档失败守卫扩展",
+   "goal": "覆盖“文件到我这空/没收到/没读到”；PDF 未下载不再假称内容空。",
+   "case_ids": [
+    "EV-003",
+    "EV-004",
+    "EV-005",
+    "EV-006",
+    "EV-007",
+    "EV-008",
+    "EV-009",
+    "EV-010"
+   ],
+   "min_cases": 8,
+   "source_review": [],
+   "files": [
+    "src/core/phraseRepeat.js",
+    "src/pipeline/chat.js"
+   ],
+   "actions": [
+    "文档失败匹配扩展"
+   ],
+   "tests": [
+    "鲸鲸-重复叮嘱自测.js 18/18",
+    "verify_all 41/41"
+   ]
   }
  ]
 }

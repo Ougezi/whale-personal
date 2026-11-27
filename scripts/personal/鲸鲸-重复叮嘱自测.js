@@ -11,6 +11,7 @@ c('无叮嘱不改',()=>assert.strictEqual(stripRepeatedArrival('今天有点累
 c('全删给不催短句',()=>assert.strictEqual(stripRepeatedArrival('到家了跟我说一声。',twice),'好，不催了。'));
 c('没动作不声称写好',()=>assert.ok(!stripUnbackedActionClaims('现在写好了也先不给你看').includes('写好了')));
 c('没动作不声称写了一张',()=>assert.ok(!stripUnbackedActionClaims('我写了一张，压在盒子最上面').includes('写了一张')));
+c('文件到我这空也拦',()=>assert.ok(stripFalseDocumentClaims('还是没读到，文件到我这空',{mediaFail:'文件下载失败：本地找不到这个文件'}).includes('没有下载到本地')));
 c('文件没下载不谎称空',()=>assert.ok(stripFalseDocumentClaims('文件本身读不出来，内容空的',{mediaFail:'文件下载失败：本地找不到这个文件'}).includes('没有下载到本地')));
 c('无来源查到了被替换',()=>assert.ok(!stripUnbackedResearchClaims('查到了：《流氓叙事》是6人本').includes('查到了')));
 c('我写的是不误拦',()=>assert.strictEqual(stripUnbackedActionClaims('我写的是那个老板娘'),'我写的是那个老板娘'));

@@ -40,7 +40,7 @@ function stripUnbackedActionClaims(text) {
   return '我没法真的动笔，只能在脑子里想一句。';
 }
 
-const DOC_EMPTY_CLAIM = /内容空|内容为空|文件本身(?:就)?(?:是)?空|文件是空|文件本身读不出来|读不出来/;
+const DOC_EMPTY_CLAIM = /内容空|内容为空|文件本身(?:就)?(?:是)?空|文件是空|文件本身读不出来|读不出来|(?:文件|文档|pdf|PDF|手册).{0,12}(?:空|没收到|没拿到|没读到|读不出|打不开|空白)|(?:没收到|没拿到|没读到|空的).{0,12}(?:文件|文档|pdf|PDF|手册)/;
 
 function stripFalseDocumentClaims(text, { mediaFail = '' } = {}) {
   const why = String(mediaFail || '');
