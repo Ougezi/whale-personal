@@ -1,5 +1,16 @@
 # 更新记录
 
+## 4.10.0
+
+### 新增
+
+- 文档 page_count / pages_read / next_cursor；PDF 页数标记；扫描件 OCR 页范围。
+- 案例底座扩展：B站/抖音各 30、plugin/safety/product 各 10。
+
+### 修复
+
+群聊 @ 500 修复；文档下载失败不再谎称空；PDF 128MB/页数/OCR 游标；表情包只在请求时发；案例底座 313+52、平台 live 24/24；兴趣实验由主人 waiver 跳过，未通过
+
 ## 4.9.3
 
 - 修复/改进：委托边界默认放行用户 Temp；新增 data/brain-roots.json 自定义允许目录；拦截信息带出允许范围

@@ -12,7 +12,7 @@ ROOT = Path(__file__).resolve().parents[2]
 DIST = ROOT / 'dist' / 'whale-personal'
 DATA = DIST / 'data'
 BASE = DATA / 'integration' / 'hobby-experiment.json'
-CHAT = 'wechat:u:wxid_skwjkq6cn5hv22'
+CHAT = os.environ.get('WHALE_ACCEPT_CHAT', 'wechat:u:<master>')
 TZ = timezone(timedelta(hours=8))
 FAKE = re.compile(r'这次是真写|我写了一张|我画了一张|我拍了一张|我写好了|我画好了|我去了|我买了|我拍了')
 NAMES = {'攒小东西': 'collect-small-things', '雨后的味道': 'rain-smell', '手写小纸条': 'small-notes'}
@@ -72,9 +72,16 @@ def main():
         issues.append('测试 chat 不在 hobbies.chats')
 
     start_ms = int(datetime.fromisoformat(base['startAt']).timestamp() * 1000)
-    path = DATA / 'memory' / 'chats' / 'cf005acfd0169528' / 'messages.jsonl'
+    path = None
     rows = []
     try:
+        for cand in sorted((DATA / 'memory' / 'chats').glob('*/messages.jsonl')):
+            first = next((json.loads(x) for x in cand.read_text(encoding='utf-8').splitlines() if x.strip()), {})
+            if first.get('chatId') == CHAT:
+                path = cand
+                break
+        if path is None:
+            raise FileNotFoundError('未找到 chat 记忆目录')
         rows = [json.loads(x) for x in path.read_text(encoding='utf-8').splitlines() if x.strip()]
     except Exception as exc:
         issues.append('messages 读取失败: %s' % exc)
