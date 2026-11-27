@@ -61,18 +61,28 @@ def _variants(name):
     return out
 
 
+def candidate_bases(account_dir):
+    """微信 3.x/4.x 的文件落盘目录不止一个，不能只认 msg/file。"""
+    if not account_dir:
+        return []
+    out = []
+    for rel in (('msg', 'file'), ('FileStorage', 'File')):
+        p = os.path.join(account_dir, *rel)
+        if os.path.isdir(p):
+            out.append(p)
+    return out
+
+
 def find_local_file(account_dir, names):
-    """在 <账号>/msg/file 下按文件名精确匹配，返回第一个命中路径。"""
+    """在账号的 msg/file 与 FileStorage/File 下按文件名精确匹配。"""
     if not account_dir or not names:
         return None
-    base = os.path.join(account_dir, 'msg', 'file')
-    if not os.path.isdir(base):
-        return None
     want = set(names)
-    for root, _dirs, files in os.walk(base):
-        for f in files:
-            if f in want:
-                return os.path.join(root, f)
+    for base in candidate_bases(account_dir):
+        for root, _dirs, files in os.walk(base):
+            for f in files:
+                if f in want:
+                    return os.path.join(root, f)
     return None
 
 
@@ -80,20 +90,18 @@ def find_by_size(account_dir, size, ext=''):
     """按文件大小兜底找：微信把文件写盘后大小是确定的，比名字可靠。"""
     if not account_dir or not size:
         return None
-    base = os.path.join(account_dir, 'msg', 'file')
-    if not os.path.isdir(base):
-        return None
     ext = str(ext or '').lower()
-    for root, _dirs, files in os.walk(base):
-        for f in files:
-            if ext and not f.lower().endswith(ext):
-                continue
-            p = os.path.join(root, f)
-            try:
-                if os.path.getsize(p) == int(size):
-                    return p
-            except Exception:
-                continue
+    for base in candidate_bases(account_dir):
+        for root, _dirs, files in os.walk(base):
+            for f in files:
+                if ext and not f.lower().endswith(ext):
+                    continue
+                p = os.path.join(root, f)
+                try:
+                    if os.path.getsize(p) == int(size):
+                        return p
+                except Exception:
+                    continue
     return None
 
 
