@@ -57,6 +57,7 @@ CASES = [
     ('final 守卫', 'node', 'scripts/personal/鲸鲸-final守卫自测.js', {}),
     ('主链加载', 'node', 'scripts/personal/鲸鲸-主链加载自测.js', {}),
     ('案例覆盖', 'py', 'scripts/personal/鲸鲸-案例覆盖自测.py', {}),
+    ('案例映射', 'py', 'scripts/personal/鲸鲸-案例映射自测.py', {}),
 ]
 
 

@@ -2712,6 +2712,36 @@
     "案例覆盖 6/6",
     "verify_all 45/45"
    ]
+  },
+  {
+   "id": "I-80",
+   "phase": "I",
+   "title": "案例目录与 live 契约映射",
+   "goal": "24 live 全映射到执行器；目录 313 不强行 1:1；新增映射门禁。",
+   "case_ids": [
+    "EV-003",
+    "EV-004",
+    "EV-005",
+    "EV-006",
+    "EV-007",
+    "EV-008",
+    "EV-009",
+    "EV-010"
+   ],
+   "min_cases": 8,
+   "source_review": [],
+   "files": [
+    "data/integration/case-map.json",
+    "scripts/personal/鲸鲸-案例映射自测.py"
+   ],
+   "actions": [
+    "live→runner映射",
+    "目录/live分离"
+   ],
+   "tests": [
+    "案例映射 5/5",
+    "verify_all 46/46"
+   ]
   }
  ]
 }
