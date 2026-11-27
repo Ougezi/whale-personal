@@ -1,0 +1,14 @@
+{
+ "type": "owner-waiver",
+ "requestedBy": "ougezi",
+ "requestedAt": "2026-11-27T14:33:02.006420+08:00",
+ "experiment": "兴趣 3 天实验",
+ "experimentStatus": "skipped",
+ "experimentPassed": false,
+ "acceptedCreated": false,
+ "startAt": "2026-11-27T15:00:00+08:00",
+ "endAt": "2026-11-30T15:00:00+08:00",
+ "sampleAfterStart": 0,
+ "reason": "主人明确要求直接跳过实验，不等待 3 天",
+ "effect": "保留现有代码与案例；不把实验算通过；不生成 accepted；release 可带 waiver 标记"
+}

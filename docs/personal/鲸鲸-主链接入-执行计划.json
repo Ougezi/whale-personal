@@ -2927,6 +2927,34 @@
     "文档路径 7/7",
     "verify_all 46/46"
    ]
+  },
+  {
+   "id": "I-87",
+   "phase": "I",
+   "title": "兴趣实验 owner waiver",
+   "goal": "主人强制跳过 3 天实验；记录 waiver；不生成 accepted；暂停定时验收。",
+   "case_ids": [
+    "EV-003",
+    "EV-004",
+    "EV-005",
+    "EV-006",
+    "EV-007",
+    "EV-008",
+    "EV-009",
+    "EV-010"
+   ],
+   "min_cases": 8,
+   "source_review": [],
+   "files": [
+    "docs/personal/鲸鲸-兴趣实验-owner-waiver.json"
+   ],
+   "actions": [
+    "owner-waiver",
+    "schedule paused"
+   ],
+   "tests": [
+    "verify_all 46/46"
+   ]
   }
  ]
 }
