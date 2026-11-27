@@ -2308,6 +2308,34 @@
     "鲸鲸-表情包门禁自测.js 4/4",
     "verify_all 41/41"
    ]
+  },
+  {
+   "id": "I-67",
+   "phase": "I",
+   "title": "群聊 @ 回复 500 修复",
+   "goal": "修 finalize 路径 key 未定义；群消息不再 500；实验窗口重置。",
+   "case_ids": [
+    "EV-003",
+    "EV-004",
+    "EV-005",
+    "EV-006",
+    "EV-007",
+    "EV-008",
+    "EV-009",
+    "EV-010"
+   ],
+   "min_cases": 8,
+   "source_review": [],
+   "files": [
+    "src/pipeline/chat.js"
+   ],
+   "actions": [
+    "key scope",
+    "group retest"
+   ],
+   "tests": [
+    "verify_all 41/41"
+   ]
   }
  ]
 }

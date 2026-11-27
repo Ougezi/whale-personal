@@ -1824,7 +1824,7 @@ class Bot {
     // 一半颜文字、一半 emoji：以前只有 emoji，所以调「颜文字」也看不到颜文字
     if (this.rng() < 0.5) return text + ' ' + persona.kaomojiPick(this.rng);
     const _dir = (this.config && this.config.paths && this.config.paths.dataDir) || path.join(process.cwd(), 'data');
-    const _policy = expressionPolicy.load(_dir, { scope: isGroup ? ('chat:' + key) : 'master-private' });
+    const _policy = expressionPolicy.load(_dir, { scope: 'master-private' });
     const _picked = expressionPolicy.pickRandom(expressionPolicy.BASE_EMOJIS, _policy, this.rng);
     if (!_picked) return text;
     return text + ' ' + _picked;
@@ -2244,7 +2244,7 @@ class Bot {
     // 回加成单独一条气泡，只有「随机补表情」才看概率。
     const chance = persona.emojiChanceFor(this.config);
     const _prefDir = (this.config && this.config.paths && this.config.paths.dataDir) || path.join(process.cwd(), 'data');
-    const _exprPolicy = expressionPolicy.load(_prefDir, { scope: isGroup ? ('chat:' + key) : 'master-private' });
+    const _exprPolicy = expressionPolicy.load(_prefDir, { scope: isGroup ? ('chat:' + String(decision.key || '')) : 'master-private' });
     let extra = decision.diaryExpanded ? '' : expressionPolicy.filterBanned(foundEmoji || '', _exprPolicy);
     if (!decision.diaryExpanded && !error && decision.action === 'reply' && !extra && chance > 0 && this.rng() <= chance) {
       // 颜文字和 emoji 各一半，这样「颜文字用量」调高后真的能看到颜文字
