@@ -1,0 +1,27 @@
+{
+  "version": 1,
+  "note": "B站/抖音各补 10 条真实公开页标题/摘要；未逐条转录正文，verified=search-title。",
+  "items": [
+    {"id":"BL-11","source":"B站","platform":"Bilibili","category":"channel","title":"B站：OpenClaw 微信 ClawBot 一条命令安装","url":"https://www.bilibili.com/video/BV1H8AgzWEEF/","description":"微信扫码/命令接入 OpenClaw，知识库与远程控制","pattern":"入口+知识库","verified":"search-title"},
+    {"id":"BL-12","source":"B站","platform":"Bilibili","category":"companion","title":"B站：陪伴型 AI 的触摸交互与性格记忆","url":"https://www.bilibili.com/video/BV1q2Ni6LEQF/","description":"五款 AI 萌宠实测，专属性格记忆与情绪安抚","pattern":"人格+情绪+记忆","verified":"search-title"},
+    {"id":"BL-13","source":"B站","platform":"Bilibili","category":"safety","title":"B站：别让 OpenClaw 风险失控","url":"https://www.bilibili.com/opus/1179208194829844551","description":"最小权限、身份认证、插件安全审查","pattern":"最小权限+插件审查","verified":"search-title"},
+    {"id":"BL-14","source":"B站","platform":"Bilibili","category":"memory","title":"B站：回响——会自己整理记忆的插件","url":"https://www.bilibili.com/video/BV1tzyjzdE82/","description":"安装 dsh-memory-huixiang，自动整理记忆","pattern":"自动整理+插件","verified":"search-title"},
+    {"id":"BL-15","source":"B站","platform":"Bilibili","category":"memory","title":"B站：由记忆产生人格与主动兴趣","url":"https://www.bilibili.com/opus/1265931745009598500","description":"定时任务、兴趣驱动主动行为","pattern":"记忆→人格→主动性","verified":"search-title"},
+    {"id":"BL-16","source":"B站","platform":"Bilibili","category":"safety","title":"B站：OpenClaw 恶意插件与权限滥用","url":"https://www.bilibili.com/opus/1172822016575668233","description":"MCP 扩展拥有系统级权限，缺少安全边界","pattern":"插件权限+攻击面","verified":"search-title"},
+    {"id":"BL-17","source":"B站","platform":"Bilibili","category":"memory","title":"B站：大肥鱼失忆与日记插件","url":"https://www.bilibili.com/video/BV1tTpq6kEP4/","description":"feiyu-memory 三层记忆，本地保存","pattern":"跨对话记忆+本地","verified":"search-title"},
+    {"id":"BL-18","source":"B站","platform":"Bilibili","category":"channel","title":"B站：开源 AI 微信聊天机器人","url":"https://www.bilibili.com/opus/1036264098306719751","description":"自动回复微信消息、群/好友管理、配置文件","pattern":"微信入口+配置","verified":"search-title"},
+    {"id":"BL-19","source":"B站","platform":"Bilibili","category":"plugin","title":"B站：大肥鱼接梗插件 memewiki","url":"https://www.bilibili.com/video/BV1t7xz6sEvk/","description":"梗 wiki 插件，让回复更活人感","pattern":"插件+语料","verified":"search-title"},
+    {"id":"BL-20","source":"B站","platform":"Bilibili","category":"memory","title":"B站：记忆检索入门与 Agent 人格塑造","url":"https://www.bilibili.com/video/BV1ufZoBpEgr/","description":"VCP 记忆检索与人格结构","pattern":"检索+人格","verified":"search-title"},
+
+    {"id":"DY-11","source":"抖音","platform":"Douyin","category":"memory","title":"抖音：大肥鱼记忆与声音情绪","url":"https://www.douyin.com/shipin/7465502843793950732","description":"接记忆后调声音，让小情绪说出来","pattern":"记忆+情绪表达","verified":"search-title"},
+    {"id":"DY-12","source":"抖音","platform":"Douyin","category":"memory","title":"抖音：Hindsight 跨对话长期记忆","url":"https://www.douyin.com/shipin/7633248074130917376","description":"从每轮对话抽实体/事实/时间戳，注入 system prompt","pattern":"长期记忆+知识图谱","verified":"search-title"},
+    {"id":"DY-13","source":"抖音","platform":"Douyin","category":"companion","title":"抖音：QwenNote Eva 办公陪伴","url":"https://open.douyin.com/player/video?vid=7688259466311027983","description":"办公+情绪陪伴，100 多种表情","pattern":"陪伴+办公","verified":"search-title"},
+    {"id":"DY-14","source":"抖音","platform":"Douyin","category":"memory","title":"抖音：DSH 鱼的记忆插件","url":"https://www.douyin.com/shipin/7286756870071814159","description":"DSH 记忆插件，解决聊久遗忘","pattern":"插件+跨对话","verified":"search-title"},
+    {"id":"DY-15","source":"抖音","platform":"Douyin","category":"memory","title":"抖音：腾讯云 Agent Memory","url":"https://www.douyin.com/shipin/7628045713368418344","description":"从聊天记录提事实、绑场景、形成画像","pattern":"画像+场景记忆","verified":"search-title"},
+    {"id":"DY-16","source":"抖音","platform":"Douyin","category":"companion","title":"抖音：OpenClaw 桌面 AI 宠物","url":"https://www.douyin.com/shipin/7613199673825921066","description":"喂能量、接模型/技能/消息渠道、进化路线","pattern":"桌宠+成长","verified":"search-title"},
+    {"id":"DY-17","source":"抖音","platform":"Douyin","category":"safety","title":"抖音：DSH 官方 session log 隐私开关","url":"https://www.douyin.com/shipin/7620620277751269426","description":"默认上传完整对话改善模型，可关闭","pattern":"隐私+默认开关","verified":"search-title"},
+    {"id":"DY-18","source":"抖音","platform":"Douyin","category":"safety","title":"抖音：AI 龙虾会记住主人密码吗","url":"https://m.douyin.com/shipin/7616196261837916200","description":"多 Agent 共享记忆与密码风险","pattern":"敏感信息+共享记忆","verified":"search-title"},
+    {"id":"DY-19","source":"抖音","platform":"Douyin","category":"channel","title":"抖音：微信龙虾插件收发文件","url":"https://www.douyin.com/shipin/7620979832247126058","description":"聊天框直接召唤 AI，收发文件","pattern":"微信入口+文件","verified":"search-title"},
+    {"id":"DY-20","source":"抖音","platform":"Douyin","category":"plugin","title":"抖音：DSH 记忆卡插件安装","url":"https://www.douyin.com/shipin/7298754135787276323","description":"记忆卡插件与服务控制台","pattern":"插件+控制台","verified":"search-title"}
+  ]
+}
