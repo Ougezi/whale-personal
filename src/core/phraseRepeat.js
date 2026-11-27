@@ -40,6 +40,15 @@ function stripUnbackedActionClaims(text) {
   return '我没法真的动笔，只能在脑子里想一句。';
 }
 
+const DOC_EMPTY_CLAIM = /内容空|内容为空|文件本身(?:就)?(?:是)?空|文件是空|文件本身读不出来|读不出来/;
+
+function stripFalseDocumentClaims(text, { mediaFail = '' } = {}) {
+  const why = String(mediaFail || '');
+  if (!why || !/(找不到|没缓存|下载失败)/.test(why)) return String(text || '');
+  if (!DOC_EMPTY_CLAIM.test(String(text || ''))) return String(text || '');
+  return '这个文件没有下载到本地，我这边打不开，不是内容空。你在聊天里点一下文件让它下载，或把文字贴过来。';
+}
+
 const RESEARCH_CLAIM = /查到了|我查了|搜到了|查到(?:了|过)|我搜了/;
 
 function stripUnbackedResearchClaims(text, { searched = false } = {}) {
@@ -64,4 +73,4 @@ function isImmediateDuplicate(text, recent = []) {
   return Boolean(a && b && a === b);
 }
 
-module.exports = { stripRepeatedArrival, stripUnbackedActionClaims, stripUnbackedBrowseClaims, stripUnbackedResearchClaims, isImmediateDuplicate, ARRIVAL };
+module.exports = { stripRepeatedArrival, stripUnbackedActionClaims, stripUnbackedBrowseClaims, stripUnbackedResearchClaims, stripFalseDocumentClaims, isImmediateDuplicate, ARRIVAL };

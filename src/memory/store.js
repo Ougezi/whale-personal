@@ -20,6 +20,7 @@ const compression = require('./compression');
 const retrieval = require('./retrieval');
 const vectorIndex = require('./vectorIndex');
 const { withTimeout } = require('../infra/async');
+const features = require('../infra/features');
 const format = require('./format');
 const extractor = require('./extractor');
 const migrate = require('./migrate');
