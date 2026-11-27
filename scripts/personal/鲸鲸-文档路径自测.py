@@ -20,5 +20,7 @@ with tempfile.TemporaryDirectory() as tmp:
     c('按文件名找到', d.find_local_file(str(acct), ['1_手册.pdf']) == str(f))
     c('按大小找到', d.find_by_size(str(acct), 3, '.pdf') == str(f))
     c('不存在的文件不误报', d.find_local_file(str(acct), ['nope.pdf']) is None)
+    c('无 GUI 不点击', d._click_file_card(None, 'x.pdf') is False)
+
 print('\n通过 %d/%d' % (P, P + F))
 raise SystemExit(0 if F == 0 else 1)

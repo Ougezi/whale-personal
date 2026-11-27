@@ -105,7 +105,46 @@ def find_by_size(account_dir, size, ext=''):
     return None
 
 
-def download_document(db, downloader, user, local_id, save_dir, hint_name='', hint_size=0, hint_ext=''):
+def _click_file_card(gui, name):
+    """在当前会话点一次文件卡片，触发微信下载；返回是否点到。"""
+    if not gui or not name:
+        return False
+    try:
+        uia = gui._get_uia() if hasattr(gui, '_get_uia') else getattr(gui, '_uia', None)
+        if uia is None or not hasattr(uia, 'find_in_message_list'):
+            return False
+        hit = uia.find_in_message_list(
+            lambda cn, nm: bool(nm) and (name in nm or nm.endswith(name)),
+            match_last=True, max_scrolls=20)
+        if not hit:
+            return False
+        rect = hit[2]
+        x = int((rect.left + rect.right) / 2)
+        y = int((rect.top + rect.bottom) / 2)
+        gui.wx_click(x, y)
+        return True
+    except Exception:
+        return False
+
+
+def _copy_hit(hit, user, local_id, save_dir):
+    os.makedirs(save_dir, exist_ok=True)
+    out = os.path.join(save_dir, '%s_%s_%s' % (user, local_id, os.path.basename(hit)))
+    try:
+        if os.path.exists(out):
+            os.remove(out)
+    except Exception:
+        out = '%s.%d' % (out, int(time.time() * 1000))
+    try:
+        shutil.copy2(hit, out)
+    except Exception:
+        alt = '%s.%d' % (out, int(time.time() * 1000))
+        shutil.copy2(hit, alt)
+        out = alt
+    return out
+
+
+def download_document(db, downloader, user, local_id, save_dir, hint_name='', hint_size=0, hint_ext='', gui=None):
     """返回 (本地路径, 原始文件名)；找不到抛 RuntimeError(原因)。"""
     try:
         rows = db.get_message_rows_for_media(user, int(local_id)) or []
@@ -143,22 +182,21 @@ def download_document(db, downloader, user, local_id, save_dir, hint_name='', hi
         if not hit and hint_size:
             hit = find_by_size(account_dir, hint_size, hint_ext)
         if hit:
-            os.makedirs(save_dir, exist_ok=True)
-            out = os.path.join(save_dir, '%s_%s_%s' % (user, local_id, os.path.basename(hit)))
-            # 同一个消息重复读时目标文件可能已存在且只读：先删，删不掉就换个名字
-            try:
-                if os.path.exists(out):
-                    os.remove(out)
-            except Exception:
-                out = '%s.%d' % (out, int(time.time() * 1000))
-            try:
-                shutil.copy2(hit, out)
-            except Exception:
-                alt = '%s.%d' % (out, int(time.time() * 1000))
-                shutil.copy2(hit, alt)
-                out = alt
+            out = _copy_hit(hit, user, local_id, save_dir)
             if attempt:
                 print('文件等了 %.1f 秒才落盘' % (attempt * 1.0))
             return out, os.path.basename(hit)
         time.sleep(1.0)
+
+    # 本地没有：点一次文件卡片，触发微信自己下载，再等它落盘。
+    if gui and hint_name and _click_file_card(gui, hint_name):
+        for attempt in range(30):
+            hit = find_local_file(account_dir, ordered) if hint_name else None
+            if not hit and hint_size:
+                hit = find_by_size(account_dir, hint_size, hint_ext)
+            if hit:
+                out = _copy_hit(hit, user, local_id, save_dir)
+                print('点击文件卡片后 %.1f 秒落盘' % (attempt * 1.0))
+                return out, os.path.basename(hit)
+            time.sleep(1.0)
     raise RuntimeError('本地找不到这个文件（微信可能没缓存，或不是文件消息）')

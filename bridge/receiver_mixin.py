@@ -779,7 +779,7 @@ class ReceiverMixin:
                 _size = 0
             path, real_name = download_document(
                 self.db, self._get_media(), user, int(lid),
-                G.os.path.join(G.ROOT, 'data', 'media-cache'), doc_name, _size, _ext)
+                G.os.path.join(G.ROOT, 'data', 'media-cache'), doc_name, _size, _ext, gui=getattr(self, 'gui', None))
             if real_name and not doc_name:
                 doc_name = real_name
         except Exception as e:
