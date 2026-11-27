@@ -2123,6 +2123,7 @@ class Bot {
       // 连续两条 assistant 之间没有 user，且内容完全相同：不再发第二遍。
       if (phraseRepeat.isImmediateDuplicate(text, _recent)) return [];
       text = phraseRepeat.stripRepeatedArrival(text, _recent);
+      text = phraseRepeat.stripUnbackedBrowseClaims(text);
       text = phraseRepeat.stripUnbackedActionClaims(text);
       decision.finalText = text;
     } catch { /* 守卫失败不影响回复 */ }

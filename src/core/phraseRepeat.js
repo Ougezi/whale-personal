@@ -31,13 +31,21 @@ function stripRepeatedArrival(text, recent = []) {
   return out || '好，不催了。';
 }
 
-const ACTION_CLAIM = /(?:这次|我)(?:是真的|是|真的|真)?真?(?:写|画|拍|做)(?:了)?(?!\s*[吗?？])|(?:我)?(?:已经|刚|现在)?(?:写|画|拍|做)好了(?!\s*[吗?？])|(?:我)?(?:已经|刚|现在)?(?:写|画|拍|做)了(?:一|两|几)?张(?!\s*[吗?？])|(?:我)?写完了(?!\s*[吗?？])|(?:我)?画完了(?!\s*[吗?？])/;
+const ACTION_CLAIM = /这次(?:是真的|真的|是)?真?写|我(?:是真的|是|真的|真)?写了|我写了一张|(?<!你)写好了(?!\s*[吗?？])|我写完了|我画了|我拍了|我画好了|我拍好了/;
 
 function stripUnbackedActionClaims(text) {
   const t = String(text || '');
   if (!ACTION_CLAIM.test(t)) return t;
   // 只要出现“我写了一张/这次是真写/写好了”这类没有工具结果的动作，整句换成诚实回复。
   return '我没法真的动笔，只能在脑子里想一句。';
+}
+
+const BROWSE_CLAIM = /我(?:刚|刚才|刚刚)?刷(?:回来|完|了)|刚刷回来|我刷回来了/;
+
+function stripUnbackedBrowseClaims(text) {
+  const t = String(text || '');
+  if (!BROWSE_CLAIM.test(t)) return t;
+  return '我没法真的刷抖音/B站，刚才那些是按印象说的，链接我没有。';
 }
 
 function isImmediateDuplicate(text, recent = []) {
@@ -48,4 +56,4 @@ function isImmediateDuplicate(text, recent = []) {
   return Boolean(a && b && a === b);
 }
 
-module.exports = { stripRepeatedArrival, stripUnbackedActionClaims, isImmediateDuplicate, ARRIVAL };
+module.exports = { stripRepeatedArrival, stripUnbackedActionClaims, stripUnbackedBrowseClaims, isImmediateDuplicate, ARRIVAL };
