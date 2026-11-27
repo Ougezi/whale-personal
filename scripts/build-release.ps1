@@ -49,7 +49,7 @@ $build = Join-Path $env:TEMP ('whale-build-' + [guid]::NewGuid().ToString('N').S
 $stage = Join-Path $build $pkgName
 New-Item -ItemType Directory $stage -Force | Out-Null
 $rcArgs = @($root, $stage, '/E', '/NFL', '/NDL', '/NJH', '/NJS', '/NP', '/XD',
-  'data', 'runtime', '.tools', 'artifacts', 'bin', 'obj', 'publish', '.git', 'wechatauto_db', 'wechatauto_logs', '__pycache__', 'whale-girl-*-full', 'backup', '鲸鲸表情包',
+  'data', 'runtime', '.tools', 'artifacts', 'bin', 'obj', 'publish', '.git', 'wechatauto_db', 'wechatauto_logs', '__pycache__', 'dist', 'whale-girl-*-full', 'backup', '鲸鲸表情包',
   '/XF', 'config.json', '*.log', '*.png', '*.jpg', '*.bak-*')
 robocopy @rcArgs | Out-Null
 if ($LASTEXITCODE -ge 8) { Pop-Location; throw "robocopy 失败 $LASTEXITCODE" }
@@ -99,7 +99,7 @@ $fullZip = $null
 if (-not $SkipFull) {
   $fullDir = Join-Path $build $pkgNameFull
   robocopy $stage $fullDir /E /NFL /NDL /NJH /NJS /NP | Out-Null
-  robocopy $rt (Join-Path $fullDir 'runtime') /E /NFL /NDL /NJH /NJS /NP | Out-Null
+  robocopy $rt (Join-Path $fullDir 'runtime') /E /NFL /NDL /NJH /NJS /NP /XD __pycache__ | Out-Null
   # vendor/ 只进源码包：完整包的 runtime\python 里已经装了同一份（构建时按 MANIFEST 校验过），
   # 再带一份纯属重复。安装包（whale.iss）本来就逐项列文件，不会带 vendor。
   $fullVendor = Join-Path $fullDir 'vendor'
