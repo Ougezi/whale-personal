@@ -1590,7 +1590,7 @@ class ReceiverMixin:
                 who = ''
             if not who:
                 who = '群友' if username.endswith('@chatroom') else '微信好友'
-            reason = msg.pop('_media_fail', None) or '空描述（识别结果为空）'
+            reason = msg.get('_media_fail') or '空描述（识别结果为空）'
             G.log_throttled('media-fail:%s:%s' % (msg_id, kind), '识别失败：会话=%s 发送者=%s 类型=%s 消息id=%s 原因=%s' % (G.safe_id(chat), G.safe_name(who), kind, msg_id, reason), emit=G.log_error)
 
         def skipped(reason):
@@ -1871,13 +1871,14 @@ class ReceiverMixin:
                             content = '（对方发了一份文档「%s」，内容如下：\n%s）%s' % (
                                 _doc_name, desc + (('\n' + _doc_note) if _doc_note else ''), _doc_tail)
                     else:
-                        media_failed('文件')
-                        # 带上真实原因：以前只说「没取到」，对方会以为是她偷懒（2026-11-22）
+                        # 先保留真实原因，再记失败日志；media_failed 不能 pop 掉它，
+                        # 否则后面只能拿到“原因未知”，守卫也看不到“下载失败”。
                         _why = ''
                         try:
                             _why = str((msg.get('_media_fail') if isinstance(msg, dict) else '') or '').strip()
                         except Exception:
                             _why = ''
+                        media_failed('文件')
                         if ('没缓存' in _why) or ('找不到' in _why):
                             _advice = ('系统事实：这个文件没有下载到本地（%s），不是空文件、不是内容为空。'
                                        '回复必须直接说“文件还没下载到本地，我这边打不开”，'
