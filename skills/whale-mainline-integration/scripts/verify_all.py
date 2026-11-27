@@ -52,6 +52,7 @@ CASES = [
     ('表达偏好', 'node', 'scripts/personal/鲸鲸-表达偏好自测.js', {}),
     ('反馈账本', 'node', 'scripts/personal/鲸鲸-反馈账本自测.js', {}),
     ('重复消息', 'py', 'tests/test_guards_duplicate.py', {}),
+    ('表情包门禁', 'node', 'scripts/personal/鲸鲸-表情包门禁自测.js', {}),
 ]
 
 

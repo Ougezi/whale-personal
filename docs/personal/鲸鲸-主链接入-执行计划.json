@@ -2275,6 +2275,39 @@
    "tests": [
     "verify_all 40/40"
    ]
+  },
+  {
+   "id": "I-66",
+   "phase": "I",
+   "title": "表情包只按请求发送",
+   "goal": "关闭 mood 自动选分类与 demandChance 提醒；onlyOnRequest=true；显式请求仍可发。",
+   "case_ids": [
+    "EV-003",
+    "EV-004",
+    "EV-005",
+    "EV-006",
+    "EV-007",
+    "EV-008",
+    "EV-009",
+    "EV-010"
+   ],
+   "min_cases": 8,
+   "source_review": [],
+   "files": [
+    "src/adapters/stickers.js",
+    "src/pipeline/chat.js",
+    "src/infra/config.js",
+    "src/infra/configSchema.js"
+   ],
+   "actions": [
+    "onlyOnRequest 门禁",
+    "demandChance=0",
+    "mood 自动分类关闭"
+   ],
+   "tests": [
+    "鲸鲸-表情包门禁自测.js 4/4",
+    "verify_all 41/41"
+   ]
   }
  ]
 }

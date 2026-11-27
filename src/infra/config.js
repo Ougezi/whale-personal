@@ -242,8 +242,9 @@ const DEFAULT_CONFIG = {
     // 这样 1.0 才约等于“每轮都发”；难过/求助的严肃窗口仍然不发。
     // 自定义分类存在 data/sticker-categories.json（不进 config，避免被表单转成字符串）。
     testChat: '文件传输助手', // 启动器「发送测试表情包」默认发到哪
-    demandChance: 0.7,
+    demandChance: 0,
     ensureSend: false,
+    onlyOnRequest: true,
   },
   // 图片理解：默认智谱 GLM-4V-Flash（免费）
   features: {

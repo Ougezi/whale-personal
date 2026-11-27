@@ -1847,6 +1847,13 @@ class Bot {
     }
     const msg = (decision && decision.msg) || {};
     if (msg.platform !== 'wechat' || !msg.chatId) return null;
+    const _userText = String(msg.cleanText || msg.text || '');
+    const _demanded = Boolean(decision && decision.stickerDemand) || stickers.isStickerRequest(_userText);
+    const _onlyOnRequest = !(this.config.sticker && this.config.sticker.onlyOnRequest === false);
+    if (!stickers.shouldSendSticker({ onlyOnRequest: _onlyOnRequest, demanded: _demanded })) {
+      this.logger?.info('[sticker] stage=decision result=skip reason=not-requested');
+      return null;
+    }
     let category = decision && decision.stickerCategory;
     // 模型可能写中文名（开心/撒娇），统一成内部 key 再判断有没有图
     if (category) {

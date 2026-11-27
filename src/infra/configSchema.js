@@ -71,6 +71,7 @@ const FIELDS = {
   'sticker.demandChance': { type: 'float', min: 0, max: 1 },
   // 命中提醒的轮次，模型没写标记也由程序补一张（1.0 + 开启才约等于每轮都发）。
   'sticker.ensureSend': { type: 'bool' },
+  'sticker.onlyOnRequest': { type: 'bool' },
   'sticker.collectReceived': { type: 'bool' },
 
   // ---- 记忆（旧键，运行时只读 constants.js）----
