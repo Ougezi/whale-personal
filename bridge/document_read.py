@@ -356,12 +356,8 @@ def default_max_chars(cfg=None):
     return DEFAULT_MAX_CHARS
 
 
-def describe_document(path, filename, max_chars=None, ocr=None, ocr_pages=3):
-    """下载完成后的提取 + 截断。返回 (text, note)；提取不出文字会抛 ValueError。
-
-    ocr：可选的兜底回调（签名 ocr(path) -> text）。文字层为空时（扫描件 / 图片型 PDF）
-         用它把页面交给视觉接口转写；没传就按原逻辑报错。
-    """
+def describe_document_meta(path, filename, max_chars=None, ocr=None, ocr_pages=3):
+    """提取 + 截断 + 页游标。返回 dict；describe_document 保持旧 (text, note) 兼容。"""
     if max_chars is None:
         max_chars = default_max_chars()
     size = os.path.getsize(path)
@@ -376,18 +372,37 @@ def describe_document(path, filename, max_chars=None, ocr=None, ocr_pages=3):
     text = extract_document_text(path, filename)
     text = re.sub(r'\n{3,}', '\n\n', text).strip()
     ocr_note = ''
+    ocr_used = False
     if not text and ocr is not None:
         try:
             text = str(ocr(path) or '').strip()
         except Exception:
             text = ''
         if text:
+            ocr_used = True
             ocr_note = '（这份是扫描件/图片型 PDF，已 OCR 前 %d 页，文字可能有错漏）' % max(1, int(ocr_pages))
     if not text:
         raise ValueError('没提取出文字：可能是扫描件 / 纯图片 PDF、加密文档，或格式不受支持')
-    page_note = ('（PDF 共 %d 页）' % page_count) if page_count else ''
+    pages_read = None
+    next_cursor = None
+    if page_count:
+        pages_read = min(max(1, int(ocr_pages)), page_count) if ocr_used else page_count
+        if pages_read < page_count:
+            next_cursor = pages_read + 1
+        if ocr_used:
+            page_note = '（PDF 共 %d 页，已 OCR 前 %d 页，下一页第 %d 页）' % (page_count, pages_read, next_cursor)
+        else:
+            page_note = '（PDF 共 %d 页，已读全部）' % page_count
+    else:
+        page_note = ''
     note = ocr_note + page_note
     if len(text) > max_chars:
         note = (note + '（文档较长，已截取前 %d 字）' % max_chars).strip()
         text = text[:max_chars]
-    return text, note
+    return {'text': text, 'note': note, 'page_count': page_count,
+            'pages_read': pages_read, 'next_cursor': next_cursor}
+
+
+def describe_document(path, filename, max_chars=None, ocr=None, ocr_pages=3):
+    m = describe_document_meta(path, filename, max_chars=max_chars, ocr=ocr, ocr_pages=ocr_pages)
+    return m['text'], m['note']

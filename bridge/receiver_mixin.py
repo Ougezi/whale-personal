@@ -812,8 +812,13 @@ class ReceiverMixin:
             if isinstance(msg, dict):
                 msg['_doc_base'] = base
                 msg['_doc_max_chunks'] = max_chunks
-            text, note = doc_read_mod.describe_document(
+            _meta = doc_read_mod.describe_document_meta(
                 path, doc_name, base * max_chunks, ocr=lambda p: self.ocr_pdf(p, doc_name), ocr_pages=3)
+            text, note = _meta['text'], _meta['note']
+            if isinstance(msg, dict):
+                msg['_doc_cursor'] = _meta.get('next_cursor')
+                msg['_doc_pages'] = _meta.get('page_count')
+                msg['_doc_pages_read'] = _meta.get('pages_read')
             if doc_store:
                 try:
                     _h = doc_store.hash_text(text)

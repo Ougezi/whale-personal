@@ -23,6 +23,8 @@ with tempfile.TemporaryDirectory() as tmp:
     c('不存在的文件不误报', d.find_local_file(str(acct), ['nope.pdf']) is None)
     c('无 GUI 不点击', d._click_file_card(None, 'x.pdf') is False)
     c('11MB/64MB 不被 8MB 误挡', dr.MAX_BYTES >= 12 * 1024 * 1024)
+    c('document meta 接口存在', hasattr(dr, 'describe_document_meta'))
+
 
 
 print('\n通过 %d/%d' % (P, P + F))
