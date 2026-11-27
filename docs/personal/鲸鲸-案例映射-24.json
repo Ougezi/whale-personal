@@ -1,0 +1,227 @@
+{
+ "version": 1,
+ "catalog": "docs/personal/鲸鲸-出生技能-案例库-313.json",
+ "catalog_count": 313,
+ "live": "data/integration/evidence/I-36-live.json",
+ "live_count": 24,
+ "runner": "scripts/personal/鲸鲸-真实调用方-24案例.py",
+ "note": "不强行把 24 条 live 映射到 313 条项目案例；只映射到执行器/契约",
+ "rows": [
+  {
+   "live": "GH-01",
+   "source": "GitHub",
+   "op": "success",
+   "runner": "scripts/personal/鲸鲸-真实调用方-24案例.py",
+   "catalog_ids": [],
+   "mapping": "operation-contract",
+   "note": "目录案例是项目样本；live 是调用契约，无 1:1 项目对应"
+  },
+  {
+   "live": "GH-02",
+   "source": "GitHub",
+   "op": "success",
+   "runner": "scripts/personal/鲸鲸-真实调用方-24案例.py",
+   "catalog_ids": [],
+   "mapping": "operation-contract",
+   "note": "目录案例是项目样本；live 是调用契约，无 1:1 项目对应"
+  },
+  {
+   "live": "GH-03",
+   "source": "GitHub",
+   "op": "success",
+   "runner": "scripts/personal/鲸鲸-真实调用方-24案例.py",
+   "catalog_ids": [],
+   "mapping": "operation-contract",
+   "note": "目录案例是项目样本；live 是调用契约，无 1:1 项目对应"
+  },
+  {
+   "live": "GH-04",
+   "source": "GitHub",
+   "op": "success",
+   "runner": "scripts/personal/鲸鲸-真实调用方-24案例.py",
+   "catalog_ids": [],
+   "mapping": "operation-contract",
+   "note": "目录案例是项目样本；live 是调用契约，无 1:1 项目对应"
+  },
+  {
+   "live": "GH-05",
+   "source": "GitHub",
+   "op": "success",
+   "runner": "scripts/personal/鲸鲸-真实调用方-24案例.py",
+   "catalog_ids": [],
+   "mapping": "operation-contract",
+   "note": "目录案例是项目样本；live 是调用契约，无 1:1 项目对应"
+  },
+  {
+   "live": "GH-07",
+   "source": "GitHub",
+   "op": "success",
+   "runner": "scripts/personal/鲸鲸-真实调用方-24案例.py",
+   "catalog_ids": [],
+   "mapping": "operation-contract",
+   "note": "目录案例是项目样本；live 是调用契约，无 1:1 项目对应"
+  },
+  {
+   "live": "GH-08",
+   "source": "GitHub",
+   "op": "success",
+   "runner": "scripts/personal/鲸鲸-真实调用方-24案例.py",
+   "catalog_ids": [],
+   "mapping": "operation-contract",
+   "note": "目录案例是项目样本；live 是调用契约，无 1:1 项目对应"
+  },
+  {
+   "live": "BL-01",
+   "source": "B站",
+   "op": "success",
+   "runner": "scripts/personal/鲸鲸-真实调用方-24案例.py",
+   "catalog_ids": [],
+   "mapping": "operation-contract",
+   "note": "目录案例是项目样本；live 是调用契约，无 1:1 项目对应"
+  },
+  {
+   "live": "BL-02",
+   "source": "B站",
+   "op": "success",
+   "runner": "scripts/personal/鲸鲸-真实调用方-24案例.py",
+   "catalog_ids": [],
+   "mapping": "operation-contract",
+   "note": "目录案例是项目样本；live 是调用契约，无 1:1 项目对应"
+  },
+  {
+   "live": "BL-03",
+   "source": "B站",
+   "op": "success",
+   "runner": "scripts/personal/鲸鲸-真实调用方-24案例.py",
+   "catalog_ids": [],
+   "mapping": "operation-contract",
+   "note": "目录案例是项目样本；live 是调用契约，无 1:1 项目对应"
+  },
+  {
+   "live": "BL-04",
+   "source": "B站",
+   "op": "success",
+   "runner": "scripts/personal/鲸鲸-真实调用方-24案例.py",
+   "catalog_ids": [],
+   "mapping": "operation-contract",
+   "note": "目录案例是项目样本；live 是调用契约，无 1:1 项目对应"
+  },
+  {
+   "live": "BL-05",
+   "source": "B站",
+   "op": "bad-bvid",
+   "runner": "scripts/personal/鲸鲸-真实调用方-24案例.py",
+   "catalog_ids": [],
+   "mapping": "operation-contract",
+   "note": "目录案例是项目样本；live 是调用契约，无 1:1 项目对应"
+  },
+  {
+   "live": "BL-06",
+   "source": "B站",
+   "op": "contract-412",
+   "runner": "scripts/personal/鲸鲸-真实调用方-24案例.py",
+   "catalog_ids": [],
+   "mapping": "operation-contract",
+   "note": "目录案例是项目样本；live 是调用契约，无 1:1 项目对应"
+  },
+  {
+   "live": "BL-07",
+   "source": "B站",
+   "op": "contract-429",
+   "runner": "scripts/personal/鲸鲸-真实调用方-24案例.py",
+   "catalog_ids": [],
+   "mapping": "operation-contract",
+   "note": "目录案例是项目样本；live 是调用契约，无 1:1 项目对应"
+  },
+  {
+   "live": "BL-08",
+   "source": "B站",
+   "op": "contract-injection",
+   "runner": "scripts/personal/鲸鲸-真实调用方-24案例.py",
+   "catalog_ids": [],
+   "mapping": "operation-contract",
+   "note": "目录案例是项目样本；live 是调用契约，无 1:1 项目对应"
+  },
+  {
+   "live": "GH-09",
+   "source": "GitHub",
+   "op": "not-found",
+   "runner": "scripts/personal/鲸鲸-真实调用方-24案例.py",
+   "catalog_ids": [],
+   "mapping": "operation-contract",
+   "note": "目录案例是项目样本；live 是调用契约，无 1:1 项目对应"
+  },
+  {
+   "live": "DY-01",
+   "source": "抖音",
+   "op": "contract-readonly",
+   "runner": "scripts/personal/鲸鲸-真实调用方-24案例.py",
+   "catalog_ids": [],
+   "mapping": "operation-contract",
+   "note": "目录案例是项目样本；live 是调用契约，无 1:1 项目对应"
+  },
+  {
+   "live": "DY-02",
+   "source": "抖音",
+   "op": "contract-hot",
+   "runner": "scripts/personal/鲸鲸-真实调用方-24案例.py",
+   "catalog_ids": [],
+   "mapping": "operation-contract",
+   "note": "目录案例是项目样本；live 是调用契约，无 1:1 项目对应"
+  },
+  {
+   "live": "DY-03",
+   "source": "抖音",
+   "op": "approval-required",
+   "runner": "scripts/personal/鲸鲸-真实调用方-24案例.py",
+   "catalog_ids": [],
+   "mapping": "operation-contract",
+   "note": "目录案例是项目样本；live 是调用契约，无 1:1 项目对应"
+  },
+  {
+   "live": "DY-04",
+   "source": "抖音",
+   "op": "approval-required",
+   "runner": "scripts/personal/鲸鲸-真实调用方-24案例.py",
+   "catalog_ids": [],
+   "mapping": "operation-contract",
+   "note": "目录案例是项目样本；live 是调用契约，无 1:1 项目对应"
+  },
+  {
+   "live": "DY-05",
+   "source": "抖音",
+   "op": "contract-watch",
+   "runner": "scripts/personal/鲸鲸-真实调用方-24案例.py",
+   "catalog_ids": [],
+   "mapping": "operation-contract",
+   "note": "目录案例是项目样本；live 是调用契约，无 1:1 项目对应"
+  },
+  {
+   "live": "DY-06",
+   "source": "抖音",
+   "op": "contract-comments",
+   "runner": "scripts/personal/鲸鲸-真实调用方-24案例.py",
+   "catalog_ids": [],
+   "mapping": "operation-contract",
+   "note": "目录案例是项目样本；live 是调用契约，无 1:1 项目对应"
+  },
+  {
+   "live": "DY-07",
+   "source": "抖音",
+   "op": "contract-download",
+   "runner": "scripts/personal/鲸鲸-真实调用方-24案例.py",
+   "catalog_ids": [],
+   "mapping": "operation-contract",
+   "note": "目录案例是项目样本；live 是调用契约，无 1:1 项目对应"
+  },
+  {
+   "live": "DY-08",
+   "source": "抖音",
+   "op": "contract-errors",
+   "runner": "scripts/personal/鲸鲸-真实调用方-24案例.py",
+   "catalog_ids": [],
+   "mapping": "operation-contract",
+   "note": "目录案例是项目样本；live 是调用契约，无 1:1 项目对应"
+  }
+ ]
+}

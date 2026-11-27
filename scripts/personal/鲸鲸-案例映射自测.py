@@ -2,7 +2,10 @@
 """24 live 契约必须全部有执行器映射；目录 313 只做数量/类别可见，不强行 1:1。"""
 import json, os, sys
 ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-M = json.load(open(os.path.join(ROOT, 'data', 'integration', 'case-map.json'), encoding='utf-8'))
+MAP = os.path.join(ROOT, 'docs', 'personal', '鲸鲸-案例映射-24.json')
+if not os.path.exists(MAP):
+    MAP = os.path.join(ROOT, 'data', 'integration', 'case-map.json')
+M = json.load(open(MAP, encoding='utf-8'))
 P = F = 0
 def c(n, ok, x=''):
     global P, F
