@@ -22,10 +22,13 @@ print('  分布:', dict(src))
 print('  类别:', dict(cat))
 ext_items = []
 try:
-    for fn in ('鲸鲸-平台案例-扩展-20.json', '鲸鲸-平台案例-扩展-20b.json'):
+    for fn in ('鲸鲸-平台案例-扩展-20.json', '鲸鲸-平台案例-扩展-20b.json', '鲸鲸-平台案例-扩展-12.json'):
         ext_items += json.load(open(os.path.join(ROOT, 'docs', 'personal', fn), encoding='utf-8')).get('items') or []
     ext_src = collections.Counter(x.get('source') for x in ext_items)
     c('B站/抖音各 30 条', ext_src.get('B站') == 20 and ext_src.get('抖音') == 20, str(dict(ext_src)))
+    ext_cat = collections.Counter(x.get('category') for x in ext_items)
+    total_cat = cat + ext_cat
+    c('plugin/safety/product 各 >=10', all(total_cat.get(k, 0) >= 10 for k in ('plugin', 'safety', 'product')), str(dict(total_cat)))
 except Exception as e:
     c('B站/抖音各 30 条', False, repr(e))
 

@@ -1,0 +1,18 @@
+{
+  "version": 1,
+  "note": "补 plugin/safety/product 到各 10；GitHub 仓库标题/URL，未克隆。",
+  "items": [
+    {"id":"PL-01","source":"GitHub","platform":"GitHub","category":"plugin","title":"dsh-memory-huixiang 回响记忆插件","url":"https://github.com/JqandCl/dsh-memory-huixiang","description":"自动整理记忆的 DSH 插件","pattern":"记忆插件","verified":"repo-title"},
+    {"id":"PL-02","source":"GitHub","platform":"GitHub","category":"plugin","title":"dsh-memu-memory 长记忆插件","url":"https://github.com/Tkingxiao/dsh-memu-memory","description":"多维记忆 + 向量库，搭配外接人设卡","pattern":"长记忆插件","verified":"repo-title"},
+    {"id":"PL-03","source":"GitHub","platform":"GitHub","category":"plugin","title":"dsh-memewiki 接梗插件","url":"https://github.com/thawline/dsh-memewiki","description":"梗 wiki 语料，让回复更活人感","pattern":"语料插件","verified":"repo-title"},
+    {"id":"SA-01","source":"GitHub","platform":"GitHub","category":"safety","title":"agent-governance-toolkit Agent 治理","url":"https://github.com/microsoft/agent-governance-toolkit","description":"策略执行、零信任身份、沙箱与可靠性","pattern":"治理+沙箱","verified":"repo-title"},
+    {"id":"PR-01","source":"GitHub","platform":"GitHub","category":"product","title":"dsh-whale-wechat 微信陪伴角色","url":"https://github.com/SenuMirai/dsh-whale-wechat","description":"私聊/群聊、@/引用/语音、后台发送","pattern":"微信产品化","verified":"repo-title"},
+    {"id":"PR-02","source":"GitHub","platform":"GitHub","category":"product","title":"dsh-whale-douyin 抖音观看插件","url":"https://github.com/SenuMirai/dsh-whale-douyin","description":"刷抖音、写进记忆中枢","pattern":"抖音产品化","verified":"repo-title"},
+    {"id":"PR-03","source":"GitHub","platform":"GitHub","category":"product","title":"dsh-whale-qq QQ 陪伴","url":"https://github.com/SenuMirai/dsh-whale-qq","description":"QQ 群聊/私聊、语音、表情包","pattern":"QQ产品化","verified":"repo-title"},
+    {"id":"PR-04","source":"GitHub","platform":"GitHub","category":"product","title":"dsh-world 完整世界","url":"https://github.com/chenkezhen480/dsh-world","description":"记忆、压缩、人设卡、微信/QQ、桌面操作","pattern":"多世界产品","verified":"repo-title"},
+    {"id":"PR-05","source":"GitHub","platform":"GitHub","category":"product","title":"dsh-companion-unified 多平台整合","url":"https://github.com/goj177/dsh-companion-unified","description":"QQ/B站/贴吧、人设、记忆、心情、主动活动","pattern":"多平台产品","verified":"repo-title"},
+    {"id":"PR-06","source":"GitHub","platform":"GitHub","category":"product","title":"deepseek-harness-desktop 桌面端","url":"https://github.com/dsh-tauri/deepseek-harness-desktop","description":"DSH 桌面产品外壳","pattern":"桌面产品","verified":"repo-title"},
+    {"id":"PR-07","source":"GitHub","platform":"GitHub","category":"product","title":"EAC-Desktop 桌面工作台","url":"https://github.com/Ebony-Vinyl/EAC-Desktop","description":"本地优先 AI Agent 桌面工作台","pattern":"工作台","verified":"repo-title"},
+    {"id":"PR-08","source":"GitHub","platform":"GitHub","category":"product","title":"cc-haha 多 Agent 桌面","url":"https://github.com/NanmiCoder/cc-haha","description":"多 Agent、Worktree、Diff、技能市场、桌面宠物","pattern":"多Agent桌面","verified":"repo-title"}
+  ]
+}
