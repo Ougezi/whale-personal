@@ -1092,9 +1092,18 @@ class Bot {
         backlogLine = backlog.hint(chatObj.messages, { now: nowMs, currentSeq });
       }
     } catch { /* 漏回检测失败不影响回复 */ }
+    let referentLine = '';
+    try {
+      const _t = String(clean && clean.text || '');
+      const _lastSticker = [...(recentEvents || [])].reverse().find((e) => e && e.type === 'sticker');
+      if (_lastSticker && /这个(?:是)?什么|这是什么|刚才(?:那个|那张)?(?:图|表情)|表情包.*什么/.test(_t)) {
+        const _cat = String(_lastSticker.detail || '').split('/')[0] || '表情';
+        referentLine = `【指代】你刚发过一张「${_cat}」表情包，主人现在很可能是在问它；先回答这张表情包/图，不要继续讲上一个故事。`;
+      }
+    } catch { /* 指代提示失败不影响回复 */ }
     const innerLine = promptBudgetCore.fitBlocks([
       { key: 'mood', text: moodLine }, { key: 'affectCore', text: affectCoreLine }, { key: 'hobby', text: hobbyLine }, { key: 'thought', text: thoughtLine },
-      { key: 'notes', text: notesLine }, { key: 'exprPref', text: (() => { try { return expressionPolicy.line(expressionPolicy.load((this.config && this.config.paths && this.config.paths.dataDir) || path.join(process.cwd(), 'data'), { scope: isGroup ? ('chat:' + key) : 'master-private' })); } catch { return ''; } })() }, { key: 'empathy', text: empathyLine },
+      { key: 'referent', text: referentLine }, { key: 'notes', text: notesLine }, { key: 'exprPref', text: (() => { try { return expressionPolicy.line(expressionPolicy.load((this.config && this.config.paths && this.config.paths.dataDir) || path.join(process.cwd(), 'data'), { scope: isGroup ? ('chat:' + key) : 'master-private' })); } catch { return ''; } })() }, { key: 'empathy', text: empathyLine },
       { key: 'concern', text: concernLine }, { key: 'nick', text: nickLine },
       { key: 'coref', text: corefLine }, { key: 'intent', text: intentLine },
       { key: 'pin', text: pinLine }, { key: 'skill', text: skillLine },

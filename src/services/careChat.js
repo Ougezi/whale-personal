@@ -35,7 +35,10 @@ function pickFreshTemplate(recent = [], rng = Math.random) {
 async function careForChat(runtime, chatId) {
   const personaCfg = runtime.config.persona || {};
   const name = String(personaCfg.ownerName || '主人');
-  const hour = time.hourOfDay(Date.now(), time.resolveTimeZone(runtime.config));
+  const nowMs = Date.now();
+  const tz = time.resolveTimeZone(runtime.config);
+  const hour = time.hourOfDay(nowMs, tz);
+  const nowText = time.formatDateTime(nowMs, tz);
   let recent = [];
   if (chatId) {
     // 会话 key 可能是私聊（wechat:u:<id>）也可能是群（wechat:g:<id>），两边都试
@@ -45,7 +48,10 @@ async function careForChat(runtime, chatId) {
         if (msgs.length) {
           recent = msgs
             .filter((m) => m && m.text)
-            .map((m) => `${m.role === 'user' ? '对方' : (personaCfg.name || '我')}：${String(m.text).slice(0, 60)}`);
+            .map((m) => {
+              const stamp = time.formatDateTime(Number(m.ts) || nowMs, tz);
+              return `[${stamp}] ${m.role === 'user' ? '对方' : (personaCfg.name || '我')}：${String(m.text).slice(0, 60)}`;
+            });
           break;
         }
       } catch {
@@ -63,6 +69,7 @@ async function careForChat(runtime, chatId) {
       recent,
       name,
       hour,
+      nowText,
       want: desire.needy ? desire.want : null,
       wantLine: desire.needy ? desire.line : '',
       interestLine: features.isOn(runtime.config, 'hobbies') && desire.needy ? (hobby.topic(runtime.config, desire.want) || {}).name || '' : '',
