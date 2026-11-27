@@ -1,20 +1,18 @@
 {
-    "latest":  "4.9.3",
-    "released_at":  "2026-11-24T19:17:58Z",
-    "force_after_hours":  0,
-    "force":  false,
-    "force_from":  null,
-    "force_versions":  [
-
-                       ],
-    "kill_below":  null,
-    "message":  "鲸鲸 · 个人版 4.9.3：委托边界放行用户 Temp，支持 brain-roots.json 自定义允许目录",
-    "manifest_version":  18,
-    "channel":  "personal",
-    "update_warning":  "",
-    "update_warning_version":  "",
-    "epoch":  1,
-    "brand_latest":  "4.9.3",
-    "target":  "4.9.3",
-    "release_notes":  "- 情绪：三轴 + 七情（各自半衰期）+ 六欲（会饿）+ 耦合与反刍，增量与衰减都是区间随机\n- 念头流：3~5 条短念头跨轮携带、3 小时淡掉；可选模型生成（默认 30 分钟一条）\n- 自主上网：每 180 分钟刷一条热榜，用自己的话说一句并写回情绪；微信私聊说「去看看」也能触发\n- 主动搭话：到点 + 真缺了才开口（care.followDesire），状态文件读不到时放行\n- 更新渠道：改为本仓库（Ougezi/whale-personal），不再跟随官方发版"
+    "latest": "4.10.0",
+    "released_at": "2026-11-27T06:44:12Z",
+    "force_after_hours": 0,
+    "force": false,
+    "force_from": null,
+    "force_versions": [],
+    "kill_below": null,
+    "message": "鲸鲸 · 个人版 4.10.0：群聊@500修复；文档下载失败不再谎称空；PDF 128MB/页数/OCR游标；表情包只在请求时发；案例底座扩展",
+    "manifest_version": 19,
+    "channel": "personal",
+    "update_warning": "",
+    "update_warning_version": "",
+    "epoch": 1,
+    "brand_latest": "4.10.0",
+    "target": "4.10.0",
+    "release_notes": "- 群聊 @ 500 修复\n- 文档下载失败/内容空误报修复\n- PDF 128MB、页数、OCR 前3页与 next_cursor\n- 表情包只在明确请求时发\n- 案例底座 313+52，平台 live 24/24\n- 兴趣实验由主人 waiver 跳过，未通过"
 }
