@@ -109,6 +109,13 @@ def _click_file_card(gui, name):
     """在当前会话点一次文件卡片，触发微信下载；返回是否点到。"""
     if not gui or not name:
         return False
+    # 微信 4.x 若没有独立 render 子窗口，wx_click 回退到主窗口也点不到自绘卡片；
+    # 这种情况下不要再假装点击、白等 30 秒，直接走诚实失败。
+    try:
+        if int(getattr(gui, 'render_hwnd', 0) or 0) == int(getattr(gui, 'main_hwnd', 0) or 0):
+            return False
+    except Exception:
+        return False
     try:
         uia = gui._get_uia() if hasattr(gui, '_get_uia') else getattr(gui, '_uia', None)
         if uia is None or not hasattr(uia, 'find_in_message_list'):
