@@ -2802,6 +2802,38 @@
     "案例覆盖 7/7",
     "verify_all 46/46"
    ]
+  },
+  {
+   "id": "I-83",
+   "phase": "I",
+   "title": "3 个 GitHub 案例源码级拆解",
+   "goal": "MinerU/memvid/dsh-whale-wechat 只读 README，提炼分页/记忆版本/UIA 回退模式。",
+   "case_ids": [
+    "EV-003",
+    "EV-004",
+    "EV-005",
+    "EV-006",
+    "EV-007",
+    "EV-008",
+    "EV-009",
+    "EV-010"
+   ],
+   "min_cases": 8,
+   "source_review": [
+    "MinerU",
+    "memvid",
+    "dsh-whale-wechat"
+   ],
+   "files": [
+    "docs/personal/鲸鲸-案例源码拆解-3.md"
+   ],
+   "actions": [
+    "README 拆解",
+    "可落地建议"
+   ],
+   "tests": [
+    "verify_all 46/46"
+   ]
   }
  ]
 }
