@@ -813,7 +813,7 @@ class ReceiverMixin:
                 msg['_doc_base'] = base
                 msg['_doc_max_chunks'] = max_chunks
             text, note = doc_read_mod.describe_document(
-                path, doc_name, base * max_chunks, ocr=lambda p: self.ocr_pdf(p, doc_name))
+                path, doc_name, base * max_chunks, ocr=lambda p: self.ocr_pdf(p, doc_name), ocr_pages=3)
             if doc_store:
                 try:
                     _h = doc_store.hash_text(text)

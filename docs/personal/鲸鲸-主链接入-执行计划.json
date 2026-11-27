@@ -2834,6 +2834,38 @@
    "tests": [
     "verify_all 46/46"
    ]
+  },
+  {
+   "id": "I-84",
+   "phase": "I",
+   "title": "PDF 页数/已读范围",
+   "goal": "PDF 保留页码；扫描件说明 OCR 前3页；真实74页扫描件验证；实验14:30。",
+   "case_ids": [
+    "EV-003",
+    "EV-004",
+    "EV-005",
+    "EV-006",
+    "EV-007",
+    "EV-008",
+    "EV-009",
+    "EV-010"
+   ],
+   "min_cases": 8,
+   "source_review": [
+    "MinerU"
+   ],
+   "files": [
+    "bridge/document_read.py",
+    "bridge/receiver_mixin.py"
+   ],
+   "actions": [
+    "page_count",
+    "page markers",
+    "ocr_pages note"
+   ],
+   "tests": [
+    "verify_all 46/46"
+   ]
   }
  ]
 }

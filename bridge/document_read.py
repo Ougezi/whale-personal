@@ -32,7 +32,14 @@ def _vendor_path():
     return vendor
 
 
+def pdf_page_count(path):
+    _vendor_path()
+    import pypdfium2 as pdfium
+    return len(pdfium.PdfDocument(path))
+
+
 def extract_pdf(path):
+    """按页提取；保留页码，方便模型引用“第几页”，而不是只吃一大坨。"""
     _vendor_path()
     import pypdfium2 as pdfium
     pdf = pdfium.PdfDocument(path)
@@ -43,7 +50,7 @@ def extract_pdf(path):
         except Exception:
             piece = ''
         if piece:
-            parts.append(piece)
+            parts.append('【第 %d 页】\n%s' % (i + 1, piece))
     return '\n'.join(parts)
 
 
@@ -349,7 +356,7 @@ def default_max_chars(cfg=None):
     return DEFAULT_MAX_CHARS
 
 
-def describe_document(path, filename, max_chars=None, ocr=None):
+def describe_document(path, filename, max_chars=None, ocr=None, ocr_pages=3):
     """下载完成后的提取 + 截断。返回 (text, note)；提取不出文字会抛 ValueError。
 
     ocr：可选的兜底回调（签名 ocr(path) -> text）。文字层为空时（扫描件 / 图片型 PDF）
@@ -360,6 +367,12 @@ def describe_document(path, filename, max_chars=None, ocr=None):
     size = os.path.getsize(path)
     if size > MAX_BYTES:
         raise ValueError('文件太大（%.1f MB，上限 128 MB），没读' % (size / 1024 / 1024))
+    page_count = None
+    try:
+        if os.path.splitext(str(filename or path))[1].lower() == '.pdf':
+            page_count = pdf_page_count(path)
+    except Exception:
+        page_count = None
     text = extract_document_text(path, filename)
     text = re.sub(r'\n{3,}', '\n\n', text).strip()
     ocr_note = ''
@@ -369,10 +382,11 @@ def describe_document(path, filename, max_chars=None, ocr=None):
         except Exception:
             text = ''
         if text:
-            ocr_note = '（这份是扫描件/图片型 PDF，文字由视觉识别得出，可能有错漏）'
+            ocr_note = '（这份是扫描件/图片型 PDF，已 OCR 前 %d 页，文字可能有错漏）' % max(1, int(ocr_pages))
     if not text:
         raise ValueError('没提取出文字：可能是扫描件 / 纯图片 PDF、加密文档，或格式不受支持')
-    note = ocr_note
+    page_note = ('（PDF 共 %d 页）' % page_count) if page_count else ''
+    note = ocr_note + page_note
     if len(text) > max_chars:
         note = (note + '（文档较长，已截取前 %d 字）' % max_chars).strip()
         text = text[:max_chars]
