@@ -1,6 +1,6 @@
 'use strict';
 const assert = require('node:assert');
-const { stripRepeatedArrival, stripUnbackedActionClaims, stripUnbackedBrowseClaims, isImmediateDuplicate } = require('../../src/core/phraseRepeat.js');
+const { stripRepeatedArrival, stripUnbackedActionClaims, stripUnbackedBrowseClaims, stripUnbackedResearchClaims, isImmediateDuplicate } = require('../../src/core/phraseRepeat.js');
 let p=0,f=0;
 function c(n,fn){try{fn();p++;console.log('  ✓ '+n);}catch(e){f++;console.log('  ✗ '+n+' '+e.message);}}
 const twice=[{role:'assistant',text:'到家了跟我说一声。'},{role:'assistant',text:'路上小心，到家说一声。'}];
@@ -11,6 +11,7 @@ c('无叮嘱不改',()=>assert.strictEqual(stripRepeatedArrival('今天有点累
 c('全删给不催短句',()=>assert.strictEqual(stripRepeatedArrival('到家了跟我说一声。',twice),'好，不催了。'));
 c('没动作不声称写好',()=>assert.ok(!stripUnbackedActionClaims('现在写好了也先不给你看').includes('写好了')));
 c('没动作不声称写了一张',()=>assert.ok(!stripUnbackedActionClaims('我写了一张，压在盒子最上面').includes('写了一张')));
+c('无来源查到了被替换',()=>assert.ok(!stripUnbackedResearchClaims('查到了：《流氓叙事》是6人本').includes('查到了')));
 c('我写的是不误拦',()=>assert.strictEqual(stripUnbackedActionClaims('我写的是那个老板娘'),'我写的是那个老板娘'));
 c('刷回来了无来源替换',()=>assert.ok(!stripUnbackedBrowseClaims('我刷回来了，这轮有几条').includes('刷回来')));
 c('这次是真写也拦',()=>assert.ok(!stripUnbackedActionClaims('这次是真写。我写了一张。').includes('真写')));

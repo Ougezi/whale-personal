@@ -40,6 +40,14 @@ function stripUnbackedActionClaims(text) {
   return '我没法真的动笔，只能在脑子里想一句。';
 }
 
+const RESEARCH_CLAIM = /查到了|我查了|搜到了|查到(?:了|过)|我搜了/;
+
+function stripUnbackedResearchClaims(text, { searched = false } = {}) {
+  const t = String(text || '');
+  if (!RESEARCH_CLAIM.test(t) || searched) return t;
+  return '我没真的查到可靠来源，刚才那些不能当准；我先把查到的东西放一放。';
+}
+
 const BROWSE_CLAIM = /我(?:刚|刚才|刚刚)?刷(?:回来|完|了)|刚刷回来|我刷回来了/;
 
 function stripUnbackedBrowseClaims(text) {
@@ -56,4 +64,4 @@ function isImmediateDuplicate(text, recent = []) {
   return Boolean(a && b && a === b);
 }
 
-module.exports = { stripRepeatedArrival, stripUnbackedActionClaims, stripUnbackedBrowseClaims, isImmediateDuplicate, ARRIVAL };
+module.exports = { stripRepeatedArrival, stripUnbackedActionClaims, stripUnbackedBrowseClaims, stripUnbackedResearchClaims, isImmediateDuplicate, ARRIVAL };

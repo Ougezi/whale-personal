@@ -2140,6 +2140,7 @@ class Bot {
       if (phraseRepeat.isImmediateDuplicate(text, _recent)) return [];
       text = phraseRepeat.stripRepeatedArrival(text, _recent);
       text = phraseRepeat.stripUnbackedBrowseClaims(text);
+      text = phraseRepeat.stripUnbackedResearchClaims(text, { searched: Boolean(decision.msg && (decision.msg.webSearchStatus === 'ok' || decision.msg.webText)) });
       text = phraseRepeat.stripUnbackedActionClaims(text);
       decision.finalText = text;
     } catch { /* 守卫失败不影响回复 */ }
