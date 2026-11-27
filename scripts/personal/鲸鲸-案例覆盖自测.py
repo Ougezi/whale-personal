@@ -20,13 +20,14 @@ src = collections.Counter(x.get('source') for x in items)
 cat = collections.Counter(x.get('category') for x in items)
 print('  分布:', dict(src))
 print('  类别:', dict(cat))
-ext_path = os.path.join(ROOT, 'docs', 'personal', '鲸鲸-平台案例-扩展-20.json')
+ext_items = []
 try:
-    ext = json.load(open(ext_path, encoding='utf-8')).get('items') or []
-    ext_src = collections.Counter(x.get('source') for x in ext)
-    c('B站/抖音扩展各 10 条', len(ext) == 20 and ext_src.get('B站') == 10 and ext_src.get('抖音') == 10, str(dict(ext_src)))
+    for fn in ('鲸鲸-平台案例-扩展-20.json', '鲸鲸-平台案例-扩展-20b.json'):
+        ext_items += json.load(open(os.path.join(ROOT, 'docs', 'personal', fn), encoding='utf-8')).get('items') or []
+    ext_src = collections.Counter(x.get('source') for x in ext_items)
+    c('B站/抖音各 30 条', ext_src.get('B站') == 20 and ext_src.get('抖音') == 20, str(dict(ext_src)))
 except Exception as e:
-    c('B站/抖音扩展各 10 条', False, repr(e))
+    c('B站/抖音各 30 条', False, repr(e))
 
 c('GitHub/B站/抖音三源都有', all(src.get(k, 0) >= 10 for k in ('GitHub', 'B站', '抖音')), str(dict(src)))
 try:

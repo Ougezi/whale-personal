@@ -1,0 +1,27 @@
+{
+  "version": 1,
+  "note": "B站/抖音各再补 10 条真实公开页；verified=search-title；未逐条转录正文。",
+  "items": [
+    {"id":"BL-21","source":"B站","platform":"Bilibili","category":"channel","title":"B站：一个插件让大肥鱼住进微信群","url":"https://www.bilibili.com/video/BV1XHxs6sESK/","description":"DSH 微信桥接入，群聊/私聊","pattern":"微信入口+桥接","verified":"search-title"},
+    {"id":"BL-22","source":"B站","platform":"Bilibili","category":"safety","title":"B站：Agent Identity + Secret Manager 最小权限","url":"https://www.bilibili.com/video/BV116A3zvEoG/","description":"为 Agent 配身份、密钥与最小权限，防越权","pattern":"身份+最小权限","verified":"search-title"},
+    {"id":"BL-23","source":"B站","platform":"Bilibili","category":"safety","title":"B站：acpx 插件权限配置","url":"https://www.bilibili.com/opus/1178716992318734342","description":"ACP 会话无 TTY，权限模式需预先配置","pattern":"非交互权限","verified":"search-title"},
+    {"id":"BL-24","source":"B站","platform":"Bilibili","category":"product","title":"B站：微信表情包 IP 上架","url":"https://www.bilibili.com/read/cv22906085/","description":"品牌 IP 表情包上架微信表情商店","pattern":"表情包+产品","verified":"search-title"},
+    {"id":"BL-25","source":"B站","platform":"Bilibili","category":"plugin","title":"B站：Pointy 指哪问哪插件","url":"https://www.bilibili.com/video/BV1Ha4i63ESF/","description":"晃鼠标指住界面元素提问，答案原地弹出","pattern":"插件+桌面感知","verified":"search-title"},
+    {"id":"BL-26","source":"B站","platform":"Bilibili","category":"memory","title":"B站：多 Agent 共享一个人格 Soul","url":"https://www.bilibili.com/opus/1178239980378521602","description":"多个 Agent 共享事件/人格，记忆文件稳定导出","pattern":"多Agent+人格共享","verified":"search-title"},
+    {"id":"BL-27","source":"B站","platform":"Bilibili","category":"safety","title":"B站：Clawith 持久身份、长期记忆与沙箱","url":"https://m.bilibili.com/opus/1179294510799126563","description":"soul.md、memory.md、沙箱执行与审批流","pattern":"沙箱+审批","verified":"search-title"},
+    {"id":"BL-28","source":"B站","platform":"Bilibili","category":"channel","title":"B站：DSH 大肥鱼接进微信，零延迟不碰键鼠","url":"https://www.bilibili.com/video/BV1kAH36xEmY/","description":"微信进程内收发，同一模型/记忆/插件","pattern":"微信通道+零延迟","verified":"search-title"},
+    {"id":"BL-29","source":"B站","platform":"Bilibili","category":"memory","title":"B站：OpenClaw 主动记忆 Active Memory","url":"https://www.bilibili.com/opus/1189897634035269633","description":"主回复前由记忆子代理拉取偏好/上下文","pattern":"主动召回","verified":"search-title"},
+    {"id":"BL-30","source":"B站","platform":"Bilibili","category":"memory","title":"B站：Clawdbot 自动记忆分层","url":"https://www.bilibili.com/opus/1165175742102765603","description":"背景档案、任务记忆、MEMORY.md、每日笔记","pattern":"分层记忆","verified":"search-title"},
+
+    {"id":"DY-21","source":"抖音","platform":"Douyin","category":"memory","title":"抖音：DSH memsearch 长期记忆","url":"https://www.douyin.com/shipin/7279649051933558845","description":"每次对话按天记笔记，下次自动翻出相关记忆","pattern":"日记+检索","verified":"search-title"},
+    {"id":"DY-22","source":"抖音","platform":"Douyin","category":"memory","title":"抖音：OpenClaw 主动性、人格、记忆","url":"https://www.douyin.com/shipin/7616539660516509731","description":"三个模块：主动性、人格、记忆","pattern":"人格+主动","verified":"search-title"},
+    {"id":"DY-23","source":"抖音","platform":"Douyin","category":"channel","title":"抖音：大肥鱼接入微信保姆级教程","url":"https://www.douyin.com/shipin/7468479680216123426","description":"从下载 DSH 到接入微信","pattern":"部署+微信","verified":"search-title"},
+    {"id":"DY-24","source":"抖音","platform":"Douyin","category":"memory","title":"抖音：DSH AstrBot 多端记忆共享","url":"https://www.douyin.com/shipin/7272124570574899237","description":"QQ/微信消息互通，记忆共享，主动聊天","pattern":"多端+记忆共享","verified":"search-title"},
+    {"id":"DY-25","source":"抖音","platform":"Douyin","category":"companion","title":"抖音：长期记忆+持续情绪交互","url":"https://www.douyin.com/shipin/7631740695736322098","description":"自定义人设、长期记忆、情绪交互、角色扮演","pattern":"情绪+长期记忆","verified":"search-title"},
+    {"id":"DY-26","source":"抖音","platform":"Douyin","category":"channel","title":"抖音：龙虾读电脑文件，但发不回手机","url":"https://www.douyin.com/shipin/7620975187726682152","description":"微信发文件给龙虾能读，处理结果发回手机做不到","pattern":"文件边界","verified":"search-title"},
+    {"id":"DY-27","source":"抖音","platform":"Douyin","category":"plugin","title":"抖音：大肥鱼记忆/防抖/表情包/定时任务","url":"https://www.douyin.com/shipin/7605798854176507940","description":"插件方向：记忆、消息防抖、表情包、定时任务","pattern":"插件能力面","verified":"search-title"},
+    {"id":"DY-28","source":"抖音","platform":"Douyin","category":"channel","title":"抖音：微信龙虾插件上线","url":"https://www.douyin.com/shipin/7621717621360920619","description":"扫码/命令接入，收发图片/文件","pattern":"平台入口","verified":"search-title"},
+    {"id":"DY-29","source":"抖音","platform":"Douyin","category":"memory","title":"抖音：DSH memory evo 长期记忆插件","url":"https://www.douyin.com/shipin/7289273033242658868","description":"保存个人偏好、工作经验为长期记忆","pattern":"偏好+长期记忆","verified":"search-title"},
+    {"id":"DY-30","source":"抖音","platform":"Douyin","category":"plugin","title":"抖音：qq-bridge + SnowLuma 表情包/人格","url":"https://www.douyin.com/shipin/7321017038208796684","description":"QQ 桥接、表情包、人格卡、管理口令","pattern":"桥接+表情","verified":"search-title"}
+  ]
+}
