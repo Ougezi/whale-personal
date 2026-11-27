@@ -7,6 +7,7 @@ c('连续重复丢弃', () => assert.strictEqual(applyFinalGuards('在呢', { re
 c('无来源刷回来替换', () => assert.ok(!applyFinalGuards('我刷回来了', {}).text.includes('刷回来')));
 c('无来源查到了替换', () => assert.ok(!applyFinalGuards('查到了：6人本', {}).text.includes('查到了')));
 c('文件失败不称空', () => assert.ok(applyFinalGuards('文件到我这空', { mediaFail: '文件下载失败：找不到' }).text.includes('没有下载到本地')));
+c('文件失败不责怪用户',()=>assert.ok(!applyFinalGuards('你要是真想看就别一遍遍发文件了',{mediaFail:'文件下载失败：找不到'}).text.includes('一遍遍')));
 c('有搜索来源保留', () => assert.strictEqual(applyFinalGuards('查到了：6人本', { searched: true }).text, '查到了：6人本'));
 c('普通文本不误改', () => assert.strictEqual(applyFinalGuards('今天有点累', {}).text, '今天有点累'));
 console.log('\n通过 ' + p + '/' + (p + f));

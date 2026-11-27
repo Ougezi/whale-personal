@@ -13,6 +13,7 @@ function applyFinalGuards(text, { recent = [], mediaFail = '', searched = false 
   t = phrase.stripUnbackedBrowseClaims(t);
   t = phrase.stripUnbackedResearchClaims(t, { searched });
   t = phrase.stripFalseDocumentClaims(t, { mediaFail });
+  t = phrase.stripDefensiveFileTone(t, { mediaFail });
   t = phrase.stripUnbackedActionClaims(t);
   return { drop: false, text: t };
 }

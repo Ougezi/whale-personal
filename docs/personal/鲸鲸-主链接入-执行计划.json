@@ -2557,6 +2557,36 @@
     "主链加载 8/8",
     "verify_all 44/44"
    ]
+  },
+  {
+   "id": "I-75",
+   "phase": "I",
+   "title": "重复请求语气守卫",
+   "goal": "文件失败/重复请求不责怪用户；finalGuards 处理防御性语气；实验 13:20。",
+   "case_ids": [
+    "EV-003",
+    "EV-004",
+    "EV-005",
+    "EV-006",
+    "EV-007",
+    "EV-008",
+    "EV-009",
+    "EV-010"
+   ],
+   "min_cases": 8,
+   "source_review": [],
+   "files": [
+    "src/core/phraseRepeat.js",
+    "src/pipeline/finalGuards.js",
+    "src/persona/prompt.js"
+   ],
+   "actions": [
+    "defensive tone guard"
+   ],
+   "tests": [
+    "final守卫 7/7",
+    "verify_all 44/44"
+   ]
   }
  ]
 }

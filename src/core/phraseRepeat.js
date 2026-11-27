@@ -49,6 +49,14 @@ function stripFalseDocumentClaims(text, { mediaFail = '' } = {}) {
   return '这个文件没有下载到本地，我这边打不开，不是内容空。你在聊天里点一下文件让它下载，或把文字贴过来。';
 }
 
+const DEFENSIVE = /别一遍遍|别一直发|你怎么又|不是我的问题|别怪我|真想让.*就|一遍遍发/;
+function stripDefensiveFileTone(text, { mediaFail = '' } = {}) {
+  const t = String(text || '');
+  if (!DEFENSIVE.test(t)) return t;
+  if (!mediaFail && !/(文件|pdf|PDF|手册|下载|打不开|读不出)/.test(t)) return t;
+  return '文件还是没下载到本地，我这边打不开；先不用重复发了，你方便时贴一段文字或截图就行。';
+}
+
 const RESEARCH_CLAIM = /查到了|我查了|搜到了|查到(?:了|过)|我搜了/;
 
 function stripUnbackedResearchClaims(text, { searched = false } = {}) {
@@ -73,4 +81,4 @@ function isImmediateDuplicate(text, recent = []) {
   return Boolean(a && b && a === b);
 }
 
-module.exports = { stripRepeatedArrival, stripUnbackedActionClaims, stripUnbackedBrowseClaims, stripUnbackedResearchClaims, stripFalseDocumentClaims, isImmediateDuplicate, ARRIVAL };
+module.exports = { stripRepeatedArrival, stripUnbackedActionClaims, stripUnbackedBrowseClaims, stripUnbackedResearchClaims, stripFalseDocumentClaims, stripDefensiveFileTone, isImmediateDuplicate, ARRIVAL };
