@@ -810,7 +810,6 @@ class Store {
     }
     if (cfg) {
       try {
-        const features = require('../infra/features');
         this.limits.relationsEnabled = features.isOn(cfg, 'relations');
       } catch { /* 读不到就保持原值 */ }
     }

@@ -2488,6 +2488,41 @@
     "鲸鲸-文档路径自测.py 4/4",
     "verify_all 42/42"
    ]
+  },
+  {
+   "id": "I-73",
+   "phase": "I",
+   "title": "全链路代码审计",
+   "goal": "检查主链/记忆/群聊/文档/表情/偏好/实验；记录剩余风险与结构债务。",
+   "case_ids": [
+    "EV-003",
+    "EV-004",
+    "EV-005",
+    "EV-006",
+    "EV-007",
+    "EV-008",
+    "EV-009",
+    "EV-010"
+   ],
+   "min_cases": 8,
+   "source_review": [
+    "memory/store.js",
+    "pipeline/chat.js",
+    "bridge/doc_download.py",
+    "bridge/receiver_mixin.py",
+    "core/expressionPolicy.js"
+   ],
+   "files": [
+    "docs/personal/鲸鲸-全链路代码审计-20261127.md"
+   ],
+   "actions": [
+    "运行证据",
+    "日志扫描",
+    "结构评估"
+   ],
+   "tests": [
+    "verify_all 42/42"
+   ]
   }
  ]
 }
