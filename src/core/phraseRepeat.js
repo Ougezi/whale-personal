@@ -57,6 +57,19 @@ function stripDefensiveFileTone(text, { mediaFail = '' } = {}) {
   return '文件还是没下载到本地，我这边打不开；先不用重复发了，你方便时贴一段文字或截图就行。';
 }
 
+const TRUNC_ASK = /没打完|没发完|是不是断了|断了吧|被截断|截断|发一半|只发了一半/;
+const TRUNC_ADMIT = /没打完|没发完|断了|被截断|截断|发一半|只发了一半/;
+function stripFalseTruncationAdmission(text, { userText = '', recent = [] } = {}) {
+  const t = String(text || '');
+  if (!TRUNC_ASK.test(String(userText || '')) || !TRUNC_ADMIT.test(t)) return t;
+  const last = [...(recent || [])].reverse().find((m) => m && m.role === 'assistant' && String(m.text || '').trim());
+  const lastText = String((last && last.text) || '').trim();
+  if (lastText.length > 10 && /[。！？!?…]$/.test(lastText)) {
+    return '我这边记录最后一句是完整的：“' + lastText.slice(-32) + '”。你那边如果只看到一半，我再发一遍完整版。';
+  }
+  return t;
+}
+
 const RESEARCH_CLAIM = /查到了|我查了|搜到了|查到(?:了|过)|我搜了/;
 
 function stripUnbackedResearchClaims(text, { searched = false } = {}) {
@@ -81,4 +94,4 @@ function isImmediateDuplicate(text, recent = []) {
   return Boolean(a && b && a === b);
 }
 
-module.exports = { stripRepeatedArrival, stripUnbackedActionClaims, stripUnbackedBrowseClaims, stripUnbackedResearchClaims, stripFalseDocumentClaims, stripDefensiveFileTone, isImmediateDuplicate, ARRIVAL };
+module.exports = { stripRepeatedArrival, stripUnbackedActionClaims, stripUnbackedBrowseClaims, stripUnbackedResearchClaims, stripFalseDocumentClaims, stripDefensiveFileTone, stripFalseTruncationAdmission, isImmediateDuplicate, ARRIVAL };

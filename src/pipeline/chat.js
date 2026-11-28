@@ -2141,6 +2141,7 @@ class Bot {
         recent: _recent,
         mediaFail: decision.msg && decision.msg._media_fail,
         searched: Boolean(decision.msg && (decision.msg.webSearchStatus === 'ok' || decision.msg.webText)),
+        userText: decision.msg && decision.msg.text,
       });
       if (_guard.drop) return [];
       text = _guard.text;

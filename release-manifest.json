@@ -1,18 +1,18 @@
 {
-    "latest": "4.10.0",
-    "released_at": "2026-11-27T06:44:12Z",
+    "latest": "4.10.0.1",
+    "released_at": "2026-11-28T05:42:38Z",
     "force_after_hours": 0,
     "force": false,
     "force_from": null,
     "force_versions": [],
     "kill_below": null,
-    "message": "鲸鲸 · 个人版 4.10.0：群聊@500修复；文档下载失败不再谎称空；PDF 128MB/页数/OCR游标；表情包只在请求时发；案例底座扩展",
-    "manifest_version": 19,
+    "message": "鲸鲸 · 个人版 4.10.0.1：完整消息不再被误承认截断；天气搜索有真实来源",
+    "manifest_version": 20,
     "channel": "personal",
     "update_warning": "",
     "update_warning_version": "",
     "epoch": 1,
-    "brand_latest": "4.10.0",
-    "target": "4.10.0",
-    "release_notes": "- 群聊 @ 500 修复\n- 文档下载失败/内容空误报修复\n- PDF 128MB、页数、OCR 前3页与 next_cursor\n- 表情包只在明确请求时发\n- 案例底座 313+52，平台 live 24/24\n- 兴趣实验由主人 waiver 跳过，未通过"
+    "brand_latest": "4.10.0.1",
+    "target": "4.10.0.1",
+    "release_notes": "- 完整 assistant 消息被问“没打完”时先核对，不再顺着承认截断\n- 天气搜索 9 条/1277 字真实返回\n- 4.10.0 的 PDF/案例/表情包修复保留"
 }
